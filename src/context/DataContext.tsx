@@ -38,7 +38,7 @@ interface DataContextType {
   settings: SettingsDoc[];
   changeRequests: ChangeRequest[];
   notifications: AppNotification[];
-  deletedRecords: Array<{ collection: string; record: Client | Cameraman | Shoot | Expense }>;
+  deletedRecords: Array<{ collection: ManagedCollection; record: Client | Cameraman | Shoot | Expense }>;
   loading: boolean;
   dashboardStats: DashboardStats;
   getClientLedger: (clientId: string) => ClientLedger;
@@ -84,7 +84,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [settings, setSettings] = useState<SettingsDoc[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deletedRecords, setDeletedRecords] = useState<Array<{ collection: string; record: Client | Cameraman | Shoot | Expense }>>([]);
+  const [deletedRecords, setDeletedRecords] = useState<Array<{ collection: ManagedCollection; record: Client | Cameraman | Shoot | Expense }>>([]);
   const [loadCount, setLoadCount] = useState(0);
   const loading = loadCount < 5; // wait for clients, cameramen, shoots, expenses, settings
 

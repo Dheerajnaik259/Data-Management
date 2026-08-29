@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, Clock, ExternalLink, Edit2, Trash2, FileText, Copy, Check, Video, Phone, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
+import { buildCameramanScheduleWhatsAppUrl } from '../utils/whatsapp';
 
 export const ShootDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -205,6 +206,14 @@ export const ShootDetail: React.FC = () => {
                 <div className="divide-y divide-[var(--color-border)]">
                   {shoot.assignments.map((assignment, idx) => {
                     const cam = cameramanMap.get(assignment.cameramanId);
+                    const scheduleWhatsAppUrl = cam ? buildCameramanScheduleWhatsAppUrl({
+                      phone: cam.phone,
+                      cameramanName: cam.name,
+                      clientName: client?.name,
+                      date: shoot.date,
+                      callTime: assignment.callTime || shoot.callTime,
+                      location: shoot.location,
+                    }) : null;
                     return (
                       <div key={idx} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[var(--color-bg-hover)] transition-colors">
                         <div className="flex items-center gap-3">
@@ -212,9 +221,17 @@ export const ShootDetail: React.FC = () => {
                           <div>
                             {cam ? <Link to={`/cameramen/${cam.id}`} className="font-semibold text-xs text-[var(--color-text)] hover:underline transition-colors">{cam.name}</Link> : <span className="font-semibold text-xs text-[var(--color-text)]">Unknown Operator</span>}
                             <p className="text-[11px] text-[var(--color-text-secondary)]">Agreed shoot rate: {formatCurrency(assignment.amount)}</p>
+                            <p className="text-[11px] text-[var(--color-text-secondary)]">Call time: {assignment.callTime || shoot.callTime || 'Not set'}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {scheduleWhatsAppUrl ? (
+                            <a href={scheduleWhatsAppUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-md hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition-colors" title="Open a prefilled WhatsApp schedule message">
+                              <MessageSquare className="w-3.5 h-3.5" /><span>Send schedule</span>
+                            </a>
+                          ) : cam ? (
+                            <span className="text-[11px] text-[var(--color-text-muted)]" title="Add the cameraman's phone number to enable WhatsApp messages">No WhatsApp number</span>
+                          ) : null}
                           <button type="button" disabled={assignment.amount === null} onClick={() => setPaymentConfirmation({ index: idx, paid: !assignment.paid, label: 'cameraman payout' })} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors ${assignment.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
                             {assignment.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>Mark Paid</span></>}
                           </button>

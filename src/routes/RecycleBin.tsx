@@ -7,12 +7,13 @@ import { canDelete, canRestore, canHardDelete } from '../utils/permissions';
 import { formatCurrency } from '../utils/formatCurrency';
 import { RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { ManagedCollection } from '../types';
 
 export const RecycleBin: React.FC = () => {
   const ctx = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { deletedRecords, handleRestore, handleHardDelete } = useData();
   const { user } = useAuth();
-  const [confirmAction, setConfirmAction] = useState<{ col: string; id: string; type: 'restore' | 'delete' } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ col: ManagedCollection; id: string; type: 'restore' | 'delete' } | null>(null);
   const [filterCol, setFilterCol] = useState<string>('all');
 
   const canAct = user ? canDelete(user.role) : false;

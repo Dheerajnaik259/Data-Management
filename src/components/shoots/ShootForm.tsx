@@ -69,6 +69,9 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
     if (!location.trim()) { setErrorMessage('Location is required.'); return; }
     if (!date) { setErrorMessage('Date is required.'); return; }
     if (clientAmount < 0) { setErrorMessage('Client amount must be non-negative.'); return; }
+    if (assignments.length > 0 && !callTime.trim() && assignments.some(assignment => !assignment.callTime)) {
+      setErrorMessage('Enter a general call time or a call-time override for every assigned cameraman.'); return;
+    }
     
     // Check pending dependencies (cannot link to a pending client/cameraman)
     // Actually the picker shouldn't show them if they are excluded, but let's assume they are valid if selected.
@@ -135,6 +138,7 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
           <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">General Call Time</label>
           <input type="time" value={callTime} onChange={e => setCallTime(e.target.value)}
             className="w-full max-w-xs text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none" />
+          <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Required when assigning crew unless each cameraman has a call-time override.</p>
         </div>
 
         <div className="pt-4 border-t border-[var(--color-border)]">

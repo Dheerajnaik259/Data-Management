@@ -71,9 +71,10 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
             className="w-full text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">Phone *</label>
+          <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">Phone / WhatsApp *</label>
           <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="+91 98765 11223"
             className="w-full text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none" />
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-1">Include the country code so schedule messages open in the correct WhatsApp chat.</p>
         </div>
         <div>
           <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">Standard Rate (₹) *</label>

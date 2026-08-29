@@ -372,7 +372,7 @@ export function subscribeToExpenses(callback: (e: Expense[]) => void): Unsubscri
 
 // ── DELETED RECORDS (Recycle Bin) ──
 
-export function subscribeToDeletedRecords(callback: (items: Array<{collection: string; record: Client | Cameraman | Shoot | Expense}>) => void): Unsubscribe {
+export function subscribeToDeletedRecords(callback: (items: Array<{collection: ManagedCollection; record: Client | Cameraman | Shoot | Expense}>) => void): Unsubscribe {
   if (isFirebaseConfigured && db) {
     const collections: ManagedCollection[] = ['clients', 'cameramen', 'shoots', 'expenses'];
     const snapshots = new Map<ManagedCollection, Array<Client | Cameraman | Shoot | Expense>>();
@@ -393,7 +393,7 @@ export function subscribeToDeletedRecords(callback: (items: Array<{collection: s
     return () => unsubs.forEach(unsub => unsub());
   }
   const notify = () => {
-    const results: Array<{collection: string; record: Client | Cameraman | Shoot | Expense}> = [];
+    const results: Array<{collection: ManagedCollection; record: Client | Cameraman | Shoot | Expense}> = [];
     getLocal<Client>(STORAGE_KEYS.CLIENTS, INITIAL_SEED_DATA.clients).filter(c => c.deletedAt).forEach(r => results.push({collection: 'clients', record: r}));
     getLocal<Cameraman>(STORAGE_KEYS.CAMERAMEN, INITIAL_SEED_DATA.cameramen).filter(c => c.deletedAt).forEach(r => results.push({collection: 'cameramen', record: r}));
     getLocal<Shoot>(STORAGE_KEYS.SHOOTS, INITIAL_SEED_DATA.shoots).filter(s => s.deletedAt).forEach(r => results.push({collection: 'shoots', record: r}));
