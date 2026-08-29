@@ -13,10 +13,10 @@ export interface InvoiceOptions {
 
 const DEFAULT_BIZ: Required<InvoiceOptions> = {
   invoiceNumber: 'INV-001',
-  businessName: 'SMM OPS MEDIA & PRODUCTION',
-  businessEmail: 'operations@smmops.internal',
-  businessPhone: '+91 98765 43210',
-  paymentDetails: 'UPI / Bank Transfer: smmops@hdfcbank | Account: 50200012345678, IFSC: HDFC0001234',
+  businessName: 'Business name not configured',
+  businessEmail: 'Business email not configured',
+  businessPhone: 'Business phone not configured',
+  paymentDetails: 'Payment details not configured',
 };
 
 /**

@@ -6,7 +6,12 @@ export function mergePendingItems<T extends { id: string }>(
   collectionName: 'clients' | 'cameramen' | 'shoots' | 'expenses'
 ): Array<T & { _pendingStatus?: 'pending_create' | 'pending_edit' | 'rejected' }> {
   // 1. Process edits onto existing items
-  const editRequests = changeRequests.filter(cr => cr.targetCollection === collectionName && cr.action === 'edit' && cr.targetDocId);
+  const editRequests = changeRequests.filter(cr =>
+    cr.targetCollection === collectionName
+    && cr.action === 'edit'
+    && cr.targetDocId
+    && (cr.status === 'pending' || cr.status === 'rejected')
+  );
   const editMap = new Map(editRequests.map(cr => [cr.targetDocId, cr]));
 
   const mergedItems = items.map(item => {
@@ -22,7 +27,11 @@ export function mergePendingItems<T extends { id: string }>(
   });
 
   // 2. Process creates (append as new items)
-  const createRequests = changeRequests.filter(cr => cr.targetCollection === collectionName && cr.action === 'create');
+  const createRequests = changeRequests.filter(cr =>
+    cr.targetCollection === collectionName
+    && cr.action === 'create'
+    && (cr.status === 'pending' || cr.status === 'rejected')
+  );
   
   createRequests.forEach(req => {
     mergedItems.unshift({

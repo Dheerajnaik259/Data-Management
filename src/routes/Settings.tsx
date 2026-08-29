@@ -22,7 +22,7 @@ export const Settings: React.FC = () => {
             onSave={handleUpdateSettings} />
         ))}
         {settings.length === 0 && (
-          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No settings found. Demo data may need to be reset.</p>
+          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No configurable option lists are available yet. Confirm that the Supabase setup SQL has been applied.</p>
         )}
       </div>
     </div>

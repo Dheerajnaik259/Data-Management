@@ -21,6 +21,15 @@ export function checkOverdue(
     };
   }
 
+  if (shootStatus !== 'done') {
+    return {
+      isOverdue: false,
+      daysDiff: 0,
+      dueDate: '',
+      label: 'Pending completion',
+    };
+  }
+
   if (!shootDate) {
     return {
       isOverdue: false,
@@ -73,4 +82,3 @@ export function checkOverdue(
 }
 
 export const checkPaymentOverdue = checkOverdue;
-

@@ -180,6 +180,7 @@ export interface PaymentRecord {
   shootLocation: string;
   shootStatus: string;
   amount: number;
+  hasAssignedRate?: boolean;
   isPaid: boolean;
   paidAt?: string | null;
   overdueInfo: OverdueInfo;

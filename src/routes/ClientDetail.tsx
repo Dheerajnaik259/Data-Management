@@ -7,7 +7,7 @@ import { CommunicationLogEditor } from '../components/clients/CommunicationLogEd
 import { ClientForm } from '../components/clients/ClientForm';
 import { ShootForm } from '../components/shoots/ShootForm';
 import { CommunicationLog, Client } from '../types';
-import { subscribeToCommunicationLogs } from '../firebase/firestore';
+import { subscribeToCommunicationLogs } from '../supabase/data';
 import { ArrowLeft, Phone, ExternalLink, Edit2, Calendar, MapPin, CheckCircle2, Clock, Plus, FileText, DollarSign, Briefcase } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';

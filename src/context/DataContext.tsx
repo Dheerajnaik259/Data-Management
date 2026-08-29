@@ -12,9 +12,11 @@ import {
   addCommunicationLog, resetToSeedData, requestInvoiceNumber, findUserIdByRole,
   submitChangeRequestWithNotification, resubmitChangeRequestWithNotification,
   reviewChangeRequestWithNotification,
-} from '../firebase/firestore';
-import { isFirebaseConfigured } from '../firebase/config';
+  updateShootOperationalData,
+} from '../supabase/data';
+import { isSupabaseConfigured } from '../supabase/config';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 import { checkOverdue } from '../utils/overdueCheck';
 import { canCreateDirect, canApprove, canDelete as canDeletePerm, canSubmitForApproval } from '../utils/permissions';
 
@@ -77,6 +79,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [cameramen, setCameramen] = useState<Cameraman[]>([]);
   const [shoots, setShoots] = useState<Shoot[]>([]);
@@ -89,6 +92,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loading = loadCount < 5; // wait for clients, cameramen, shoots, expenses, settings
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      toast({
+        type: 'error',
+        duration: 10000,
+        message: 'Operational data is unavailable until Supabase is configured. No local demo data is used.',
+      });
+      setLoadCount(5);
+      return;
+    }
+    setLoadCount(0);
     const loaded = () => setLoadCount(c => c + 1);
     const unsubs = [
       subscribeToClients(d => { setClients(d); loaded(); }),
@@ -100,7 +113,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscribeToDeletedRecords(setDeletedRecords),
     ];
     return () => unsubs.forEach(u => u());
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    const reportUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const message = event.reason instanceof Error ? event.reason.message : 'An unexpected operation failed.';
+      toast({ type: 'error', duration: 6000, message });
+    };
+    window.addEventListener('unhandledrejection', reportUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', reportUnhandledRejection);
+  }, [toast]);
 
   // Subscribe to notifications for current user
   useEffect(() => {
@@ -154,7 +176,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         phone: client?.phone, shootDate: shoot.date, shootLocation: shoot.location,
         shootStatus: shoot.status, amount: shoot.clientAmount, isPaid: shoot.clientPaid,
         paidAt: shoot.clientPaidAt,
-        overdueInfo: checkOverdue(shoot.date, shoot.clientPaid),
+        overdueInfo: checkOverdue(shoot.date, shoot.clientPaid, shoot.status),
       });
       shoot.assignments?.forEach((a, idx) => {
         const cam = camMap.get(a.cameramanId);
@@ -162,9 +184,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: `out-${shoot.id}-${idx}`, type: 'outgoing', shootId: shoot.id,
           targetId: a.cameramanId, targetName: cam?.name || 'Unknown',
           phone: cam?.phone, shootDate: shoot.date, shootLocation: shoot.location,
-          shootStatus: shoot.status, amount: a.amount, isPaid: a.paid,
+          shootStatus: shoot.status, amount: a.amount || 0, hasAssignedRate: a.amount !== null, isPaid: a.paid,
           paidAt: a.paidAt,
-          overdueInfo: checkOverdue(shoot.date, a.paid),
+          overdueInfo: checkOverdue(shoot.date, a.paid, shoot.status),
           assignmentIndex: idx,
         });
       });
@@ -222,7 +244,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSoftDelete = async (col: ManagedCollection, docId: string) => {
     if (!user || !canDeletePerm(user.role)) return;
-    await softDelete(col, docId, user.uid);
+    await softDelete(col, docId);
   };
 
   const handleRestore = async (col: ManagedCollection, docId: string) => {
@@ -237,7 +259,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Shoot payment toggles (direct — these aren't data-entry, they're status updates)
   const handleToggleClientPayment = async (shootId: string, isPaid: boolean) => {
-    await directUpdate('shoots', shootId, { clientPaid: isPaid, clientPaidAt: isPaid ? new Date().toISOString() : null });
+    await updateShootOperationalData(shootId, { clientPaid: isPaid, clientPaidAt: isPaid ? new Date().toISOString() : null });
   };
 
   const handleToggleCameramanPayment = async (shootId: string, idx: number, isPaid: boolean) => {
@@ -246,7 +268,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = [...shoot.assignments];
     if (updated[idx].amount === null && isPaid) throw new Error('Set the cameraman payout before marking it paid.');
     updated[idx] = { ...updated[idx], paid: isPaid, paidAt: isPaid ? new Date().toISOString() : null };
-    await directUpdate('shoots', shootId, { assignments: updated });
+    await updateShootOperationalData(shootId, { assignments: updated });
   };
 
   const handleToggleCameramanCheckIn = async (shootId: string, idx: number, checkedIn: boolean) => {
@@ -254,7 +276,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!shoot?.assignments?.[idx]) return;
     const updated = [...shoot.assignments];
     updated[idx] = { ...updated[idx], checkedInAt: checkedIn ? new Date().toISOString() : null };
-    await directUpdate('shoots', shootId, { assignments: updated });
+    await updateShootOperationalData(shootId, { assignments: updated });
   };
 
   // ── Approval ──
@@ -300,7 +322,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (shoot?.clientInvoiceNumber) return shoot.clientInvoiceNumber;
     if (!shoot?.clientPaid) throw new Error('Mark the client payment as paid before generating an invoice.');
     const num = await requestInvoiceNumber('client', shootId);
-    if (!isFirebaseConfigured) await directUpdate('shoots', shootId, { clientInvoiceNumber: num });
     return num;
   };
 
@@ -310,14 +331,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (shoot.assignments[assignmentIndex].payoutVoucherNumber) return shoot.assignments[assignmentIndex].payoutVoucherNumber!;
     if (!shoot.assignments[assignmentIndex].paid) throw new Error('Mark the payout as paid before generating a voucher.');
     const num = await requestInvoiceNumber('payout', shootId, assignmentIndex);
-    if (isFirebaseConfigured) return num;
-    const updated = [...shoot.assignments];
-    updated[assignmentIndex] = { ...updated[assignmentIndex], payoutVoucherNumber: num };
-    await directUpdate('shoots', shootId, { assignments: updated });
     return num;
   };
 
-  const handleResetDemoData = () => { resetToSeedData(); };
+  const handleResetDemoData = () => {
+    try { resetToSeedData(); }
+    catch (error) { toast({ type: 'info', message: error instanceof Error ? error.message : 'Demo data is unavailable.' }); }
+  };
 
   return (
     <DataContext.Provider value={{

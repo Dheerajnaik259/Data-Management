@@ -5,10 +5,9 @@ export function exportToCsv<T extends Record<string, unknown>>(
   filename: string,
   rows: T[],
   headers?: { key: keyof T; label: string }[]
-): void {
+): boolean {
   if (!rows || !rows.length) {
-    alert('No data available to export.');
-    return;
+    return false;
   }
 
   let columnKeys: (keyof T)[];
@@ -54,4 +53,5 @@ export function exportToCsv<T extends Record<string, unknown>>(
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+  return true;
 }

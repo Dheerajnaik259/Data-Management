@@ -51,6 +51,7 @@ export const Payments: React.FC = () => {
   })), [filteredRecords]);
 
   const handleTogglePayment = async (record: PaymentRecord) => {
+    if (record.type === 'outgoing' && !record.hasAssignedRate && !record.isPaid) return;
     if (record.type === 'incoming') await handleToggleClientPayment(record.shootId, !record.isPaid);
     else await handleToggleCameramanPayment(record.shootId, record.assignmentIndex ?? 0, !record.isPaid);
   };
@@ -137,6 +138,7 @@ export const Payments: React.FC = () => {
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {filteredRecords.map(item => {
                     const isClient = item.type === 'incoming';
+                    const paymentActionDisabled = !isClient && !item.isPaid && !item.hasAssignedRate;
                     const targetLink = isClient ? `/clients/${item.targetId}` : `/cameramen/${item.targetId}`;
                     return (
                       <tr key={item.id} className="hover:bg-[var(--color-bg-hover)] transition-colors">
@@ -158,7 +160,7 @@ export const Payments: React.FC = () => {
                         <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(item.amount)}</td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <button type="button" onClick={() => handleTogglePayment(item)} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${item.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
+                            <button type="button" disabled={paymentActionDisabled} title={paymentActionDisabled ? 'Set the cameraman payout before marking it paid.' : undefined} onClick={() => { void handleTogglePayment(item).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${item.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
                               {item.isPaid ? <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" /><span>Mark Paid</span></>}
                             </button>
                             <OverdueBadge isPaid={item.isPaid} overdueInfo={item.overdueInfo} size="sm" />

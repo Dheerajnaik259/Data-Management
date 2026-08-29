@@ -109,7 +109,7 @@ export const Login: React.FC = () => {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              disabled={isLoading}
+              disabled={isLoading || !isBackendLive}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-[#1C1917] bg-white border border-[#D6D3D1] hover:bg-[#F5F5F4] rounded-md transition-colors shadow-xs disabled:opacity-50"
             >
               <span className="font-bold text-[#4285F4]">G</span>
@@ -165,7 +165,7 @@ export const Login: React.FC = () => {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isBackendLive}
               className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-white bg-[#C85A32] hover:bg-[#B84A24] rounded-md transition-colors shadow-xs disabled:opacity-50"
             >
               {isLoading ? (
@@ -180,14 +180,14 @@ export const Login: React.FC = () => {
                 </>
               )}
             </button>
-            <button type="button" onClick={handleResetPassword} className="w-full text-xs font-semibold text-[#C85A32] hover:underline">
+            <button type="button" onClick={handleResetPassword} disabled={!isBackendLive} className="w-full text-xs font-semibold text-[#C85A32] hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
               Forgot password?
             </button>
           </form>
 
         </div>
 
-        {/* Live Cloud or Local Mode Status */}
+        {/* Cloud configuration status */}
         <div className="mt-4 text-center">
           <p className="text-[11px] text-[#78716C]">
             {isBackendLive ? (
@@ -195,8 +195,8 @@ export const Login: React.FC = () => {
                 &bull; Connected to Supabase Auth. Three authorized operators maximum.
               </span>
             ) : (
-              <span className="text-[#78716C]">
-                &bull; Running in Local Reactive Mode. Enter your Supabase keys in <code className="bg-[#E5E0DA]/50 px-1 py-0.5 rounded text-[10px]">.env.local</code> to enable cloud authentication.
+              <span className="text-red-700 font-medium">
+                &bull; Supabase is not configured. Sign-in is disabled until <code className="bg-[#FEE2E2] px-1 py-0.5 rounded text-[10px]">.env.local</code> contains valid Supabase keys.
               </span>
             )}
           </p>

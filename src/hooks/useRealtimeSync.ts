@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Unsubscribe } from 'firebase/firestore';
+import { Unsubscribe } from '../supabase/data';
 
 /**
- * Reusable custom hook for real-time synchronization with Firestore onSnapshot
+ * Reusable custom hook for real-time subscriptions.
  * @param subscriberFn - The subscription function returning an Unsubscribe callback
  * @param deps - Dependency array for re-subscribing
  */

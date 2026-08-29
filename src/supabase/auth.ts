@@ -1,15 +1,10 @@
 import { AuthUser } from '../types';
 import { supabase, isSupabaseConfigured } from './config';
 
-const LOCAL_STORAGE_AUTH_KEY = 'smm_ops_auth_user';
-const LOCAL_ROLE_MAP: Record<string, string> = {
-  'dheerajnaik259@gmail.com': 'admin',
-  'kushagrarana707@gmail.com': 'founder',
-};
-
 async function toAuthUser(id: string, email: string | null, displayName: string | null): Promise<AuthUser> {
   if (!supabase) throw new Error('Supabase is not configured.');
-  const { data: profile } = await supabase.from('profiles').select('name, role').eq('id', id).maybeSingle();
+  const { data: profile, error } = await supabase.from('profiles').select('name, role').eq('id', id).maybeSingle();
+  if (error) throw new Error(`Unable to verify your authorized profile: ${error.message}`);
   if (!profile || !['admin', 'founder'].includes(profile.role)) {
     await supabase.auth.signOut();
     throw new Error(`${email || 'This Google account'} is not authorized yet. Add its Auth user to public.profiles with role admin or founder.`);
@@ -43,7 +38,10 @@ export async function updatePassword(password: string): Promise<void> {
 
 export async function loginWithEmail(email: string, password: string): Promise<AuthUser> {
   const cleanEmail = email.trim().toLowerCase();
-  if (isSupabaseConfigured && supabase) {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. This app cannot sign in or store data until its environment variables are set.');
+  }
+  try {
     const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
     if (error || !data.user) {
       if (error?.message.toLowerCase().includes('invalid login credentials')) {
@@ -52,38 +50,33 @@ export async function loginWithEmail(email: string, password: string): Promise<A
       throw new Error(error?.message || 'Authentication failed.');
     }
     return toAuthUser(data.user.id, data.user.email, data.user.user_metadata?.full_name);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Authentication failed.';
+    if (/failed to fetch|network|networkerror|load failed/i.test(message)) {
+      throw new Error('Cannot reach Supabase. Check your internet connection and Supabase URL, then try again.');
+    }
+    throw error;
   }
-
-  const role = LOCAL_ROLE_MAP[cleanEmail];
-  if (role && password.length >= 4) {
-    const user: AuthUser = {
-      uid: `local_${cleanEmail.split('@')[0]}`,
-      email: cleanEmail,
-      displayName: role === 'admin' ? 'Dheeraj (Admin)' : `${cleanEmail.split('@')[0]} (Founder)`,
-      role,
-    };
-    localStorage.setItem(LOCAL_STORAGE_AUTH_KEY, JSON.stringify(user));
-    return user;
-  }
-  throw new Error('Access restricted. Use one of the authorized accounts.');
 }
 
 export async function logoutUser(): Promise<void> {
-  if (isSupabaseConfigured && supabase) await supabase.auth.signOut();
-  localStorage.removeItem(LOCAL_STORAGE_AUTH_KEY);
+  if (!isSupabaseConfigured || !supabase) return;
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
 export async function sendPasswordReset(email: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: `${window.location.origin}/login`,
-    });
-    if (error) {
-      if (error.message.toLowerCase().includes('rate limit')) {
-        throw new Error('Too many reset emails requested. Please wait before trying again.');
-      }
-      throw error;
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Password reset is unavailable.');
+  }
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/login`,
+  });
+  if (error) {
+    if (error.message.toLowerCase().includes('rate limit')) {
+      throw new Error('Too many reset emails requested. Please wait before trying again.');
     }
+    throw error;
   }
 }
 
@@ -104,9 +97,6 @@ export function subscribeToAuthState(callback: (user: AuthUser | null) => void):
     return () => { active = false; data.subscription.unsubscribe(); };
   }
 
-  const saved = localStorage.getItem(LOCAL_STORAGE_AUTH_KEY);
-  if (saved) {
-    try { callback(JSON.parse(saved) as AuthUser); } catch { callback(null); }
-  } else callback(null);
+  callback(null);
   return () => {};
 }
