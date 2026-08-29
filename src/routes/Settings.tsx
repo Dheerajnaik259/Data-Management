@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { SettingsDoc, SettingsOption } from '../types';
-import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown, Building2, Save } from 'lucide-react';
+import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown, Building2, Save, Lock } from 'lucide-react';
 import { parseBusinessProfileFromSettings, BusinessProfileData } from '../config/business';
 
 export const Settings: React.FC = () => {
@@ -42,6 +43,8 @@ interface BusinessProfileCardProps {
 }
 
 const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSave }) => {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
   const initial = parseBusinessProfileFromSettings(setting);
   const [formData, setFormData] = useState<BusinessProfileData>(initial);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,6 +56,7 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFounder) return;
     setIsSaving(true);
     try {
       const payload = JSON.stringify(formData);
@@ -81,6 +85,11 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Details printed on client invoices and crew payout vouchers</p>
           </div>
         </div>
+        {!isFounder && (
+          <span className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1 rounded-md font-semibold border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+            <Lock className="w-3 h-3" /> Founder Only
+          </span>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -89,10 +98,11 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
             <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Business Name</label>
             <input
               type="text"
+              disabled={!isFounder}
               value={formData.businessName}
               onChange={e => setFormData({ ...formData, businessName: e.target.value })}
               placeholder="e.g. SMM Ops Media"
-              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -100,10 +110,11 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
             <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Business Email</label>
             <input
               type="email"
+              disabled={!isFounder}
               value={formData.businessEmail}
               onChange={e => setFormData({ ...formData, businessEmail: e.target.value })}
               placeholder="operations@smmops.com"
-              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -111,10 +122,11 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
             <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Business Phone</label>
             <input
               type="text"
+              disabled={!isFounder}
               value={formData.businessPhone}
               onChange={e => setFormData({ ...formData, businessPhone: e.target.value })}
               placeholder="+91 98765 43210"
-              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -123,11 +135,12 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
         <div>
           <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Payment & Bank / UPI Instructions</label>
           <textarea
+            disabled={!isFounder}
             value={formData.paymentDetails}
             onChange={e => setFormData({ ...formData, paymentDetails: e.target.value })}
             placeholder="e.g. UPI ID: smmops@hdfcbank | Bank: HDFC | A/C: 50200012345678 | IFSC: HDFC0001234"
             rows={2}
-            className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
             required
           />
         </div>
@@ -137,17 +150,24 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               <Check className="w-3.5 h-3.5" /> Company profile saved!
             </span>
+          ) : !isFounder ? (
+            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+              <Lock className="w-3 h-3" /> Only the Founder can edit company payment and profile details.
+            </span>
           ) : (
             <span className="text-[11px] text-[var(--color-text-muted)]">Changes apply immediately to generated PDFs.</span>
           )}
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'Saving...' : 'Save Company Profile'}</span>
-          </button>
+
+          {isFounder && (
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{isSaving ? 'Saving...' : 'Save Company Profile'}</span>
+            </button>
+          )}
         </div>
       </form>
     </div>

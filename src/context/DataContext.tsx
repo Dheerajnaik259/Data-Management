@@ -374,6 +374,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleUpdateSettings = async (id: string, data: Partial<SettingsDoc>) => {
     try {
+      if (id === 'businessProfile' && user?.role !== 'founder') {
+        throw new Error('Only the Founder has permission to edit company invoice profile settings.');
+      }
       await updateSettingsDoc(id, data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to update settings';
