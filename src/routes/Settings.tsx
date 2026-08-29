@@ -4,8 +4,8 @@ import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { SettingsDoc, SettingsOption } from '../types';
-import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown, Building2, Save, Lock } from 'lucide-react';
-import { parseBusinessProfileFromSettings, BusinessProfileData } from '../config/business';
+import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown, Building2, Save, Lock, User, KeyRound, MessageSquare, Sliders } from 'lucide-react';
+import { parseBusinessProfileFromSettings, BusinessProfileData, parseOperationalSettings, OperationalSettingsData } from '../config/business';
 
 export const Settings: React.FC = () => {
   const ctx = useOutletContext<{ onOpenMobileNav: () => void }>();
@@ -13,12 +13,15 @@ export const Settings: React.FC = () => {
   const [editingKey, setEditingKey] = useState<string | null>(null);
 
   const businessDoc = settings.find(s => s.key === 'businessProfile');
-  const optionListSettings = settings.filter(s => s.key !== 'businessProfile');
+  const operationalDoc = settings.find(s => s.key === 'operationalSettings');
+  const optionListSettings = settings.filter(s => s.key !== 'businessProfile' && s.key !== 'operationalSettings');
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <Header title="Settings" subtitle="Manage company profile and configurable option lists" onOpenMobile={ctx?.onOpenMobileNav} />
+      <Header title="Settings" subtitle="Manage account, operational defaults, company profile, and dropdown lists" onOpenMobile={ctx?.onOpenMobileNav} />
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
+        <MyAccountCard />
+        <OperationalDefaultsCard setting={operationalDoc} onSave={handleUpdateSettings} />
         <BusinessProfileCard setting={businessDoc} onSave={handleUpdateSettings} />
 
         {optionListSettings.map(setting => (
@@ -29,10 +32,232 @@ export const Settings: React.FC = () => {
             onSave={handleUpdateSettings} />
         ))}
 
-        {optionListSettings.length === 0 && !businessDoc && (
+        {optionListSettings.length === 0 && !businessDoc && !operationalDoc && (
           <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No configurable option lists are available yet. Confirm that the Supabase setup SQL has been applied.</p>
         )}
       </div>
+    </div>
+  );
+};
+
+const MyAccountCard: React.FC = () => {
+  const { user, updatePassword } = useAuth();
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: 'Passwords do not match.' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'Password must be at least 6 characters long.' });
+      return;
+    }
+
+    setIsUpdating(true);
+    setMessage(null);
+    try {
+      await updatePassword(newPassword);
+      setMessage({ type: 'success', text: 'Password updated successfully!' });
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setMessage(null), 4000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update password.';
+      setMessage({ type: 'error', text: msg });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors shadow-2xs">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center">
+            <User className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-serif text-base font-bold text-[var(--color-text)]">My Account & Security</h3>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Manage your credentials and login password</p>
+          </div>
+        </div>
+        <span className="text-xs px-2.5 py-1 rounded-md font-semibold bg-[var(--color-accent)]/10 text-[var(--color-accent)] capitalize">
+          Role: {user?.role || 'User'}
+        </span>
+      </div>
+
+      <form onSubmit={handlePasswordChange} className="p-5 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Email Account</label>
+            <input
+              type="text"
+              disabled
+              value={user?.email || ''}
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text-muted)] cursor-not-allowed"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">New Password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Minimum 6 characters"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Confirm New Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter password"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          {message ? (
+            <span className={`text-xs font-semibold flex items-center gap-1 ${message.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              {message.type === 'success' ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />} {message.text}
+            </span>
+          ) : (
+            <span className="text-[11px] text-[var(--color-text-muted)]">Updating password will take effect on your next login session.</span>
+          )}
+
+          <button
+            type="submit"
+            disabled={isUpdating || !newPassword}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>{isUpdating ? 'Updating...' : 'Update Password'}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+interface OperationalDefaultsCardProps {
+  setting?: SettingsDoc;
+  onSave: (id: string, data: Partial<SettingsDoc>) => Promise<void>;
+}
+
+const OperationalDefaultsCard: React.FC<OperationalDefaultsCardProps> = ({ setting, onSave }) => {
+  const initial = parseOperationalSettings(setting);
+  const [formData, setFormData] = useState<OperationalSettingsData>(initial);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    setFormData(parseOperationalSettings(setting));
+  }, [setting]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const payload = JSON.stringify(formData);
+      await onSave('operationalSettings', {
+        label: 'Operational Defaults',
+        options: [{ value: payload, order: 1, archived: false }],
+      });
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error saving operational settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors shadow-2xs">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center">
+            <Sliders className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Operational Defaults & WhatsApp Templates</h3>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Customize payment grace period and automated WhatsApp message templates</p>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Payment Grace Period (Days)</label>
+          <input
+            type="number"
+            min="1"
+            max="90"
+            value={formData.paymentGraceDays}
+            onChange={e => setFormData({ ...formData, paymentGraceDays: Number(e.target.value) || 7 })}
+            className="w-full sm:w-48 px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            required
+          />
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-1">Number of days after shoot date before unpaid client bills are marked overdue.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1 flex items-center gap-1">
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> Client Payment Reminder Template
+            </label>
+            <textarea
+              value={formData.clientReminderTemplate}
+              onChange={e => setFormData({ ...formData, clientReminderTemplate: e.target.value })}
+              rows={4}
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] font-mono"
+              required
+            />
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1">Available tags: <code className="text-[var(--color-accent)] font-mono">&#123;clientName&#125;</code>, <code className="text-[var(--color-accent)] font-mono">&#123;amount&#125;</code>, <code className="text-[var(--color-accent)] font-mono">&#123;date&#125;</code>, <code className="text-[var(--color-accent)] font-mono">&#123;location&#125;</code></p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1 flex items-center gap-1">
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> Crew Schedule Message Template
+            </label>
+            <textarea
+              value={formData.crewScheduleTemplate}
+              onChange={e => setFormData({ ...formData, crewScheduleTemplate: e.target.value })}
+              rows={4}
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] font-mono"
+              required
+            />
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1">Available tags: <code className="text-[var(--color-accent)] font-mono">&#123;cameramanName&#125;</code>, <code className="text-[var(--color-accent)] font-mono">&#123;clientName&#125;</code>, <code className="text-[var(--color-accent)] font-mono">&#123;date&#125;</code>, <code className="text-[var(--color-accent)] font-mono">&#123;callTime&#125;</code>, <code className="text-[var(--color-accent)] font-mono">&#123;location&#125;</code></p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)]">
+          {savedSuccess ? (
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" /> Operational settings saved!
+            </span>
+          ) : (
+            <span className="text-[11px] text-[var(--color-text-muted)]">Changes apply immediately across WhatsApp notifications and grace period calculations.</span>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{isSaving ? 'Saving...' : 'Save Operational Defaults'}</span>
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

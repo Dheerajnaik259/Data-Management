@@ -11,13 +11,15 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, Clock, ExternalLink, Edit2, Trash2, FileText, Copy, Check, Video, Phone, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
-import { buildCameramanScheduleWhatsAppUrl } from '../utils/whatsapp';
+import { buildCameramanScheduleWhatsAppUrl, buildClientPaymentReminderWhatsAppUrl } from '../utils/whatsapp';
+import { parseOperationalSettings } from '../config/business';
 
 export const ShootDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { shoots, clients, cameramen, expenses, handleUpdateOrSubmit, handleSoftDelete, handleToggleClientPayment, handleToggleCameramanPayment } = useData();
+  const { shoots, clients, cameramen, expenses, settings, handleUpdateOrSubmit, handleSoftDelete, handleToggleClientPayment, handleToggleCameramanPayment } = useData();
   const { user } = useAuth();
+  const operationalSettings = parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
 
   const shoot = shoots.find(s => s.id === id);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
@@ -42,7 +44,7 @@ export const ShootDetail: React.FC = () => {
 
   const client = clients.find(c => c.id === shoot.clientId);
   const cameramanMap = new Map(cameramen.map(c => [c.id, c]));
-  const overdueInfo = checkOverdue(shoot.date, shoot.clientPaid, shoot.status);
+  const overdueInfo = checkOverdue(shoot.date, shoot.clientPaid, shoot.status, operationalSettings.paymentGraceDays);
 
   const totalCrewPayouts = (shoot.assignments || []).reduce((acc, a) => acc + (a.amount || 0), 0);
   const shootDirectExpenses = expenses.filter(e => e.shootId === shoot.id).reduce((acc, e) => acc + (e.amount || 0), 0);
@@ -72,9 +74,14 @@ export const ShootDetail: React.FC = () => {
 
   const getWhatsAppReminderUrl = () => {
     if (!client?.phone) return '';
-    const cleanPhone = client.phone.replace(/[^0-9]/g, '');
-    const message = encodeURIComponent(`Hi ${client.name}! Greetings from SMM Ops Tool. This is a gentle reminder regarding the invoice of ${formatCurrency(shoot.clientAmount)} for the shoot at ${shoot.location} on ${shoot.date}. Please let us know once transferred so we can release full final master assets. Thank you!`);
-    return `https://wa.me/${cleanPhone}?text=${message}`;
+    return buildClientPaymentReminderWhatsAppUrl({
+      phone: client.phone,
+      clientName: client.name,
+      amount: formatCurrency(shoot.clientAmount),
+      date: shoot.date,
+      location: shoot.location,
+      template: operationalSettings.clientReminderTemplate,
+    }) || '';
   };
 
   const canActDelete = user ? canDelete(user.role) : false;
@@ -213,6 +220,7 @@ export const ShootDetail: React.FC = () => {
                       date: shoot.date,
                       callTime: assignment.callTime || shoot.callTime,
                       location: shoot.location,
+                      template: operationalSettings.crewScheduleTemplate,
                     }) : null;
                     return (
                       <div key={idx} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[var(--color-bg-hover)] transition-colors">

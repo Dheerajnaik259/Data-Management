@@ -10,9 +10,13 @@ import { EmptyState } from '../components/common/EmptyState';
 import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal';
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Clock, Search, MessageSquare, FileText, Calendar, MapPin, Filter, ArrowUpRight } from 'lucide-react';
 
+import { parseOperationalSettings } from '../config/business';
+import { buildClientPaymentReminderWhatsAppUrl } from '../utils/whatsapp';
+
 export const Payments: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
-  const { paymentRecords, shoots, clients, cameramen, handleToggleClientPayment, handleToggleCameramanPayment } = useData();
+  const { paymentRecords, shoots, clients, cameramen, settings, handleToggleClientPayment, handleToggleCameramanPayment } = useData();
+  const operationalSettings = parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'incoming' | 'outgoing'>('all');
@@ -23,6 +27,18 @@ export const Payments: React.FC = () => {
   const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
   const cameramanMap = useMemo(() => new Map(cameramen.map(c => [c.id, c])), [cameramen]);
   const shootMap = useMemo(() => new Map(shoots.map(s => [s.id, s])), [shoots]);
+
+  const getWhatsAppReminderUrl = (item: PaymentRecord) => {
+    if (!item.phone) return '#';
+    return buildClientPaymentReminderWhatsAppUrl({
+      phone: item.phone,
+      clientName: item.targetName,
+      amount: formatCurrency(item.amount),
+      date: item.shootDate,
+      location: item.shootLocation,
+      template: operationalSettings.clientReminderTemplate,
+    }) || '#';
+  };
 
   const filteredRecords = useMemo(() => {
     return paymentRecords.filter(record => {
@@ -60,15 +76,6 @@ export const Payments: React.FC = () => {
     const shoot = shootMap.get(record.shootId);
     if (!shoot) return;
     setPreviewData({ type: record.type === 'incoming' ? 'client_invoice' : 'cameraman_receipt', shoot, targetId: record.targetId, amount: record.amount, paid: record.isPaid, paidAt: record.paidAt });
-  };
-
-  const getWhatsAppReminderUrl = (record: PaymentRecord) => {
-    if (!record.phone) return '';
-    const cleanPhone = record.phone.replace(/[^0-9]/g, '');
-    const text = record.type === 'incoming'
-      ? `Hi ${record.targetName}, hope you are doing great! This is a friendly reminder regarding the pending invoice of ${formatCurrency(record.amount)} for our shoot on ${record.shootDate} (${record.shootLocation}). Please share the payment confirmation once transferred. Thank you!`
-      : `Hi ${record.targetName}, regarding your crew payout of ${formatCurrency(record.amount)} for shoot on ${record.shootDate}: our accounts team is processing disbursements. Feel free to ping if you have any questions!`;
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
 
   return (
