@@ -1,112 +1,105 @@
 # SMM Ops Tool
 
-A role-based operations dashboard for a social-media marketing and promo-video business. It keeps clients, freelance cameramen, shoots, expenses, payments, and approvals in one place.
+A production-grade, role-gated operational platform built for Social Media Management (SMM) agencies and video production teams. It centralizes client accounts, freelance cameramen, shoot scheduling, operating expenses, financial disbursements, dynamic WhatsApp communication, and governance approvals in a unified dashboard.
 
-## What it does
+---
 
-- Manage client records, contacts, agreements, communication logs, and payment ledgers.
-- Schedule shoots, assign cameramen, record call times, availability, check-ins, deliverables, and file links.
-- Track incoming client payments, outgoing crew payouts, and other business expenses; overdue items are highlighted.
-- Generate invoices and payout vouchers as PDFs, and export list data to CSV.
-- Keep changes accountable with role-based approval requests, notifications, and a recycle bin for deleted records.
-- View live operational data, upcoming shoots, pending actions, and revenue trends on the dashboard.
+## Key Features
 
-## Roles
+### 1. Role-Based Access Control (RBAC)
+- **Admin Role (Operator)**: Enters day-to-day operational data (clients, cameramen, shoots, expenses), which are submitted to the Founder approval queue. Holds direct authority over soft-deletions, restores, permanent hard-deletions, routine payment status toggles, and daily crew dispatches.
+- **Founder Role (Business Owner)**: Final authority on financial identity and legal business profiles. Reviews and approves/rejects submitted change requests with review notes. Owns high-level cashflow oversight and client profitability intelligence.
 
-| Role | Responsibilities |
-| --- | --- |
-| Admin | Creates and edits operational data, submits changes for approval, and manages deletions and recovery. |
-| Founder | Reviews and approves or rejects submitted changes; direct founder edits apply immediately. |
+---
 
-Routine actions such as marking payments as paid and recording a crew check-in apply immediately after confirmation.
+### 2. Dual-Role Dashboard Architecture
 
-## Tech stack
+#### Admin Operations Dashboard (`/`)
+- **Daily Crew Dispatch Console**: Isolates shoots scheduled for *Today* and *Tomorrow*, displaying assigned videographers with **1-click WhatsApp Call Sheets** prefilled with shoot details and call times.
+- **My Submissions Queue Widget**: Displays live status of submitted change requests (*Pending*, *Approved*, *Rejected*), complete with Founder review notes and 1-click resubmit links.
+- **Receivables & Payout Action Desks**: Highlights overdue client invoices and pending crew disbursements for immediate resolution.
 
-- React 19, TypeScript, Vite, and Tailwind CSS
-- Firebase Firestore for real-time operational data
-- Supabase for authentication and storage integration
-- React Router for navigation
-- jsPDF for invoices and vouchers
+#### Founder Executive Dashboard (`/`)
+- **Governance Action Callout**: Top-priority banner alerting the Founder to pending change requests awaiting approval.
+- **Client Profitability & Margin Ranking Table**: Ranks client accounts by *Invoiced Revenue*, *Total Production Cost* (Crew Payouts + Direct Expenses), *Net Margin (₹)*, and *Margin %* badges.
+- **Net Operating Cashflow**: Real-time summary of receivables minus payouts and operating overhead.
 
-## Prerequisites
+---
 
+### 3. Operational Settings & Security
+- **My Account & Security**: Allows users to manage credentials and update their login password directly from the UI.
+- **Configurable Payment Grace Period**: Customize the payment grace period (default: 7 days) before unpaid client invoices are automatically flagged as overdue across the system.
+- **Dynamic WhatsApp Message Templates**: Editable templates for client payment reminders and crew schedule dispatch notifications with placeholder injection (`{clientName}`, `{amount}`, `{date}`, `{location}`, `{cameramanName}`, `{callTime}`).
+- **Founder-Only Legal Profile**: Gated inputs (`🔒 Founder Only`) protecting business name, legal email, phone, and Bank/UPI payment details.
+- **Customizable Option Lists**: Editable categories for client status, shoot status, deliverable types, and expense categories.
+
+---
+
+### 4. Financial & Administrative Desks
+- **Payments Desk (`/payments`)**: Tracks incoming client receivables and outgoing crew payouts, featuring overdue calculations and 1-click WhatsApp reminders.
+- **Invoices & Vouchers (`/invoices`)**: On-demand generation and preview of branded PDF client invoices (`INV-YYYYMMDD-XXXX`) and cameraman payout vouchers (`RCP-YYYYMMDD-XXXX`) via `jsPDF`.
+- **Operating Expenses (`/expenses`)**: Tracks non-crew operating costs (travel, gear rental, studio bookings, software) categorized and linked to specific shoots or general overhead.
+- **Recycle Bin (`/trash`)**: Admin-only soft-delete recovery desk supporting soft-delete, restore, and permanent purge.
+
+---
+
+## Tech Stack
+
+- **Frontend Framework**: React 19, TypeScript, Vite
+- **Styling**: Tailwind CSS v4, Vanilla CSS Design System (`index.css`)
+- **Backend & Database**: Supabase (PostgreSQL, Realtime Subscriptions, Row Level Security, Auth)
+- **Document Generation**: jsPDF & jsPDF-AutoTable
+- **Icons**: Lucide React
+
+---
+
+## Getting Started
+
+### Prerequisites
 - Node.js 20 or later
-- npm
-- A Firebase project (Firestore)
-- A Supabase project (authentication and storage)
+- npm (or bun / yarn)
+- A Supabase Project
 
-## Run locally
+### Installation & Local Setup
 
-1. Clone the repository and enter the project folder.
-
+1. **Clone the Repository**
    ```bash
    git clone https://github.com/Dheerajnaik259/Data-Management.git
    cd Data-Management
    ```
 
-2. Install dependencies.
-
+2. **Install Dependencies**
    ```bash
    npm install
    ```
 
-3. Create a local environment file from the example.
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   On Windows PowerShell, use:
-
-   ```powershell
-   Copy-Item .env.example .env.local
-   ```
-
-4. Set the required values in `.env.local`.
-
+3. **Configure Environment Variables**
+   Create a `.env.local` file in the root directory:
    ```env
-   VITE_FIREBASE_API_KEY=""
-   VITE_FIREBASE_AUTH_DOMAIN=""
-   VITE_FIREBASE_PROJECT_ID=""
-   VITE_FIREBASE_STORAGE_BUCKET=""
-   VITE_FIREBASE_MESSAGING_SENDER_ID=""
-   VITE_FIREBASE_APP_ID=""
-
-   VITE_SUPABASE_URL=""
-   VITE_SUPABASE_ANON_KEY=""
+   VITE_SUPABASE_URL="https://your-supabase-project.supabase.co"
+   VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
    ```
 
-   `GEMINI_API_KEY` and `APP_URL` are optional environment variables included for integrations and deployment configuration.
+4. **Initialize Supabase Schema**
+   Apply the Database SQL schema located in `supabase/schema.sql` via your Supabase SQL Editor. This sets up tables (`clients`, `cameramen`, `shoots`, `expenses`, `settings_docs`, `change_requests`, `app_notifications`, `deleted_records`), RLS policies, and seed data.
 
-5. Start the development server.
-
+5. **Start Development Server**
    ```bash
    npm run dev
    ```
+   Open `http://localhost:3000` in your browser.
 
-   The app runs at `http://localhost:3000`.
+---
 
-## Available scripts
+## Project Documentation
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Starts the Vite development server on port 3000. |
-| `npm run build` | Creates a production build in `dist/`. |
-| `npm run preview` | Serves the production build locally. |
-| `npm run lint` | Runs TypeScript type checking. |
+- [Project Plan](PROJECT_PLAN.md) — Feature roadmap and implementation milestones.
+- [Data Model](DATA_MODEL.md) — Complete database schema, relationships, and role permission rules.
+- [Design System](DESIGN_SYSTEM.md) — Visual styling, color tokens, typography, and component specs.
+- [Future Scope](FUTURE_SCOPE.md) — Architecture matrix and roadmap for future expansions.
 
-## Project documentation
-
-- [Project plan](PROJECT_PLAN.md) — product scope, workflows, and roadmap.
-- [Data model](DATA_MODEL.md) — collections, fields, roles, approval flow, and payment rules.
-- [Design system](DESIGN_SYSTEM.md) — visual and UI guidelines.
-
-## Security notes
-
-- Never commit `.env.local` or service credentials. The file is already ignored by Git.
-- Configure Firebase security rules and Supabase Row Level Security before deploying.
-- Create only the intended Admin and Founder accounts, then assign roles in the application data.
+---
 
 ## License
 
-This project is private and intended for internal business use.
+Private and proprietary software. Intended exclusively for internal agency operations.
