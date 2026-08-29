@@ -103,6 +103,9 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
                     ))}
                   </select>
                   {shootDate && cameramen.find(c => c.id === assignment.cameramanId)?.unavailability?.some(item => item.date === shootDate) && <p className="mt-1 text-[10px] text-amber-700">Unavailable on this date. Confirm before scheduling.</p>}
+                  {assignment.cameramanId && assignments.filter(a => a.cameramanId === assignment.cameramanId).length > 1 && (
+                    <p className="mt-1 text-[10px] text-red-600 dark:text-red-400 font-semibold">Warning: Cameraman is assigned multiple times to this shoot.</p>
+                  )}
                 </div>
 
                 <div className="w-full sm:w-32">

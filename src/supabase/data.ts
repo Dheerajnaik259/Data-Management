@@ -280,7 +280,14 @@ export function subscribeToNotifications(recipientId: string, callback: (items: 
 }
 
 export async function updateSettingsDoc(settingsId: string, data: Partial<SettingsDoc>): Promise<void> {
-  const { error } = await clientOrThrow().from('settings').update(entityToRow('clients', data as Record<string, unknown>)).eq('id', settingsId);
+  const row: Record<string, unknown> = {
+    id: settingsId,
+    key: settingsId,
+    label: data.label || (settingsId === 'businessProfile' ? 'Business Profile' : settingsId),
+    editable: true,
+    ...entityToRow('clients', data as Record<string, unknown>),
+  };
+  const { error } = await clientOrThrow().from('settings').upsert(row, { onConflict: 'id' });
   throwOnError(error, 'Unable to update settings');
 }
 

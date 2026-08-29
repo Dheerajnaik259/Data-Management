@@ -1,4 +1,5 @@
 import { InvoiceOptions } from '../utils/pdfGenerator';
+import { SettingsDoc } from '../types';
 
 const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
 
@@ -10,6 +11,32 @@ export const businessInvoiceProfile: Pick<Required<InvoiceOptions>, 'businessNam
   businessPhone: configuredValue('VITE_BUSINESS_PHONE', 'Business phone not configured'),
   paymentDetails: configuredValue('VITE_PAYMENT_DETAILS', 'Payment details not configured'),
 };
+
+export type BusinessProfileData = {
+  businessName: string;
+  businessEmail: string;
+  businessPhone: string;
+  paymentDetails: string;
+};
+
+export function parseBusinessProfileFromSettings(settingsDoc?: SettingsDoc): BusinessProfileData {
+  if (settingsDoc && settingsDoc.options?.[0]?.value) {
+    try {
+      const parsed = JSON.parse(settingsDoc.options[0].value);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          businessName: parsed.businessName || businessInvoiceProfile.businessName,
+          businessEmail: parsed.businessEmail || businessInvoiceProfile.businessEmail,
+          businessPhone: parsed.businessPhone || businessInvoiceProfile.businessPhone,
+          paymentDetails: parsed.paymentDetails || businessInvoiceProfile.paymentDetails,
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to parse business profile settings:', e);
+    }
+  }
+  return businessInvoiceProfile;
+}
 
 export const isBusinessInvoiceProfileConfigured = [
   'VITE_BUSINESS_NAME',

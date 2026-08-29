@@ -1,30 +1,155 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { SettingsDoc, SettingsOption } from '../types';
-import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown, Building2, Save } from 'lucide-react';
+import { parseBusinessProfileFromSettings, BusinessProfileData } from '../config/business';
 
 export const Settings: React.FC = () => {
   const ctx = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { settings, handleUpdateSettings } = useData();
   const [editingKey, setEditingKey] = useState<string | null>(null);
 
+  const businessDoc = settings.find(s => s.key === 'businessProfile');
+  const optionListSettings = settings.filter(s => s.key !== 'businessProfile');
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <Header title="Settings" subtitle="Manage configurable option lists" onOpenMobile={ctx?.onOpenMobileNav} />
+      <Header title="Settings" subtitle="Manage company profile and configurable option lists" onOpenMobile={ctx?.onOpenMobileNav} />
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
-        {settings.map(setting => (
+        <BusinessProfileCard setting={businessDoc} onSave={handleUpdateSettings} />
+
+        {optionListSettings.map(setting => (
           <SettingsCard key={setting.id} setting={setting}
             isEditing={editingKey === setting.key}
             onEdit={() => setEditingKey(setting.key)}
             onClose={() => setEditingKey(null)}
             onSave={handleUpdateSettings} />
         ))}
-        {settings.length === 0 && (
+
+        {optionListSettings.length === 0 && !businessDoc && (
           <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No configurable option lists are available yet. Confirm that the Supabase setup SQL has been applied.</p>
         )}
       </div>
+    </div>
+  );
+};
+
+interface BusinessProfileCardProps {
+  setting?: SettingsDoc;
+  onSave: (id: string, data: Partial<SettingsDoc>) => Promise<void>;
+}
+
+const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSave }) => {
+  const initial = parseBusinessProfileFromSettings(setting);
+  const [formData, setFormData] = useState<BusinessProfileData>(initial);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    setFormData(parseBusinessProfileFromSettings(setting));
+  }, [setting]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const payload = JSON.stringify(formData);
+      await onSave('businessProfile', {
+        label: 'Business Profile',
+        options: [{ value: payload, order: 1, archived: false }],
+      });
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error saving business profile:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors shadow-2xs">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center">
+            <Building2 className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Company & Invoice Profile</h3>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Details printed on client invoices and crew payout vouchers</p>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Business Name</label>
+            <input
+              type="text"
+              value={formData.businessName}
+              onChange={e => setFormData({ ...formData, businessName: e.target.value })}
+              placeholder="e.g. SMM Ops Media"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Business Email</label>
+            <input
+              type="email"
+              value={formData.businessEmail}
+              onChange={e => setFormData({ ...formData, businessEmail: e.target.value })}
+              placeholder="operations@smmops.com"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Business Phone</label>
+            <input
+              type="text"
+              value={formData.businessPhone}
+              onChange={e => setFormData({ ...formData, businessPhone: e.target.value })}
+              placeholder="+91 98765 43210"
+              className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[var(--color-text)] mb-1">Payment & Bank / UPI Instructions</label>
+          <textarea
+            value={formData.paymentDetails}
+            onChange={e => setFormData({ ...formData, paymentDetails: e.target.value })}
+            placeholder="e.g. UPI ID: smmops@hdfcbank | Bank: HDFC | A/C: 50200012345678 | IFSC: HDFC0001234"
+            rows={2}
+            className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            required
+          />
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          {savedSuccess ? (
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" /> Company profile saved!
+            </span>
+          ) : (
+            <span className="text-[11px] text-[var(--color-text-muted)]">Changes apply immediately to generated PDFs.</span>
+          )}
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{isSaving ? 'Saving...' : 'Save Company Profile'}</span>
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
@@ -133,4 +258,4 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ setting, isEditing, onEdit,
       </div>
     </div>
   );
-}
+};

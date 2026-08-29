@@ -6,7 +6,8 @@ import {
   generateClientInvoicePDF,
   generateCameramanPayoutReceiptPDF,
 } from '../../utils/pdfGenerator';
-import { businessInvoiceProfile } from '../../config/business';
+import { parseBusinessProfileFromSettings } from '../../config/business';
+import { useData } from '../../context/DataContext';
 
 interface InvoicePreviewModalProps {
   isOpen: boolean;
@@ -31,14 +32,17 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   assignmentPaid = false,
   assignmentPaidAt = null,
 }) => {
+  const { settings } = useData();
   const [pdfDataUri, setPdfDataUri] = useState<string | null>(null);
+
+  const businessProfile = parseBusinessProfileFromSettings(settings.find(s => s.key === 'businessProfile'));
 
   useEffect(() => {
     if (!isOpen || !shoot) return;
 
     try {
       if (type === 'client_invoice' && client) {
-        const doc = generateClientInvoicePDF(client, shoot, businessInvoiceProfile);
+        const doc = generateClientInvoicePDF(client, shoot, businessProfile);
         const dataUri = doc.output('datauristring');
         setPdfDataUri(dataUri);
       } else if (type === 'cameraman_receipt' && cameraman) {
@@ -48,7 +52,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
           assignmentAmount,
           assignmentPaid,
           assignmentPaidAt,
-          businessInvoiceProfile,
+          businessProfile,
         );
         const dataUri = doc.output('datauristring');
         setPdfDataUri(dataUri);
@@ -56,13 +60,13 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     } catch (err) {
       console.error('Error generating PDF preview:', err);
     }
-  }, [isOpen, type, client, cameraman, shoot, assignmentAmount, assignmentPaid, assignmentPaidAt]);
+  }, [isOpen, type, client, cameraman, shoot, assignmentAmount, assignmentPaid, assignmentPaidAt, businessProfile]);
 
   if (!isOpen) return null;
 
   const handleDownload = () => {
     if (type === 'client_invoice' && client) {
-      const doc = generateClientInvoicePDF(client, shoot, businessInvoiceProfile);
+      const doc = generateClientInvoicePDF(client, shoot, businessProfile);
       doc.save(`Invoice_${client.name.replace(/\s+/g, '_')}_${shoot.date}.pdf`);
     } else if (type === 'cameraman_receipt' && cameraman) {
       const doc = generateCameramanPayoutReceiptPDF(
@@ -71,7 +75,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
         assignmentAmount,
         assignmentPaid,
         assignmentPaidAt,
-        businessInvoiceProfile,
+        businessProfile,
       );
       doc.save(`Receipt_${cameraman.name.replace(/\s+/g, '_')}_${shoot.date}.pdf`);
     }
@@ -79,7 +83,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   const handlePrint = () => {
     if (type === 'client_invoice' && client) {
-      const doc = generateClientInvoicePDF(client, shoot, businessInvoiceProfile);
+      const doc = generateClientInvoicePDF(client, shoot, businessProfile);
       doc.autoPrint();
       window.open(doc.output('bloburl'), '_blank');
     } else if (type === 'cameraman_receipt' && cameraman) {
@@ -89,7 +93,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
         assignmentAmount,
         assignmentPaid,
         assignmentPaidAt,
-        businessInvoiceProfile,
+        businessProfile,
       );
       doc.autoPrint();
       window.open(doc.output('bloburl'), '_blank');

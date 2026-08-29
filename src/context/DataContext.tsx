@@ -214,100 +214,172 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ── Role-aware CRUD ──
 
   const handleCreateOrSubmit = async (col: ManagedCollection, data: Record<string, unknown>): Promise<string> => {
-    if (!user) throw new Error('Not authenticated');
-    if (canCreateDirect(user.role)) {
-      return await directCreate(col, data);
+    try {
+      if (!user) throw new Error('Not authenticated');
+      if (canCreateDirect(user.role)) {
+        return await directCreate(col, data);
+      }
+      if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
+      return await submitChangeRequestWithNotification({
+        targetCollection: col, targetDocId: null, action: 'create',
+        proposedData: data, requestedBy: user.uid,
+        requestedAt: new Date().toISOString(), status: 'pending',
+        reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
+      }, await getApprovalRecipientId(), `New ${col.slice(0, -1)} submission needs review`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Operation failed';
+      toast({ type: 'error', message: msg });
+      throw err;
     }
-    if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
-    return submitChangeRequestWithNotification({
-      targetCollection: col, targetDocId: null, action: 'create',
-      proposedData: data, requestedBy: user.uid,
-      requestedAt: new Date().toISOString(), status: 'pending',
-      reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
-    }, await getApprovalRecipientId(), `New ${col.slice(0, -1)} submission needs review`);
   };
 
   const handleUpdateOrSubmit = async (col: ManagedCollection, docId: string, data: Record<string, unknown>): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    if (canCreateDirect(user.role)) {
-      await directUpdate(col, docId, data);
-      return;
+    try {
+      if (!user) throw new Error('Not authenticated');
+      if (canCreateDirect(user.role)) {
+        await directUpdate(col, docId, data);
+        return;
+      }
+      if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
+      await submitChangeRequestWithNotification({
+        targetCollection: col, targetDocId: docId, action: 'edit',
+        proposedData: data, requestedBy: user.uid,
+        requestedAt: new Date().toISOString(), status: 'pending',
+        reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
+      }, await getApprovalRecipientId(), `${col.slice(0, -1)} edit needs review`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Operation failed';
+      toast({ type: 'error', message: msg });
+      throw err;
     }
-    if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
-    await submitChangeRequestWithNotification({
-      targetCollection: col, targetDocId: docId, action: 'edit',
-      proposedData: data, requestedBy: user.uid,
-      requestedAt: new Date().toISOString(), status: 'pending',
-      reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
-    }, await getApprovalRecipientId(), `${col.slice(0, -1)} edit needs review`);
   };
 
   const handleSoftDelete = async (col: ManagedCollection, docId: string) => {
-    if (!user || !canDeletePerm(user.role)) return;
-    await softDelete(col, docId);
+    try {
+      if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to delete records.');
+      await softDelete(col, docId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete record';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleRestore = async (col: ManagedCollection, docId: string) => {
-    if (!user || !canDeletePerm(user.role)) return;
-    await restoreRecord(col, docId);
+    try {
+      if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to restore records.');
+      await restoreRecord(col, docId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to restore record';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleHardDelete = async (col: ManagedCollection, docId: string) => {
-    if (!user || !canDeletePerm(user.role)) return;
-    await hardDelete(col, docId);
+    try {
+      if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to permanently delete records.');
+      await hardDelete(col, docId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to permanently delete record';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   // Shoot payment toggles (direct — these aren't data-entry, they're status updates)
   const handleToggleClientPayment = async (shootId: string, isPaid: boolean) => {
-    await updateShootOperationalData(shootId, { clientPaid: isPaid, clientPaidAt: isPaid ? new Date().toISOString() : null });
+    try {
+      await updateShootOperationalData(shootId, { clientPaid: isPaid, clientPaidAt: isPaid ? new Date().toISOString() : null });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update client payment status';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleToggleCameramanPayment = async (shootId: string, idx: number, isPaid: boolean) => {
-    const shoot = shoots.find(s => s.id === shootId);
-    if (!shoot?.assignments?.[idx]) return;
-    const updated = [...shoot.assignments];
-    if (updated[idx].amount === null && isPaid) throw new Error('Set the cameraman payout before marking it paid.');
-    updated[idx] = { ...updated[idx], paid: isPaid, paidAt: isPaid ? new Date().toISOString() : null };
-    await updateShootOperationalData(shootId, { assignments: updated });
+    try {
+      const shoot = shoots.find(s => s.id === shootId);
+      if (!shoot?.assignments?.[idx]) return;
+      const updated = [...shoot.assignments];
+      if (updated[idx].amount === null && isPaid) throw new Error('Set the cameraman payout before marking it paid.');
+      updated[idx] = { ...updated[idx], paid: isPaid, paidAt: isPaid ? new Date().toISOString() : null };
+      await updateShootOperationalData(shootId, { assignments: updated });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update crew payout status';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleToggleCameramanCheckIn = async (shootId: string, idx: number, checkedIn: boolean) => {
-    const shoot = shoots.find(s => s.id === shootId);
-    if (!shoot?.assignments?.[idx]) return;
-    const updated = [...shoot.assignments];
-    updated[idx] = { ...updated[idx], checkedInAt: checkedIn ? new Date().toISOString() : null };
-    await updateShootOperationalData(shootId, { assignments: updated });
+    try {
+      const shoot = shoots.find(s => s.id === shootId);
+      if (!shoot?.assignments?.[idx]) return;
+      const updated = [...shoot.assignments];
+      updated[idx] = { ...updated[idx], checkedInAt: checkedIn ? new Date().toISOString() : null };
+      await updateShootOperationalData(shootId, { assignments: updated });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update crew check-in';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   // ── Approval ──
   const handleApprove = async (crId: string, reviewNote = '') => {
-    if (!user || !canApprove(user.role)) return;
-    const cr = changeRequests.find(c => c.id === crId);
-    if (!cr || cr.status !== 'pending') return;
-    await reviewChangeRequestWithNotification(cr, user.uid, 'approved', reviewNote);
+    try {
+      if (!user || !canApprove(user.role)) throw new Error('Not authorized to approve requests.');
+      const cr = changeRequests.find(c => c.id === crId);
+      if (!cr || cr.status !== 'pending') return;
+      await reviewChangeRequestWithNotification(cr, user.uid, 'approved', reviewNote);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to approve request';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleReject = async (crId: string, reviewNote: string) => {
-    if (!user || !canApprove(user.role)) return;
-    const cr = changeRequests.find(c => c.id === crId);
-    if (!cr || cr.status !== 'pending') return;
-    await reviewChangeRequestWithNotification(cr, user.uid, 'rejected', reviewNote);
+    try {
+      if (!user || !canApprove(user.role)) throw new Error('Not authorized to reject requests.');
+      const cr = changeRequests.find(c => c.id === crId);
+      if (!cr || cr.status !== 'pending') return;
+      await reviewChangeRequestWithNotification(cr, user.uid, 'rejected', reviewNote);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to reject request';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleEditAndResubmit = async (crId: string, newData: Record<string, unknown>) => {
-    if (!user || !canSubmitForApproval(user.role)) return;
-    const cr = changeRequests.find(c => c.id === crId);
-    if (!cr || cr.requestedBy !== user.uid || (cr.status !== 'pending' && cr.status !== 'rejected')) return;
-    await resubmitChangeRequestWithNotification(crId, {
-      proposedData: newData, status: 'pending',
-      reviewedBy: null, reviewedAt: null, reviewNote: '',
-      revisionCount: cr.revisionCount + 1,
-      requestedAt: new Date().toISOString(),
-    }, await getApprovalRecipientId(), `${cr.targetCollection.slice(0, -1)} resubmitted for review`);
+    try {
+      if (!user || !canSubmitForApproval(user.role)) throw new Error('Not authorized to resubmit.');
+      const cr = changeRequests.find(c => c.id === crId);
+      if (!cr || cr.requestedBy !== user.uid || (cr.status !== 'pending' && cr.status !== 'rejected')) return;
+      await resubmitChangeRequestWithNotification(crId, {
+        proposedData: newData, status: 'pending',
+        reviewedBy: null, reviewedAt: null, reviewNote: '',
+        revisionCount: cr.revisionCount + 1,
+        requestedAt: new Date().toISOString(),
+      }, await getApprovalRecipientId(), `${cr.targetCollection.slice(0, -1)} resubmitted for review`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to resubmit request';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleUpdateSettings = async (id: string, data: Partial<SettingsDoc>) => {
-    await updateSettingsDoc(id, data);
+    try {
+      await updateSettingsDoc(id, data);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update settings';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
   };
 
   const handleMarkRead = async (notifId: string) => { await markNotificationRead(notifId); };
