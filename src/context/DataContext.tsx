@@ -168,25 +168,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return findUserIdByRole(canSubmitForApproval(user.role) ? 'founder' : 'admin');
   }, [user]);
 
-  const getClientLedger = (clientId: string): ClientLedger => {
-    const cs = shoots.filter(s => s.clientId === clientId);
-    const totalBilled = cs.reduce((a, s) => a + (s.clientAmount || 0), 0);
-    const totalPaid = cs.filter(s => s.clientPaid).reduce((a, s) => a + (s.clientAmount || 0), 0);
-    return { totalBilled, totalPaid, outstanding: totalBilled - totalPaid };
-  };
+  const clientLedgerMap = useMemo(() => {
+    const map = new Map<string, ClientLedger>();
+    shoots.forEach(s => {
+      if (!s.clientId) return;
+      const current = map.get(s.clientId) || { totalBilled: 0, totalPaid: 0, outstanding: 0 };
+      const amount = s.clientAmount || 0;
+      current.totalBilled += amount;
+      if (s.clientPaid) current.totalPaid += amount;
+      current.outstanding = current.totalBilled - current.totalPaid;
+      map.set(s.clientId, current);
+    });
+    return map;
+  }, [shoots]);
 
-  const getCameramanLedger = (cameramanId: string): CameramanLedger => {
-    let totalAssigned = 0, totalPaid = 0;
+  const cameramanLedgerMap = useMemo(() => {
+    const map = new Map<string, CameramanLedger>();
     shoots.forEach(s => {
       s.assignments?.forEach(a => {
-        if (a.cameramanId === cameramanId) {
-          totalAssigned += a.amount || 0;
-          if (a.paid) totalPaid += a.amount || 0;
-        }
+        if (!a.cameramanId) return;
+        const current = map.get(a.cameramanId) || { totalAssigned: 0, totalPaid: 0, outstanding: 0 };
+        const amount = a.amount || 0;
+        current.totalAssigned += amount;
+        if (a.paid) current.totalPaid += amount;
+        current.outstanding = current.totalAssigned - current.totalPaid;
+        map.set(a.cameramanId, current);
       });
     });
-    return { totalAssigned, totalPaid, outstanding: totalAssigned - totalPaid };
-  };
+    return map;
+  }, [shoots]);
+
+  const getClientLedger = useCallback((clientId: string): ClientLedger => {
+    return clientLedgerMap.get(clientId) || { totalBilled: 0, totalPaid: 0, outstanding: 0 };
+  }, [clientLedgerMap]);
+
+  const getCameramanLedger = useCallback((cameramanId: string): CameramanLedger => {
+    return cameramanLedgerMap.get(cameramanId) || { totalAssigned: 0, totalPaid: 0, outstanding: 0 };
+  }, [cameramanLedgerMap]);
 
   const operationalSettings = useMemo(() => {
     return parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
@@ -296,7 +314,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSoftDelete = async (col: ManagedCollection, docId: string) => {
     try {
       if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to delete records.');
+      if (docId.startsWith('pending-cr-')) {
+        const crId = docId.replace('pending-cr-', '');
+        await updateChangeRequest(crId, { status: 'rejected', reviewNote: 'Cancelled duplicate pending request' });
+        setChangeRequests(prev => prev.filter(cr => cr.id !== crId));
+        toast({ type: 'success', message: 'Pending request cancelled.' });
+        return;
+      }
       await softDelete(col, docId);
+      if (col === 'clients') setClients(prev => prev.filter(c => c.id !== docId));
+      if (col === 'cameramen') setCameramen(prev => prev.filter(c => c.id !== docId));
+      if (col === 'shoots') setShoots(prev => prev.filter(s => s.id !== docId));
+      if (col === 'expenses') setExpenses(prev => prev.filter(e => e.id !== docId));
       toast({ type: 'success', message: `${col.slice(0, -1)} moved to Recycle Bin.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete record';
@@ -310,28 +339,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user || !canDeletePerm(user.role)) throw new Error('Permission denied.');
       let deletedCount = 0;
       const seen = new Set<string>();
+      const deletePromises: Promise<void>[] = [];
 
       if (col === 'clients') {
+        const toDeleteIds: string[] = [];
         for (const client of clients) {
           const key = `${client.name.trim().toLowerCase()}_${client.phone.trim()}`;
           if (seen.has(key)) {
-            await softDelete('clients', client.id);
+            deletePromises.push(softDelete('clients', client.id));
+            toDeleteIds.push(client.id);
             deletedCount++;
           } else {
             seen.add(key);
           }
         }
+        if (toDeleteIds.length > 0) {
+          setClients(prev => prev.filter(c => !toDeleteIds.includes(c.id)));
+        }
       } else if (col === 'cameramen') {
+        const toDeleteIds: string[] = [];
         for (const cam of cameramen) {
           const key = `${cam.name.trim().toLowerCase()}_${cam.phone.trim()}`;
           if (seen.has(key)) {
-            await softDelete('cameramen', cam.id);
+            deletePromises.push(softDelete('cameramen', cam.id));
+            toDeleteIds.push(cam.id);
             deletedCount++;
           } else {
             seen.add(key);
           }
         }
+        if (toDeleteIds.length > 0) {
+          setCameramen(prev => prev.filter(c => !toDeleteIds.includes(c.id)));
+        }
       }
+
+      await Promise.all(deletePromises);
 
       if (deletedCount > 0) {
         toast({ type: 'success', message: `Cleaned up ${deletedCount} duplicate ${col} record(s).` });
@@ -350,6 +392,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to restore records.');
       await restoreRecord(col, docId);
+      setDeletedRecords(prev => prev.filter(r => !(r.collection === col && r.record.id === docId)));
+      toast({ type: 'success', message: `${col.slice(0, -1)} restored.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to restore record';
       toast({ type: 'error', message: msg });
@@ -360,7 +404,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleHardDelete = async (col: ManagedCollection, docId: string) => {
     try {
       if (!user || !canHardDeletePerm(user.role)) throw new Error('Only Admin can permanently delete records from the Recycle Bin.');
-      await hardDelete(col, docId);
+      if (docId.startsWith('pending-cr-')) {
+        const crId = docId.replace('pending-cr-', '');
+        await updateChangeRequest(crId, { status: 'rejected', reviewNote: 'Permanently deleted by Admin' });
+        setChangeRequests(prev => prev.filter(cr => cr.id !== crId));
+      } else {
+        await hardDelete(col, docId);
+      }
+      setDeletedRecords(prev => prev.filter(r => !(r.collection === col && r.record.id === docId)));
+      toast({ type: 'success', message: `${col.slice(0, -1)} permanently deleted.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to permanently delete record';
       toast({ type: 'error', message: msg });

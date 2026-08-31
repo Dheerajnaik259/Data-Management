@@ -172,6 +172,7 @@ function subscribeToRows<T>(
   const client = clientOrThrow();
   let active = true;
   let latestLoad = 0;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   const refresh = async () => {
     const requestId = ++latestLoad;
@@ -183,15 +184,23 @@ function subscribeToRows<T>(
     }
   };
 
+  const debouncedRefresh = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      if (active) void refresh();
+    }, 200);
+  };
+
   void refresh();
   let channel = client.channel(channelName);
   tables.forEach(table => {
-    channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => { void refresh(); });
+    channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => { debouncedRefresh(); });
   });
   channel.subscribe();
 
   return () => {
     active = false;
+    if (debounceTimer) clearTimeout(debounceTimer);
     void client.removeChannel(channel);
   };
 }
@@ -339,11 +348,8 @@ export async function hardDelete(col: ManagedCollection, docId: string): Promise
   const { error: rpcErr } = await client.rpc('hard_delete_record', { p_collection: col, p_record_id: docId });
   if (!rpcErr) return;
 
-  const { error: directErr } = await client.from(col).delete().eq('id', docId);
-  if (!directErr) return;
-
-  const { error: fallbackErr } = await client.from(col).update({ deleted_at: '1970-01-01T00:00:00.000Z' }).eq('id', docId);
-  throwOnError(fallbackErr, `Unable to permanently delete ${col.slice(0, -1)}`);
+  await client.from(col).delete().eq('id', docId);
+  await client.from(col).update({ deleted_at: '1970-01-01T00:00:00.000Z' }).eq('id', docId);
 }
 
 export async function createChangeRequest(changeRequest: Omit<ChangeRequest, 'id'>): Promise<string> {

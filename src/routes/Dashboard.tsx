@@ -16,7 +16,7 @@ export const Dashboard: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { shoots, clients, cameramen, expenses, paymentRecords, changeRequests, settings, dashboardStats, handleResetDemoData } = useData();
   const { user } = useAuth();
-  const operationalSettings = parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
+  const operationalSettings = useMemo(() => parseOperationalSettings(settings.find(s => s.key === 'operationalSettings')), [settings]);
 
   const [isShootFormOpen, setIsShootFormOpen] = useState(false);
   const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
