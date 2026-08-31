@@ -22,7 +22,13 @@ returns boolean language sql stable security definer set search_path = public
 as $$ select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'); $$;
 
 drop policy if exists requests_write on public.change_requests;
+drop policy if exists requests_resubmit on public.change_requests;
+drop policy if exists settings_operator_update on public.settings;
 drop policy if exists notifications_own on public.notifications;
+drop policy if exists notifications_read_own on public.notifications;
+drop policy if exists notifications_insert on public.notifications;
+drop policy if exists notifications_update_own on public.notifications;
+
 create policy requests_write on public.change_requests for insert to authenticated with check (public.is_admin() and requested_by = auth.uid() and status = 'pending');
 create policy requests_resubmit on public.change_requests for update to authenticated using (public.is_admin() and requested_by = auth.uid()) with check (public.is_admin() and requested_by = auth.uid() and status = 'pending');
 create policy settings_operator_update on public.settings for update to authenticated using (public.is_operator()) with check (public.is_operator());
@@ -34,7 +40,7 @@ create or replace function public.set_record_deleted(p_collection text, p_record
 returns void language plpgsql security definer set search_path = public as $$
 declare affected integer;
 begin
-  if not public.is_admin() then raise exception 'Only the admin can manage deleted records'; end if;
+  if not public.is_operator() then raise exception 'Only authorized operators can manage deleted records'; end if;
   if p_collection not in ('clients', 'cameramen', 'shoots', 'expenses') then raise exception 'Invalid collection'; end if;
   execute format('update public.%I set deleted_at = case when $1 then now() else null end, deleted_by = case when $1 then auth.uid() else null end where id = $2', p_collection) using p_deleted, p_record_id;
   get diagnostics affected = row_count;
@@ -46,7 +52,7 @@ create or replace function public.hard_delete_record(p_collection text, p_record
 returns void language plpgsql security definer set search_path = public as $$
 declare affected integer;
 begin
-  if not public.is_admin() then raise exception 'Only the admin can permanently delete records'; end if;
+  if not public.is_operator() then raise exception 'Only authorized operators can permanently delete records'; end if;
   if p_collection not in ('clients', 'cameramen', 'shoots', 'expenses') then raise exception 'Invalid collection'; end if;
   execute format('delete from public.%I where id = $1', p_collection) using p_record_id;
   get diagnostics affected = row_count;

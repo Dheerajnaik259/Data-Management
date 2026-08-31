@@ -87,11 +87,6 @@ export const Dashboard: React.FC = () => {
         onOpenMobile={onOpenMobileNav}
         action={
           <div className="flex items-center gap-2">
-            {isAdmin && (
-              <button type="button" onClick={handleResetDemoData} className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md hover:bg-[var(--color-bg-hover)] transition-colors" title="Reset with realistic demo records">
-                <RotateCcw className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Reset Demo</span>
-              </button>
-            )}
             {isFounder && pendingFounderApprovals.length > 0 && (
               <Link to="/approvals" className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-amber-900 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-md hover:bg-amber-200 transition-colors shadow-2xs">
                 <ShieldCheck className="w-4 h-4 text-amber-600" />

@@ -67,8 +67,7 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
           <button
             type="button"
             onClick={handleAdd}
-            disabled={cameramen.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-white bg-[#C85A32] rounded-md hover:bg-[#B84A24] transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-white bg-[#C85A32] rounded-md hover:bg-[#B84A24] transition-colors shadow-xs"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Cameraman</span>
@@ -131,7 +130,6 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
           <button
             type="button"
             onClick={handleAdd}
-            disabled={cameramen.length === 0}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-[#C85A32] bg-white border border-[#E5E0DA] rounded-md hover:bg-[#FAF8F5] transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />

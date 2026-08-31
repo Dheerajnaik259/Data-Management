@@ -14,7 +14,7 @@ interface CameramanFormProps {
 }
 
 export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, initialCameraman, resubmission }) => {
-  const { handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit } = useData();
+  const { cameramen, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit } = useData();
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,9 +40,18 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setErrorMessage(null);
     if (!name.trim()) { setErrorMessage('Name is required.'); return; }
     if (!phone.trim()) { setErrorMessage('Phone is required.'); return; }
+
+    if (!initialCameraman && !resubmission) {
+      const duplicate = cameramen.some(c => c.name.trim().toLowerCase() === name.trim().toLowerCase() || c.phone.trim() === phone.trim());
+      if (duplicate) {
+        setErrorMessage(`A cameraman with name "${name.trim()}" or phone "${phone.trim()}" already exists.`);
+        return;
+      }
+    }
     setIsSaving(true);
     try {
       const data = { name: name.trim(), phone: phone.trim(), rate, notes: notes.trim(), contractLink: contractLink.trim() };

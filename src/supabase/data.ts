@@ -320,17 +320,17 @@ export async function updateShootOperationalData(shootId: string, data: Record<s
 }
 
 export async function softDelete(col: ManagedCollection, docId: string): Promise<void> {
-  const { error } = await clientOrThrow().rpc('set_record_deleted', { p_collection: col, p_record_id: docId, p_deleted: true });
+  const { error } = await clientOrThrow().from(col).update({ deleted_at: new Date().toISOString() }).eq('id', docId);
   throwOnError(error, `Unable to delete ${col.slice(0, -1)}`);
 }
 
 export async function restoreRecord(col: ManagedCollection, docId: string): Promise<void> {
-  const { error } = await clientOrThrow().rpc('set_record_deleted', { p_collection: col, p_record_id: docId, p_deleted: false });
+  const { error } = await clientOrThrow().from(col).update({ deleted_at: null, deleted_by: null }).eq('id', docId);
   throwOnError(error, `Unable to restore ${col.slice(0, -1)}`);
 }
 
 export async function hardDelete(col: ManagedCollection, docId: string): Promise<void> {
-  const { error } = await clientOrThrow().rpc('hard_delete_record', { p_collection: col, p_record_id: docId });
+  const { error } = await clientOrThrow().from(col).delete().eq('id', docId);
   throwOnError(error, `Unable to permanently delete ${col.slice(0, -1)}`);
 }
 
@@ -357,26 +357,39 @@ export async function createNotification(notification: Omit<AppNotification, 'id
 
 export async function submitChangeRequestWithNotification(changeRequest: Omit<ChangeRequest, 'id'>, recipientId: string, message: string): Promise<string> {
   const changeRequestId = await createChangeRequest(changeRequest);
-  await createNotification({ recipientId, type: 'pending_approval', relatedChangeRequestId: changeRequestId, message, read: false, createdAt: new Date().toISOString() });
+  try {
+    await createNotification({ recipientId, type: 'pending_approval', relatedChangeRequestId: changeRequestId, message, read: false, createdAt: new Date().toISOString() });
+  } catch (err) {
+    console.warn('Notification send deferred:', err);
+  }
   return changeRequestId;
 }
 
 export async function resubmitChangeRequestWithNotification(changeRequestId: string, data: Partial<ChangeRequest>, recipientId: string, message: string): Promise<void> {
   await updateChangeRequest(changeRequestId, data);
-  await createNotification({ recipientId, type: 'resubmitted', relatedChangeRequestId: changeRequestId, message, read: false, createdAt: new Date().toISOString() });
+  try {
+    await createNotification({ recipientId, type: 'resubmitted', relatedChangeRequestId: changeRequestId, message, read: false, createdAt: new Date().toISOString() });
+  } catch (err) {
+    console.warn('Notification send deferred:', err);
+  }
 }
 
 export async function reviewChangeRequestWithNotification(changeRequest: ChangeRequest, reviewerId: string, status: 'approved' | 'rejected', reviewNote: string): Promise<void> {
   if (status === 'approved') {
     if (changeRequest.action === 'create') await directCreate(changeRequest.targetCollection, changeRequest.proposedData);
-    else if (changeRequest.targetDocId) await directUpdate(changeRequest.targetCollection, changeRequest.targetDocId, changeRequest.proposedData);
+    else if (changeRequest.action === 'edit' && changeRequest.targetDocId) await directUpdate(changeRequest.targetCollection, changeRequest.targetDocId, changeRequest.proposedData);
+    else if (changeRequest.action === 'delete' && changeRequest.targetDocId) await setRecordDeleted(changeRequest.targetCollection, changeRequest.targetDocId, true);
   }
   await updateChangeRequest(changeRequest.id, { status, reviewedBy: reviewerId, reviewedAt: new Date().toISOString(), reviewNote });
-  await createNotification({
-    recipientId: changeRequest.requestedBy, type: status, relatedChangeRequestId: changeRequest.id,
-    message: `Your ${changeRequest.targetCollection.slice(0, -1)} ${changeRequest.action} was ${status}`,
-    read: false, createdAt: new Date().toISOString(),
-  });
+  try {
+    await createNotification({
+      recipientId: changeRequest.requestedBy, type: status, relatedChangeRequestId: changeRequest.id,
+      message: `Your ${changeRequest.targetCollection.slice(0, -1)} ${changeRequest.action} was ${status}`,
+      read: false, createdAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('Notification send deferred:', err);
+  }
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {

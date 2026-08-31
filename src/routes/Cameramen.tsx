@@ -15,7 +15,7 @@ import { mergePendingItems } from '../utils/pendingMerge';
 
 export const Cameramen: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
-  const { cameramen, getCameramanLedger, handleSoftDelete } = useData();
+  const { cameramen, getCameramanLedger, handleSoftDelete, handleCleanDuplicates } = useData();
   const { user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,6 +80,10 @@ export const Cameramen: React.FC = () => {
         onOpenMobile={onOpenMobileNav}
         action={
           <div className="flex items-center gap-2">
+            <button type="button" onClick={() => handleCleanDuplicates('cameramen')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors">
+              <span>Clean Duplicates</span>
+            </button>
             <ExportCsvButton filename="Cameramen_Roster" data={csvData} label="Export CSV" />
             <button type="button" onClick={() => { setEditingCameraman(null); setIsFormOpen(true); }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors shadow-xs">

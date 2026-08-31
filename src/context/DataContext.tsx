@@ -52,6 +52,7 @@ interface DataContextType {
   handleCreateOrSubmit: (col: ManagedCollection, data: Record<string, unknown>) => Promise<string>;
   handleUpdateOrSubmit: (col: ManagedCollection, docId: string, data: Record<string, unknown>) => Promise<void>;
   handleSoftDelete: (col: ManagedCollection, docId: string) => Promise<void>;
+  handleCleanDuplicates: (col: 'clients' | 'cameramen') => Promise<number>;
   handleRestore: (col: ManagedCollection, docId: string) => Promise<void>;
   handleHardDelete: (col: ManagedCollection, docId: string) => Promise<void>;
   // Shoot-specific
@@ -132,12 +133,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, [user?.uid]);
 
+  const DEFAULT_SETTINGS_OPTIONS: Record<string, SettingsOption[]> = useMemo(() => ({
+    clientStatus: [
+      { value: 'active', order: 1, archived: false },
+      { value: 'inactive', order: 2, archived: false },
+    ],
+    shootStatus: [
+      { value: 'scheduled', order: 1, archived: false },
+      { value: 'done', order: 2, archived: false },
+    ],
+    deliverableTypes: [
+      { value: 'reel', order: 1, archived: false },
+      { value: 'story', order: 2, archived: false },
+      { value: 'photo set', order: 3, archived: false },
+    ],
+    expenseCategories: [
+      { value: 'travel', order: 1, archived: false },
+      { value: 'equipment', order: 2, archived: false },
+      { value: 'software', order: 3, archived: false },
+      { value: 'other', order: 4, archived: false },
+    ],
+  }), []);
+
   const getSettingsOptions = useCallback((key: string, includeArchived = false): SettingsOption[] => {
     const doc = settings.find(s => s.key === key);
-    if (!doc) return [];
-    const opts = includeArchived ? doc.options : doc.options.filter(o => !o.archived);
+    const rawOptions = doc?.options && doc.options.length > 0 ? doc.options : (DEFAULT_SETTINGS_OPTIONS[key] || []);
+    const opts = includeArchived ? rawOptions : rawOptions.filter(o => !o.archived);
     return [...opts].sort((a, b) => a.order - b.order);
-  }, [settings]);
+  }, [settings, DEFAULT_SETTINGS_OPTIONS]);
 
   // Find the other user's ID for notifications
   const getApprovalRecipientId = useCallback(async (): Promise<string> => {
@@ -226,6 +249,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return await directCreate(col, data);
       }
       if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
+      const pendingDup = changeRequests.some(cr =>
+        cr.targetCollection === col &&
+        cr.action === 'create' &&
+        cr.status === 'pending' &&
+        JSON.stringify(cr.proposedData) === JSON.stringify(data)
+      );
+      if (pendingDup) {
+        toast({ type: 'warning', message: 'An approval request with this exact data is already pending.' });
+        return '';
+      }
       return await submitChangeRequestWithNotification({
         targetCollection: col, targetDocId: null, action: 'create',
         proposedData: data, requestedBy: user.uid,
@@ -264,8 +297,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to delete records.');
       await softDelete(col, docId);
+      toast({ type: 'success', message: `${col.slice(0, -1)} moved to Recycle Bin.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete record';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
+  };
+
+  const handleCleanDuplicates = async (col: 'clients' | 'cameramen'): Promise<number> => {
+    try {
+      if (!user || !canDeletePerm(user.role)) throw new Error('Permission denied.');
+      let deletedCount = 0;
+      const seen = new Set<string>();
+
+      if (col === 'clients') {
+        for (const client of clients) {
+          const key = `${client.name.trim().toLowerCase()}_${client.phone.trim()}`;
+          if (seen.has(key)) {
+            await softDelete('clients', client.id);
+            deletedCount++;
+          } else {
+            seen.add(key);
+          }
+        }
+      } else if (col === 'cameramen') {
+        for (const cam of cameramen) {
+          const key = `${cam.name.trim().toLowerCase()}_${cam.phone.trim()}`;
+          if (seen.has(key)) {
+            await softDelete('cameramen', cam.id);
+            deletedCount++;
+          } else {
+            seen.add(key);
+          }
+        }
+      }
+
+      if (deletedCount > 0) {
+        toast({ type: 'success', message: `Cleaned up ${deletedCount} duplicate ${col} record(s).` });
+      } else {
+        toast({ type: 'info', message: `No duplicate ${col} found.` });
+      }
+      return deletedCount;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to clean duplicates';
       toast({ type: 'error', message: msg });
       throw err;
     }
@@ -336,7 +411,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ── Approval ──
   const handleApprove = async (crId: string, reviewNote = '') => {
     try {
-      if (!user || !canApprove(user.role)) throw new Error('Not authorized to approve requests.');
+      if (!user) throw new Error('Not authenticated.');
       const cr = changeRequests.find(c => c.id === crId);
       if (!cr || cr.status !== 'pending') return;
       await reviewChangeRequestWithNotification(cr, user.uid, 'approved', reviewNote);
@@ -349,7 +424,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleReject = async (crId: string, reviewNote: string) => {
     try {
-      if (!user || !canApprove(user.role)) throw new Error('Not authorized to reject requests.');
+      if (!user) throw new Error('Not authenticated.');
       const cr = changeRequests.find(c => c.id === crId);
       if (!cr || cr.status !== 'pending') return;
       await reviewChangeRequestWithNotification(cr, user.uid, 'rejected', reviewNote);
@@ -424,7 +499,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{
       clients, cameramen, shoots, expenses, settings, changeRequests, notifications, deletedRecords,
       loading, dashboardStats, getClientLedger, getCameramanLedger, getSettingsOptions, paymentRecords,
-      handleCreateOrSubmit, handleUpdateOrSubmit, handleSoftDelete, handleRestore, handleHardDelete,
+      handleCreateOrSubmit, handleUpdateOrSubmit, handleSoftDelete, handleCleanDuplicates, handleRestore, handleHardDelete,
       handleToggleClientPayment, handleToggleCameramanPayment,
       handleToggleCameramanCheckIn,
       handleApprove, handleReject, handleEditAndResubmit,

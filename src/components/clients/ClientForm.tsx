@@ -13,7 +13,7 @@ interface ClientFormProps {
 }
 
 export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initialClient, resubmission }) => {
-  const { handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions } = useData();
+  const { clients, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions } = useData();
   const { user } = useAuth();
 
   const [name, setName] = useState('');
@@ -48,10 +48,19 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setErrorMessage(null);
     if (!name.trim()) { setErrorMessage('Client name is required.'); return; }
     if (!phone.trim()) { setErrorMessage('Phone number is required.'); return; }
-  if (!email.trim()) { setErrorMessage('Email address is required.'); return; }
+    if (!email.trim()) { setErrorMessage('Email address is required.'); return; }
+
+    if (!initialClient && !resubmission) {
+      const duplicate = clients.some(c => c.name.trim().toLowerCase() === name.trim().toLowerCase());
+      if (duplicate) {
+        setErrorMessage(`A client account named "${name.trim()}" already exists.`);
+        return;
+      }
+    }
 
     setIsSaving(true);
     try {
@@ -100,9 +109,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
         </div>
         <div>
           <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">Account Status *</label>
-          <select value={status} onChange={e => setStatus(e.target.value)}
-            className="w-full text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none">
-            {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
+          <select value={status || defaultStatus} onChange={e => setStatus(e.target.value)}
+            className="w-full text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none capitalize">
+            {statusOptions.map(opt => (
+              <option key={opt.value} value={opt.value} className="capitalize">
+                {opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
         <div>

@@ -22,17 +22,34 @@ export const PendingApprovals: React.FC = () => {
   const [tab, setTab] = useState<typeof TAB_FILTERS[number]>('all');
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [resubmission, setResubmission] = useState<ChangeRequest | null>(null);
 
   const filtered = changeRequests.filter(cr => tab === 'all' || cr.status === tab);
   const isFounder = user ? canApprove(user.role) : false;
 
-  const doReject = async () => {
-    if (!rejectId) return;
-    await handleReject(rejectId, rejectNote || 'No reason provided');
-    setRejectId(null);
+  const openRejectModal = (id: string) => {
+    setRejectId(id);
     setRejectNote('');
+    setRejectError(null);
+  };
+
+  const doReject = async () => {
+    if (!rejectId || isRejecting) return;
+    setIsRejecting(true);
+    setRejectError(null);
+    try {
+      await handleReject(rejectId, rejectNote.trim() || 'No reason provided');
+      setRejectId(null);
+      setRejectNote('');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to reject request';
+      setRejectError(msg);
+    } finally {
+      setIsRejecting(false);
+    }
   };
 
   const statusBadge = (status: string) => {
@@ -71,7 +88,7 @@ export const PendingApprovals: React.FC = () => {
                 isExpanded={expandedId === cr.id}
                 onToggle={() => setExpandedId(expandedId === cr.id ? null : cr.id)}
                 onApprove={() => handleApprove(cr.id)}
-                onReject={() => { setRejectId(cr.id); setRejectNote(''); }}
+                onReject={() => openRejectModal(cr.id)}
                 onResubmit={() => setResubmission(cr)}
                 statusBadge={statusBadge} />
             ))}
@@ -81,15 +98,22 @@ export const PendingApprovals: React.FC = () => {
         {/* Reject modal */}
         {rejectId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setRejectId(null)} />
-            <div className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl max-w-md w-full p-6 z-10">
-              <h3 className="font-serif text-lg font-bold text-[var(--color-text)] mb-4">Reject Request</h3>
-              <textarea value={rejectNote} onChange={e => setRejectNote(e.target.value)} rows={3}
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isRejecting && setRejectId(null)} />
+            <div className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl max-w-md w-full p-6 z-10 space-y-4">
+              <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Reject Request</h3>
+              {rejectError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-xs text-red-800 dark:text-red-300">
+                  {rejectError}
+                </div>
+              )}
+              <textarea value={rejectNote} onChange={e => setRejectNote(e.target.value)} rows={3} disabled={isRejecting}
                 placeholder="Reason for rejection..."
-                className="w-full px-3 py-2 text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]" />
-              <div className="flex justify-end gap-3 mt-4">
-                <button onClick={() => setRejectId(null)} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-md">Cancel</button>
-                <button onClick={doReject} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">Reject</button>
+                className="w-full px-3 py-2 text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-50" />
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setRejectId(null)} disabled={isRejecting} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-md disabled:opacity-50">Cancel</button>
+                <button type="button" onClick={doReject} disabled={isRejecting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50 shadow-xs">
+                  {isRejecting ? 'Rejecting...' : 'Reject'}
+                </button>
               </div>
             </div>
           </div>
@@ -105,12 +129,25 @@ export const PendingApprovals: React.FC = () => {
 
 interface CRCardProps {
   cr: ChangeRequest; isFounder: boolean; canResubmit: boolean; isExpanded: boolean;
-  onToggle: () => void; onApprove: () => void; onReject: () => void; onResubmit: () => void;
+  onToggle: () => void; onApprove: () => Promise<void> | void; onReject: () => void; onResubmit: () => void;
   statusBadge: (s: string) => string;
 }
 
 const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, isExpanded, onToggle, onApprove, onReject, onResubmit, statusBadge }) => {
+  const [isApproving, setIsApproving] = useState(false);
   const proposedName = (cr.proposedData?.name as string) || (cr.proposedData?.description as string) || '';
+
+  const handleApproveClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isApproving) return;
+    setIsApproving(true);
+    try {
+      await onApprove();
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
   return (
     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors">
       <div className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-[var(--color-bg-hover)]" onClick={onToggle}>
@@ -125,12 +162,12 @@ const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, isExpanded,
             by {cr.requestedBy} · {new Date(cr.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
-        {cr.status === 'pending' && isFounder && (
+        {cr.status === 'pending' && (
           <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-            <button onClick={onApprove} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md flex items-center gap-1">
-              <Check className="w-3 h-3" /> Approve
+            <button type="button" onClick={handleApproveClick} disabled={isApproving} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md flex items-center gap-1 disabled:opacity-50 shadow-xs">
+              <Check className="w-3 h-3" /> {isApproving ? 'Approving...' : 'Approve'}
             </button>
-            <button onClick={onReject} className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md flex items-center gap-1">
+            <button type="button" onClick={onReject} disabled={isApproving} className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md flex items-center gap-1 disabled:opacity-50 shadow-xs">
               <X className="w-3 h-3" /> Reject
             </button>
           </div>

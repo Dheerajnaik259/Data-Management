@@ -49,6 +49,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setErrorMessage(null);
     if (!description.trim()) { setErrorMessage('Description is required.'); return; }
     if (amount <= 0) { setErrorMessage('Amount must be > 0.'); return; }
@@ -98,9 +99,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initi
         
         <div>
           <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">Category *</label>
-          <select value={category} onChange={e => setCategory(e.target.value)}
+          <select value={category || defaultCategory} onChange={e => setCategory(e.target.value)}
             className="w-full text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none capitalize">
-            {categoryOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
+            {categoryOptions.map(opt => (
+              <option key={opt.value} value={opt.value} className="capitalize">
+                {opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
         

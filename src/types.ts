@@ -127,7 +127,7 @@ export interface UserDoc {
 
 // ── Change Approval Workflow ──
 
-export type ChangeRequestAction = 'create' | 'edit';
+export type ChangeRequestAction = 'create' | 'edit' | 'delete';
 export type ChangeRequestStatus = 'pending' | 'approved' | 'rejected';
 export type ManagedCollection = 'clients' | 'cameramen' | 'shoots' | 'expenses';
 

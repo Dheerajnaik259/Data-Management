@@ -70,7 +70,7 @@ create table public.settings (
 
 create table public.change_requests (
   id uuid primary key default gen_random_uuid(), target_collection text not null,
-  target_doc_id uuid, action text not null check (action in ('create', 'edit')),
+  target_doc_id uuid, action text not null check (action in ('create', 'edit', 'delete')),
   proposed_data jsonb not null, requested_by uuid not null references public.profiles(id), requested_at timestamptz not null default now(),
   status text not null check (status in ('pending', 'approved', 'rejected')), reviewed_by uuid references public.profiles(id),
   reviewed_at timestamptz, review_note text not null default '', revision_count integer not null default 0
@@ -150,7 +150,7 @@ set search_path = public
 as $$
 declare affected integer;
 begin
-  if not public.is_admin() then raise exception 'Only the admin can manage deleted records'; end if;
+  if not public.is_operator() then raise exception 'Only authorized operators can manage deleted records'; end if;
   if p_collection not in ('clients', 'cameramen', 'shoots', 'expenses') then raise exception 'Invalid collection'; end if;
   execute format(
     'update public.%I set deleted_at = case when $1 then now() else null end, deleted_by = case when $1 then auth.uid() else null end where id = $2',
@@ -169,7 +169,7 @@ set search_path = public
 as $$
 declare affected integer;
 begin
-  if not public.is_admin() then raise exception 'Only the admin can permanently delete records'; end if;
+  if not public.is_operator() then raise exception 'Only authorized operators can permanently delete records'; end if;
   if p_collection not in ('clients', 'cameramen', 'shoots', 'expenses') then raise exception 'Invalid collection'; end if;
   execute format('delete from public.%I where id = $1', p_collection) using p_record_id;
   get diagnostics affected = row_count;

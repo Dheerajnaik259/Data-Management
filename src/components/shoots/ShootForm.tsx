@@ -31,8 +31,8 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const availableClients = clients.filter(c => !changeRequests.some(cr => cr.targetCollection === 'clients' && cr.targetDocId === c.id && cr.status === 'pending'));
-  const availableCameramen = cameramen.filter(c => !changeRequests.some(cr => cr.targetCollection === 'cameramen' && cr.targetDocId === c.id && cr.status === 'pending'));
+  const availableClients = clients;
+  const availableCameramen = cameramen;
 
   const statusOptions = getSettingsOptions('shootStatus');
   const defaultStatus = statusOptions[0]?.value || '';
@@ -63,6 +63,7 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setErrorMessage(null);
 
     if (!clientId) { setErrorMessage('Please select a client.'); return; }
