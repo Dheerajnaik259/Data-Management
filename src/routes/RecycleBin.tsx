@@ -16,7 +16,8 @@ export const RecycleBin: React.FC = () => {
   const [confirmAction, setConfirmAction] = useState<{ col: ManagedCollection; id: string; type: 'restore' | 'delete' } | null>(null);
   const [filterCol, setFilterCol] = useState<string>('all');
 
-  const canAct = user ? canDelete(user.role) : false;
+  const canRes = user ? canRestore(user.role) : false;
+  const canHard = user ? canHardDelete(user.role) : false;
   const filtered = filterCol === 'all' ? deletedRecords : deletedRecords.filter(d => d.collection === filterCol);
 
   const colCounts: Record<string, number> = {};
@@ -68,19 +69,20 @@ export const RecycleBin: React.FC = () => {
                     Deleted {record.deletedAt ? new Date(record.deletedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                   </p>
                 </div>
-                {canAct && (
-                  <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  {canRes && (
                     <button onClick={() => setConfirmAction({ col, id: (record as { id: string }).id, type: 'restore' })}
                       className="px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-md flex items-center gap-1 border border-emerald-200 dark:border-emerald-800">
                       <RotateCcw className="w-3 h-3" /> Restore
                     </button>
+                  )}
+                  {canHard && (
                     <button onClick={() => setConfirmAction({ col, id: (record as { id: string }).id, type: 'delete' })}
                       className="px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-md flex items-center gap-1 border border-red-200 dark:border-red-800">
                       <Trash2 className="w-3 h-3" /> Delete Forever
                     </button>
-                  </div>
-                )}
-                {!canAct && <span className="text-[10px] text-[var(--color-text-muted)]">View only</span>}
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -18,7 +18,7 @@ const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     canApprove: true,
     canDelete: true,
     canRestore: true,
-    canHardDelete: true,
+    canHardDelete: false,
     canEditSettings: true,
     canSubmitForApproval: false,
   },

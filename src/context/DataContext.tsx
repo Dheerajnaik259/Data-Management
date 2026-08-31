@@ -19,7 +19,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { checkOverdue } from '../utils/overdueCheck';
 import { parseOperationalSettings } from '../config/business';
-import { canCreateDirect, canApprove, canDelete as canDeletePerm, canSubmitForApproval } from '../utils/permissions';
+import { canCreateDirect, canApprove, canDelete as canDeletePerm, canHardDelete as canHardDeletePerm, canSubmitForApproval } from '../utils/permissions';
 
 interface DashboardStats {
   pendingClientAmount: number;
@@ -359,7 +359,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleHardDelete = async (col: ManagedCollection, docId: string) => {
     try {
-      if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to permanently delete records.');
+      if (!user || !canHardDeletePerm(user.role)) throw new Error('Only Admin can permanently delete records from the Recycle Bin.');
       await hardDelete(col, docId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to permanently delete record';

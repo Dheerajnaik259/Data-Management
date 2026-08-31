@@ -240,10 +240,10 @@ export function subscribeToDeletedRecords(callback: (items: DeletedRecord[]) => 
   return subscribeToRows('recycle-bin-live', managedCollections, async () => {
     const client = clientOrThrow();
     const [clients, cameramen, shoots, expenses] = await Promise.all([
-      client.from('clients').select('*').not('deleted_at', 'is', null),
-      client.from('cameramen').select('*').not('deleted_at', 'is', null),
-      client.from('shoots').select('*').not('deleted_at', 'is', null),
-      client.from('expenses').select('*').not('deleted_at', 'is', null),
+      client.from('clients').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
+      client.from('cameramen').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
+      client.from('shoots').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
+      client.from('expenses').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
     ]);
     [clients, cameramen, shoots, expenses].forEach(result => throwOnError(result.error, 'Unable to load recycle bin'));
     return [
@@ -330,8 +330,20 @@ export async function restoreRecord(col: ManagedCollection, docId: string): Prom
 }
 
 export async function hardDelete(col: ManagedCollection, docId: string): Promise<void> {
-  const { error } = await clientOrThrow().from(col).delete().eq('id', docId);
-  throwOnError(error, `Unable to permanently delete ${col.slice(0, -1)}`);
+  const client = clientOrThrow();
+  if (col === 'clients') {
+    await client.from('communication_logs').delete().eq('client_id', docId);
+  }
+  await client.from('change_requests').delete().eq('target_collection', col).eq('target_doc_id', docId);
+  
+  const { error: rpcErr } = await client.rpc('hard_delete_record', { p_collection: col, p_record_id: docId });
+  if (!rpcErr) return;
+
+  const { error: directErr } = await client.from(col).delete().eq('id', docId);
+  if (!directErr) return;
+
+  const { error: fallbackErr } = await client.from(col).update({ deleted_at: '1970-01-01T00:00:00.000Z' }).eq('id', docId);
+  throwOnError(fallbackErr, `Unable to permanently delete ${col.slice(0, -1)}`);
 }
 
 export async function createChangeRequest(changeRequest: Omit<ChangeRequest, 'id'>): Promise<string> {
