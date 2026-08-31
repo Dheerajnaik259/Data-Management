@@ -111,7 +111,9 @@ insert into public.settings (id, key, label, editable, options) values
   ('clientStatus', 'clientStatus', 'Client Status', true, '[{"value":"active","order":1,"archived":false},{"value":"inactive","order":2,"archived":false}]'::jsonb),
   ('shootStatus', 'shootStatus', 'Shoot Status', true, '[{"value":"scheduled","order":1,"archived":false},{"value":"done","order":2,"archived":false}]'::jsonb),
   ('deliverableTypes', 'deliverableTypes', 'Deliverable Types', true, '[{"value":"reel","order":1,"archived":false},{"value":"story","order":2,"archived":false},{"value":"photo set","order":3,"archived":false}]'::jsonb),
-  ('expenseCategories', 'expenseCategories', 'Expense Categories', true, '[{"value":"travel","order":1,"archived":false},{"value":"equipment","order":2,"archived":false},{"value":"software","order":3,"archived":false},{"value":"other","order":4,"archived":false}]'::jsonb)
+  ('expenseCategories', 'expenseCategories', 'Expense Categories', true, '[{"value":"travel","order":1,"archived":false},{"value":"equipment","order":2,"archived":false},{"value":"software","order":3,"archived":false},{"value":"other","order":4,"archived":false}]'::jsonb),
+  ('businessProfile', 'businessProfile', 'Business Profile', true, '[]'::jsonb),
+  ('operationalSettings', 'operationalSettings', 'Operational Defaults', true, '[]'::jsonb)
 on conflict (id) do nothing;
 
 do $$

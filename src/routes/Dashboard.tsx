@@ -32,11 +32,16 @@ export const Dashboard: React.FC = () => {
 
   // Admin Specific Lists
   const dispatchShoots = useMemo(() => {
-    return shoots.filter(s => s.date === todayStr || s.date === tomorrowStr);
+    return [...shoots]
+      .filter(s => s.date === todayStr || s.date === tomorrowStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [shoots, todayStr, tomorrowStr]);
 
   const upcomingShoots = useMemo(() => {
-    return shoots.filter(s => s.status === 'scheduled' || s.date >= todayStr).slice(0, 5);
+    return [...shoots]
+      .filter(s => s.status === 'scheduled' || s.date >= todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 5);
   }, [shoots, todayStr]);
 
   const myChangeRequests = useMemo(() => {
@@ -72,7 +77,7 @@ export const Dashboard: React.FC = () => {
     }).sort((a, b) => b.netMargin - a.netMargin);
   }, [clients, shoots, expenses]);
 
-  const netExecutiveCashflow = dashboardStats.pendingClientAmount - dashboardStats.pendingCameramanAmount - dashboardStats.totalExpenses;
+  const pendingNetPosition = dashboardStats.pendingClientAmount - dashboardStats.pendingCameramanAmount;
 
   return (
     <div className="flex-1 flex flex-col min-w-0 pb-12">
@@ -300,13 +305,13 @@ export const Dashboard: React.FC = () => {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Net Executive Cashflow</span>
+                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Pending Net Position</span>
                   <div className="w-7 h-7 rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center font-bold text-xs">₹</div>
                 </div>
-                <div className={`text-2xl font-bold font-serif ${netExecutiveCashflow >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-600 dark:text-red-500'}`}>
-                  {formatCurrency(netExecutiveCashflow)}
+                <div className={`text-2xl font-bold font-serif ${pendingNetPosition >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-600 dark:text-red-500'}`}>
+                  {formatCurrency(pendingNetPosition)}
                 </div>
-                <div className="text-xs text-[var(--color-text-secondary)]"><span>Receivables minus payouts & operating expenses</span></div>
+                <div className="text-xs text-[var(--color-text-secondary)]"><span>Outstanding receivables minus pending crew payouts</span></div>
               </div>
 
               <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-2">

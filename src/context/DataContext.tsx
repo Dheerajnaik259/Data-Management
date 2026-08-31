@@ -18,6 +18,7 @@ import { isSupabaseConfigured } from '../supabase/config';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { checkOverdue } from '../utils/overdueCheck';
+import { parseOperationalSettings } from '../config/business';
 import { canCreateDirect, canApprove, canDelete as canDeletePerm, canSubmitForApproval } from '../utils/permissions';
 
 interface DashboardStats {
@@ -164,10 +165,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { totalAssigned, totalPaid, outstanding: totalAssigned - totalPaid };
   };
 
+  const operationalSettings = useMemo(() => {
+    return parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
+  }, [settings]);
+
   const paymentRecords: PaymentRecord[] = useMemo(() => {
     const records: PaymentRecord[] = [];
     const clientMap = new Map<string, Client>(clients.map(c => [c.id, c]));
     const camMap = new Map<string, Cameraman>(cameramen.map(c => [c.id, c]));
+    const graceDays = operationalSettings.paymentGraceDays;
     shoots.forEach(shoot => {
       const client = clientMap.get(shoot.clientId);
       records.push({
@@ -176,7 +182,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         phone: client?.phone, shootDate: shoot.date, shootLocation: shoot.location,
         shootStatus: shoot.status, amount: shoot.clientAmount, isPaid: shoot.clientPaid,
         paidAt: shoot.clientPaidAt,
-        overdueInfo: checkOverdue(shoot.date, shoot.clientPaid, shoot.status),
+        overdueInfo: checkOverdue(shoot.date, shoot.clientPaid, shoot.status, graceDays),
       });
       shoot.assignments?.forEach((a, idx) => {
         const cam = camMap.get(a.cameramanId);
@@ -186,13 +192,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           phone: cam?.phone, shootDate: shoot.date, shootLocation: shoot.location,
           shootStatus: shoot.status, amount: a.amount || 0, hasAssignedRate: a.amount !== null, isPaid: a.paid,
           paidAt: a.paidAt,
-          overdueInfo: checkOverdue(shoot.date, a.paid, shoot.status),
+          overdueInfo: checkOverdue(shoot.date, a.paid, shoot.status, graceDays),
           assignmentIndex: idx,
         });
       });
     });
     return records.sort((a, b) => new Date(b.shootDate).getTime() - new Date(a.shootDate).getTime());
-  }, [shoots, clients, cameramen]);
+  }, [shoots, clients, cameramen, operationalSettings.paymentGraceDays]);
 
   const dashboardStats: DashboardStats = useMemo(() => {
     let pca = 0, pcc = 0, pcma = 0, pcmc = 0, oic = 0, ooc = 0;

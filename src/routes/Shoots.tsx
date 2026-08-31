@@ -14,12 +14,14 @@ import { Plus, Edit2, Trash2, Calendar, MapPin, Film, CheckCircle2, Clock, Arrow
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
 import { mergePendingItems } from '../utils/pendingMerge';
+import { parseOperationalSettings } from '../config/business';
 
 export const Shoots: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
   const navigate = useNavigate();
-  const { shoots, clients, cameramen, handleSoftDelete, handleToggleClientPayment, handleUpdateOrSubmit, getSettingsOptions } = useData();
+  const { shoots, clients, cameramen, settings, handleSoftDelete, handleToggleClientPayment, handleUpdateOrSubmit, getSettingsOptions } = useData();
   const { user } = useAuth();
+  const operationalSettings = parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -178,7 +180,7 @@ export const Shoots: React.FC = () => {
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {filteredShoots.map((shoot) => {
                     const client = clientMap.get(shoot.clientId);
-                    const overdueInfo = checkOverdue(shoot.date, shoot.clientPaid, shoot.status);
+                    const overdueInfo = checkOverdue(shoot.date, shoot.clientPaid, shoot.status, operationalSettings.paymentGraceDays);
                     const assignedCams = (shoot.assignments || []).map(a => ({ ...a, name: cameramanMap.get(a.cameramanId)?.name || 'Crew' }));
                     const isPending = shoot._pendingStatus === 'pending_create' || shoot._pendingStatus === 'pending_edit';
                     const isRejected = shoot._pendingStatus === 'rejected';
