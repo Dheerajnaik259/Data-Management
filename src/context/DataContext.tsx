@@ -52,7 +52,6 @@ interface DataContextType {
   handleCreateOrSubmit: (col: ManagedCollection, data: Record<string, unknown>) => Promise<string>;
   handleUpdateOrSubmit: (col: ManagedCollection, docId: string, data: Record<string, unknown>) => Promise<void>;
   handleSoftDelete: (col: ManagedCollection, docId: string) => Promise<void>;
-  handleCleanDuplicates: (col: 'clients' | 'cameramen') => Promise<number>;
   handleRestore: (col: ManagedCollection, docId: string) => Promise<void>;
   handleHardDelete: (col: ManagedCollection, docId: string) => Promise<void>;
   // Shoot-specific
@@ -334,60 +333,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const handleCleanDuplicates = async (col: 'clients' | 'cameramen'): Promise<number> => {
-    try {
-      if (!user || !canDeletePerm(user.role)) throw new Error('Permission denied.');
-      let deletedCount = 0;
-      const seen = new Set<string>();
-      const deletePromises: Promise<void>[] = [];
-
-      if (col === 'clients') {
-        const toDeleteIds: string[] = [];
-        for (const client of clients) {
-          const key = `${client.name.trim().toLowerCase()}_${client.phone.trim()}`;
-          if (seen.has(key)) {
-            deletePromises.push(softDelete('clients', client.id));
-            toDeleteIds.push(client.id);
-            deletedCount++;
-          } else {
-            seen.add(key);
-          }
-        }
-        if (toDeleteIds.length > 0) {
-          setClients(prev => prev.filter(c => !toDeleteIds.includes(c.id)));
-        }
-      } else if (col === 'cameramen') {
-        const toDeleteIds: string[] = [];
-        for (const cam of cameramen) {
-          const key = `${cam.name.trim().toLowerCase()}_${cam.phone.trim()}`;
-          if (seen.has(key)) {
-            deletePromises.push(softDelete('cameramen', cam.id));
-            toDeleteIds.push(cam.id);
-            deletedCount++;
-          } else {
-            seen.add(key);
-          }
-        }
-        if (toDeleteIds.length > 0) {
-          setCameramen(prev => prev.filter(c => !toDeleteIds.includes(c.id)));
-        }
-      }
-
-      await Promise.all(deletePromises);
-
-      if (deletedCount > 0) {
-        toast({ type: 'success', message: `Cleaned up ${deletedCount} duplicate ${col} record(s).` });
-      } else {
-        toast({ type: 'info', message: `No duplicate ${col} found.` });
-      }
-      return deletedCount;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to clean duplicates';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
   const handleRestore = async (col: ManagedCollection, docId: string) => {
     try {
       if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to restore records.');
@@ -551,7 +496,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{
       clients, cameramen, shoots, expenses, settings, changeRequests, notifications, deletedRecords,
       loading, dashboardStats, getClientLedger, getCameramanLedger, getSettingsOptions, paymentRecords,
-      handleCreateOrSubmit, handleUpdateOrSubmit, handleSoftDelete, handleCleanDuplicates, handleRestore, handleHardDelete,
+      handleCreateOrSubmit, handleUpdateOrSubmit, handleSoftDelete, handleRestore, handleHardDelete,
       handleToggleClientPayment, handleToggleCameramanPayment,
       handleToggleCameramanCheckIn,
       handleApprove, handleReject, handleEditAndResubmit,

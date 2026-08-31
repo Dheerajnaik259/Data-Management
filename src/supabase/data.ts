@@ -329,27 +329,66 @@ export async function updateShootOperationalData(shootId: string, data: Record<s
 }
 
 export async function softDelete(col: ManagedCollection, docId: string): Promise<void> {
-  const { error } = await clientOrThrow().from(col).update({ deleted_at: new Date().toISOString() }).eq('id', docId);
+  const client = clientOrThrow();
+  const { error: rpcErr } = await client.rpc('set_record_deleted', {
+    p_collection: col,
+    p_record_id: docId,
+    p_deleted: true,
+  });
+  if (!rpcErr) return;
+
+  const { error } = await client.from(col).update({ deleted_at: new Date().toISOString() }).eq('id', docId);
   throwOnError(error, `Unable to delete ${col.slice(0, -1)}`);
 }
 
 export async function restoreRecord(col: ManagedCollection, docId: string): Promise<void> {
-  const { error } = await clientOrThrow().from(col).update({ deleted_at: null, deleted_by: null }).eq('id', docId);
+  const client = clientOrThrow();
+  const { error: rpcErr } = await client.rpc('set_record_deleted', {
+    p_collection: col,
+    p_record_id: docId,
+    p_deleted: false,
+  });
+  if (!rpcErr) return;
+
+  const { error } = await client.from(col).update({ deleted_at: null, deleted_by: null }).eq('id', docId);
   throwOnError(error, `Unable to restore ${col.slice(0, -1)}`);
 }
 
 export async function hardDelete(col: ManagedCollection, docId: string): Promise<void> {
   const client = clientOrThrow();
-  if (col === 'clients') {
-    await client.from('communication_logs').delete().eq('client_id', docId);
-  }
-  await client.from('change_requests').delete().eq('target_collection', col).eq('target_doc_id', docId);
-  
-  const { error: rpcErr } = await client.rpc('hard_delete_record', { p_collection: col, p_record_id: docId });
-  if (!rpcErr) return;
 
-  await client.from(col).delete().eq('id', docId);
-  await client.from(col).update({ deleted_at: '1970-01-01T00:00:00.000Z' }).eq('id', docId);
+  if (col === 'clients') {
+    const { data: clientShoots } = await client.from('shoots').select('id').eq('client_id', docId);
+    if (clientShoots && clientShoots.length > 0) {
+      const shootIds = clientShoots.map(s => s.id);
+      const { data: clientExpenses } = await client.from('expenses').select('id').in('shoot_id', shootIds);
+      if (clientExpenses && clientExpenses.length > 0) {
+        for (const exp of clientExpenses) {
+          await client.rpc('hard_delete_record', { p_collection: 'expenses', p_record_id: exp.id });
+        }
+      }
+      for (const shootId of shootIds) {
+        await client.rpc('hard_delete_record', { p_collection: 'shoots', p_record_id: shootId });
+      }
+    }
+    await client.from('communication_logs').delete().eq('client_id', docId);
+  } else if (col === 'shoots') {
+    const { data: shootExpenses } = await client.from('expenses').select('id').eq('shoot_id', docId);
+    if (shootExpenses && shootExpenses.length > 0) {
+      for (const exp of shootExpenses) {
+        await client.rpc('hard_delete_record', { p_collection: 'expenses', p_record_id: exp.id });
+      }
+    }
+  }
+
+  await client.from('change_requests').delete().eq('target_doc_id', docId);
+  await client.from('change_requests').delete().eq('target_collection', col).eq('target_doc_id', docId);
+
+  const { error: rpcErr } = await client.rpc('hard_delete_record', { p_collection: col, p_record_id: docId });
+  if (rpcErr) {
+    console.error(`RPC hard_delete_record failed for ${col} ${docId}:`, rpcErr);
+    throw new Error(rpcErr.message || `Unable to permanently delete ${col.slice(0, -1)}`);
+  }
 }
 
 export async function createChangeRequest(changeRequest: Omit<ChangeRequest, 'id'>): Promise<string> {

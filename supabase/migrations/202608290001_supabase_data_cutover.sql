@@ -54,9 +54,17 @@ declare affected integer;
 begin
   if not public.is_operator() then raise exception 'Only authorized operators can permanently delete records'; end if;
   if p_collection not in ('clients', 'cameramen', 'shoots', 'expenses') then raise exception 'Invalid collection'; end if;
+  if p_collection = 'clients' then
+    delete from public.expenses where shoot_id in (select id from public.shoots where client_id = p_record_id);
+    delete from public.shoots where client_id = p_record_id;
+    delete from public.communication_logs where client_id = p_record_id;
+  elsif p_collection = 'shoots' then
+    delete from public.expenses where shoot_id = p_record_id;
+  end if;
+  delete from public.change_requests where target_doc_id = p_record_id;
+  delete from public.change_requests where target_collection = p_collection and target_doc_id = p_record_id;
   execute format('delete from public.%I where id = $1', p_collection) using p_record_id;
   get diagnostics affected = row_count;
-  if affected = 0 then raise exception 'Record not found'; end if;
 end;
 $$;
 
