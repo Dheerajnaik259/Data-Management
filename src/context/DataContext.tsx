@@ -18,6 +18,7 @@ import { isSupabaseConfigured } from '../supabase/config';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { checkOverdue } from '../utils/overdueCheck';
+import { formatSingularCollection } from '../utils/formatCollection';
 import { parseOperationalSettings } from '../config/business';
 import { canCreateDirect, canApprove, canDelete as canDeletePerm, canHardDelete as canHardDeletePerm, canSubmitForApproval } from '../utils/permissions';
 
@@ -57,6 +58,7 @@ interface DataContextType {
   // Shoot-specific
   handleToggleClientPayment: (shootId: string, isPaid: boolean) => Promise<void>;
   handleToggleCameramanPayment: (shootId: string, idx: number, isPaid: boolean) => Promise<void>;
+  handleSetCameramanRate: (shootId: string, idx: number, amount: number) => Promise<void>;
   handleToggleCameramanCheckIn: (shootId: string, idx: number, checkedIn: boolean) => Promise<void>;
   // Approval
   handleApprove: (crId: string, reviewNote?: string) => Promise<void>;
@@ -325,7 +327,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (col === 'cameramen') setCameramen(prev => prev.filter(c => c.id !== docId));
       if (col === 'shoots') setShoots(prev => prev.filter(s => s.id !== docId));
       if (col === 'expenses') setExpenses(prev => prev.filter(e => e.id !== docId));
-      toast({ type: 'success', message: `${col.slice(0, -1)} moved to Recycle Bin.` });
+      toast({ type: 'success', message: `${formatSingularCollection(col)} moved to Recycle Bin.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete record';
       toast({ type: 'error', message: msg });
@@ -338,7 +340,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to restore records.');
       await restoreRecord(col, docId);
       setDeletedRecords(prev => prev.filter(r => !(r.collection === col && r.record.id === docId)));
-      toast({ type: 'success', message: `${col.slice(0, -1)} restored.` });
+      toast({ type: 'success', message: `${formatSingularCollection(col)} restored.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to restore record';
       toast({ type: 'error', message: msg });
@@ -386,6 +388,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await updateShootOperationalData(shootId, { assignments: updated });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to update crew payout status';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
+  };
+
+  const handleSetCameramanRate = async (shootId: string, idx: number, amount: number) => {
+    try {
+      const shoot = shoots.find(s => s.id === shootId);
+      if (!shoot?.assignments?.[idx]) return;
+      const updated = [...shoot.assignments];
+      updated[idx] = { ...updated[idx], amount };
+      await updateShootOperationalData(shootId, { assignments: updated });
+      toast({ type: 'success', message: 'Payout rate updated.' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save payout rate';
       toast({ type: 'error', message: msg });
       throw err;
     }
@@ -442,7 +459,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         reviewedBy: null, reviewedAt: null, reviewNote: '',
         revisionCount: cr.revisionCount + 1,
         requestedAt: new Date().toISOString(),
-      }, await getApprovalRecipientId(), `${cr.targetCollection.slice(0, -1)} resubmitted for review`);
+      }, await getApprovalRecipientId(), `${formatSingularCollection(cr.targetCollection)} resubmitted for review`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to resubmit request';
       toast({ type: 'error', message: msg });
@@ -497,7 +514,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clients, cameramen, shoots, expenses, settings, changeRequests, notifications, deletedRecords,
       loading, dashboardStats, getClientLedger, getCameramanLedger, getSettingsOptions, paymentRecords,
       handleCreateOrSubmit, handleUpdateOrSubmit, handleSoftDelete, handleRestore, handleHardDelete,
-      handleToggleClientPayment, handleToggleCameramanPayment,
+      handleToggleClientPayment, handleToggleCameramanPayment, handleSetCameramanRate,
       handleToggleCameramanCheckIn,
       handleApprove, handleReject, handleEditAndResubmit,
       handleUpdateSettings, handleMarkRead, handleMarkAllRead,

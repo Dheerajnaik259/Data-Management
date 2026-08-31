@@ -12,6 +12,7 @@ import { ClientForm } from '../components/clients/ClientForm';
 import { CameramanForm } from '../components/cameramen/CameramanForm';
 import { ExpenseForm } from '../components/expenses/ExpenseForm';
 import { ShootForm } from '../components/shoots/ShootForm';
+import { formatSingularCollection } from '../utils/formatCollection';
 
 const TAB_FILTERS = ['all', 'pending', 'approved', 'rejected'] as const;
 
@@ -154,7 +155,7 @@ const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, isExpanded,
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={statusBadge(cr.status)}>{cr.status}</span>
-            <span className="text-[10px] text-[var(--color-text-muted)] uppercase font-medium">{cr.action} {cr.targetCollection.slice(0, -1)}</span>
+            <span className="text-[10px] text-[var(--color-text-muted)] uppercase font-medium">{cr.action} {formatSingularCollection(cr.targetCollection)}</span>
             {cr.revisionCount > 0 && <span className="text-[10px] text-blue-500">v{cr.revisionCount + 1}</span>}
           </div>
           <p className="text-sm font-medium text-[var(--color-text)] mt-1 truncate">{proposedName || `${cr.targetCollection} ${cr.action}`}</p>

@@ -10,14 +10,12 @@ import { ArrowLeft, Phone, ExternalLink, Edit2, Calendar, MapPin, CheckCircle2, 
 
 export const CameramanDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { cameramen, shoots, clients, getCameramanLedger, handleToggleCameramanPayment, handleToggleCameramanCheckIn, handleUpdateOrSubmit, changeRequests } = useData();
+  const { cameramen, shoots, clients, getCameramanLedger, handleToggleCameramanPayment, handleToggleCameramanCheckIn, handleSetCameramanRate, changeRequests } = useData();
 
   const cameraman = cameramen.find(c => c.id === id);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [receiptModalShoot, setReceiptModalShoot] = useState<{ shoot: Shoot; amount: number; paid: boolean; paidAt?: string | null; } | null>(null);
   const [rateDrafts, setRateDrafts] = useState<Record<string, string>>({});
-  const [unavailableDate, setUnavailableDate] = useState('');
-  const [unavailableReason, setUnavailableReason] = useState('');
 
   if (!cameraman) {
     return (
@@ -49,21 +47,8 @@ export const CameramanDetail: React.FC = () => {
   const handleRateSave = async (item: typeof assignedShoots[number]) => {
     const amount = Number(rateDrafts[item.shoot.id]);
     if (!Number.isFinite(amount) || amount <= 0) return;
-    const assignments = [...item.shoot.assignments];
-    assignments[item.assignmentIndex] = { ...assignments[item.assignmentIndex], amount };
-    await handleUpdateOrSubmit('shoots', item.shoot.id, { assignments });
+    await handleSetCameramanRate(item.shoot.id, item.assignmentIndex, amount);
     setRateDrafts(current => ({ ...current, [item.shoot.id]: '' }));
-  };
-
-  const handleAddUnavailable = async () => {
-    if (!unavailableDate) return;
-    const unavailability = [...(cameraman.unavailability || []), { date: unavailableDate, reason: unavailableReason.trim() }];
-    await handleUpdateOrSubmit('cameramen', cameraman.id, { unavailability });
-    setUnavailableDate(''); setUnavailableReason('');
-  };
-
-  const handleRemoveUnavailable = async (date: string) => {
-    await handleUpdateOrSubmit('cameramen', cameraman.id, { unavailability: (cameraman.unavailability || []).filter(item => item.date !== date) });
   };
 
   return (
@@ -234,18 +219,6 @@ export const CameramanDetail: React.FC = () => {
               })}
             </div>
           )}
-        </section>
-
-        <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs p-6">
-          <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Unavailable Dates</h3>
-          <div className="flex flex-wrap items-end gap-2 mt-4">
-            <label className="text-xs text-[var(--color-text-secondary)]">Date<input type="date" value={unavailableDate} onChange={e => setUnavailableDate(e.target.value)} className="block mt-1 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)]" /></label>
-            <label className="text-xs text-[var(--color-text-secondary)]">Reason<input value={unavailableReason} onChange={e => setUnavailableReason(e.target.value)} placeholder="Optional" className="block mt-1 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)]" /></label>
-            <button type="button" onClick={handleAddUnavailable} className="px-3 py-2 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md">Add Date</button>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-4">
-            {(cameraman.unavailability || []).map(item => <button key={item.date} type="button" onClick={() => handleRemoveUnavailable(item.date)} title="Remove unavailable date" className="px-2.5 py-1 text-xs text-[var(--color-text-secondary)] border border-[var(--color-border)] rounded-md">{item.date}{item.reason ? ` · ${item.reason}` : ''} ×</button>)}
-          </div>
         </section>
       </main>
 

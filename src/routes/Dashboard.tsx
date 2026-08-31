@@ -11,6 +11,7 @@ import { GrowthChart } from '../components/dashboard/GrowthChart';
 import { AttentionFeed } from '../components/dashboard/AttentionFeed';
 import { buildCameramanScheduleWhatsAppUrl, buildClientPaymentReminderWhatsAppUrl } from '../utils/whatsapp';
 import { parseOperationalSettings } from '../config/business';
+import { formatSingularCollection } from '../utils/formatCollection';
 
 export const Dashboard: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
@@ -272,7 +273,7 @@ export const Dashboard: React.FC = () => {
                     <div key={cr.id} className="p-4 flex items-center justify-between gap-3 text-xs">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-[var(--color-text)] capitalize">{cr.action} {cr.targetCollection.slice(0, -1)}</span>
+                          <span className="font-bold text-[var(--color-text)] capitalize">{cr.action} {formatSingularCollection(cr.targetCollection)}</span>
                           <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${cr.status === 'approved' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : cr.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'}`}>
                             {cr.status}
                           </span>

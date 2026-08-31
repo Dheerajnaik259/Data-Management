@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { formatSingularCollection } from '../../utils/formatCollection';
 import { OverdueBadge } from '../common/OverdueBadge';
 import { AlertCircle, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { ChangeRequest, Shoot } from '../../types';
@@ -74,7 +75,7 @@ export const AttentionFeed: React.FC = () => {
       items.push({
         id: `cr-${cr.id}`,
         type: 'pending_approval',
-        title: `${cr.action === 'create' ? 'New' : 'Edit'} ${cr.targetCollection.slice(0, -1)} awaiting approval`,
+        title: `${cr.action === 'create' ? 'New' : 'Edit'} ${formatSingularCollection(cr.targetCollection)} awaiting approval`,
         subtitle: `Submitted by Admin on ${new Date(cr.requestedAt).toLocaleDateString()}`,
         urgency: isFounder ? 20 : 80,
         link: '/approvals'
@@ -89,7 +90,7 @@ export const AttentionFeed: React.FC = () => {
         items.push({
           id: `cr-rej-${cr.id}`,
           type: 'rejected_request',
-          title: `Rejected: ${cr.action === 'create' ? 'New' : 'Edit'} ${cr.targetCollection.slice(0, -1)}`,
+          title: `Rejected: ${cr.action === 'create' ? 'New' : 'Edit'} ${formatSingularCollection(cr.targetCollection)}`,
           subtitle: `Note: ${cr.reviewNote}`,
           urgency: 25,
           link: '/approvals'
