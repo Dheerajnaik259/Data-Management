@@ -108,15 +108,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
 
       {/* Footer */}
       <div className="p-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {/* Dark mode toggle */}
-        <button onClick={toggleTheme}
-          className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-          style={{ color: 'rgba(250,248,245,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.06)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}>
-          {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
-        </button>
+        {/* Dark theme badge */}
+        <div className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md backdrop-blur-md"
+          style={{ color: 'rgba(250,248,245,0.7)', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.04)' }}>
+          <Moon className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+          <span>Dark Liquid Glass</span>
+        </div>
 
         {/* User info */}
         <div className="flex items-center gap-3 px-2">

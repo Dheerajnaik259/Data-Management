@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'dark';
 
 interface ThemeContextType {
   theme: Theme;
@@ -11,29 +11,21 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('smm_ops_theme');
-    return (saved === 'dark' ? 'dark' : 'light') as Theme;
-  });
+  const [theme] = useState<Theme>('dark');
 
   useEffect(() => {
-    localStorage.setItem('smm_ops_theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+    localStorage.setItem('smm_ops_theme', 'dark');
+    document.documentElement.classList.add('dark');
+  }, []);
 
   const toggleTheme = useCallback(() => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
-    localStorage.setItem('smm_ops_theme', nextTheme);
-    setTheme(nextTheme);
-  }, [theme]);
+    // Fixed dark theme, theme toggle is locked to dark mode
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('smm_ops_theme', 'dark');
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === 'dark' }}>
+    <ThemeContext.Provider value={{ theme: 'dark', toggleTheme, isDark: true }}>
       {children}
     </ThemeContext.Provider>
   );

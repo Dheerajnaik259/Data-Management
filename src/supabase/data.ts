@@ -444,6 +444,15 @@ export async function updateChangeRequest(changeRequestId: string, data: Partial
   }
 }
 
+export async function deleteChangeRequest(changeRequestId: string): Promise<void> {
+  const client = clientOrThrow();
+  const { error } = await client
+    .from('change_requests')
+    .delete()
+    .eq('id', changeRequestId);
+  throwOnError(error, 'Unable to delete change request');
+}
+
 export async function createNotification(notification: Omit<AppNotification, 'id'>): Promise<string> {
   const { data, error } = await clientOrThrow().from('notifications').insert({
     recipient_id: notification.recipientId, type: notification.type,

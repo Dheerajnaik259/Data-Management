@@ -12,7 +12,7 @@ import {
   markNotificationRead, markAllNotificationsRead,
   addCommunicationLog, resetToSeedData, requestInvoiceNumber, findUserIdByRole,
   submitChangeRequestWithNotification, resubmitChangeRequestWithNotification,
-  reviewChangeRequestWithNotification, updateChangeRequest,
+  reviewChangeRequestWithNotification, updateChangeRequest, deleteChangeRequest,
   updateShootOperationalData,
 } from '../supabase/data';
 import { isSupabaseConfigured } from '../supabase/config';
@@ -65,10 +65,10 @@ interface DataContextType {
   handleToggleCameramanPayment: (shootId: string, idx: number, isPaid: boolean) => Promise<void>;
   handleSetCameramanRate: (shootId: string, idx: number, amount: number) => Promise<void>;
   handleToggleCameramanCheckIn: (shootId: string, idx: number, checkedIn: boolean) => Promise<void>;
-  // Approval
   handleApprove: (crId: string, reviewNote?: string) => Promise<void>;
   handleReject: (crId: string, reviewNote: string) => Promise<void>;
   handleEditAndResubmit: (crId: string, newData: Record<string, unknown>) => Promise<void>;
+  handleDeleteChangeRequest: (crId: string) => Promise<void>;
   // Settings
   handleUpdateSettings: (id: string, data: Partial<SettingsDoc>) => Promise<void>;
   // Notifications
@@ -570,6 +570,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const handleDeleteChangeRequest = async (crId: string) => {
+    try {
+      if (!user) throw new Error('Not authenticated.');
+      const cr = changeRequests.find(c => c.id === crId);
+      if (!cr) return;
+
+      setChangeRequests(prev => prev.filter(item => item.id !== crId));
+      await deleteChangeRequest(crId);
+      toast({ type: 'success', message: 'Change request deleted.' });
+      void fetchChangeRequests().then(setChangeRequests);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete change request';
+      toast({ type: 'error', message: msg });
+      throw err;
+    }
+  };
+
   const handleUpdateSettings = async (id: string, data: Partial<SettingsDoc>) => {
     try {
       if (id === 'businessProfile' && user?.role !== 'founder') {
@@ -619,7 +636,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleCreateOrSubmit, handleUpdateOrSubmit, handleSoftDelete, handleRestore, handleHardDelete,
       handleToggleClientPayment, handleToggleCameramanPayment, handleSetCameramanRate,
       handleToggleCameramanCheckIn,
-      handleApprove, handleReject, handleEditAndResubmit,
+      handleApprove, handleReject, handleEditAndResubmit, handleDeleteChangeRequest,
       handleUpdateSettings, handleMarkRead, handleMarkAllRead,
       handleAddCommunication, handleGenerateInvoiceNumber, handleGenerateVoucherNumber,
       handleResetDemoData,
