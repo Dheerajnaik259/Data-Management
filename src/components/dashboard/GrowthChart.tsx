@@ -89,11 +89,32 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
     };
   }, [range, shoots, expenses]);
 
-  const maxVal = Math.max(...points.map(p => Math.max(p.income, p.outgoing)), 100);
+  // Calculate dynamic max value rounded up to clean intervals
+  const rawMax = Math.max(...points.map(p => Math.max(p.income, p.outgoing)), 100);
   
+  const getNiceMax = (val: number) => {
+    if (val <= 500) return Math.ceil(val / 100) * 100;
+    if (val <= 2000) return Math.ceil(val / 500) * 500;
+    if (val <= 10000) return Math.ceil(val / 1000) * 1000;
+    if (val <= 50000) return Math.ceil(val / 5000) * 5000;
+    if (val <= 200000) return Math.ceil(val / 20000) * 20000;
+    return Math.ceil(val / 50000) * 50000;
+  };
+
+  const niceMax = getNiceMax(rawMax);
+
+  // Generate 4 clean dynamic grid ticks: [niceMax, niceMax * 0.75, niceMax * 0.5, niceMax * 0.25, 0]
+  const yTicks = [
+    niceMax,
+    Math.round(niceMax * 0.75),
+    Math.round(niceMax * 0.5),
+    Math.round(niceMax * 0.25),
+    0,
+  ];
+
   // Layout Dimensions with left margin for Y-axis numericals
-  const paddingLeft = 70;
-  const paddingRight = 30;
+  const paddingLeft = 80;
+  const paddingRight = 35;
   const paddingTop = 28;
   const paddingBottom = 30;
   const width = 760;
@@ -102,16 +123,13 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
 
-  // Grid steps (4 lines: 0%, 33%, 66%, 100%)
-  const ySteps = [1, 0.66, 0.33, 0];
-
   const getX = (index: number) => {
     if (points.length <= 1) return paddingLeft + chartWidth / 2;
     return paddingLeft + (index / (points.length - 1)) * chartWidth;
   };
 
   const getY = (val: number) => {
-    return paddingTop + chartHeight - (val / maxVal) * chartHeight;
+    return paddingTop + chartHeight - (val / niceMax) * chartHeight;
   };
 
   const incomePointsStr = points.map((p, i) => `${getX(i)},${getY(p.income)}`).join(' ');
@@ -171,13 +189,12 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
           </div>
         </div>
 
-        {/* Graph Area with Y-Axis Numericals & Hover Numerical Badges */}
+        {/* Graph Area with Dynamic Y-Axis Scale & Hover Numerical Badges */}
         <div className="relative w-full overflow-x-auto">
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-60" role="img" aria-label="Income and outgoing cashflow line chart">
-            {/* Horizontal Gridlines & Y-Axis Numerical Labels */}
-            {ySteps.map((ratio, idx) => {
-              const yVal = paddingTop + chartHeight * (1 - ratio);
-              const numericalVal = Math.round(maxVal * ratio);
+            {/* Horizontal Gridlines & Dynamic Clean Y-Axis Numerical Labels */}
+            {yTicks.map((numericalVal, idx) => {
+              const yVal = getY(numericalVal);
               return (
                 <g key={idx}>
                   <line
