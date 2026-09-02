@@ -1,3 +1,5 @@
+import { formatTime12h } from './formatTime';
+
 interface CameramanScheduleMessageParams {
   phone: string;
   cameramanName: string;
@@ -40,13 +42,15 @@ export const buildCameramanScheduleWhatsAppUrl = ({
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   if (!cleanPhone) return null;
 
+  const formattedCallTime = formatTime12h(callTime) || 'To be confirmed';
+
   let message: string;
   if (template && template.trim()) {
     message = template
       .replace(/\{cameramanName\}/g, cameramanName)
       .replace(/\{clientName\}/g, clientName || 'N/A')
       .replace(/\{date\}/g, formatShootDate(date))
-      .replace(/\{callTime\}/g, callTime || 'To be confirmed')
+      .replace(/\{callTime\}/g, formattedCallTime)
       .replace(/\{location\}/g, location);
   } else {
     const clientLine = clientName ? `\nClient: ${clientName}` : '';
@@ -55,7 +59,7 @@ export const buildCameramanScheduleWhatsAppUrl = ({
       '',
       'You have been scheduled for a shoot.',
       `Date: ${formatShootDate(date)}`,
-      `Call time: ${callTime || 'To be confirmed'}`,
+      `Call time: ${formattedCallTime}`,
       `Location: ${location}${clientLine}`,
       '',
       'Please confirm your availability. Thank you!',

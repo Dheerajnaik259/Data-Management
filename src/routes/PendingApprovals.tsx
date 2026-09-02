@@ -13,6 +13,7 @@ import { CameramanForm } from '../components/cameramen/CameramanForm';
 import { ExpenseForm } from '../components/expenses/ExpenseForm';
 import { ShootForm } from '../components/shoots/ShootForm';
 import { formatSingularCollection } from '../utils/formatCollection';
+import { formatTime12h } from '../utils/formatTime';
 
 const TAB_FILTERS = ['all', 'pending', 'approved', 'rejected'] as const;
 
@@ -189,13 +190,16 @@ const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, isExpanded,
             {Object.entries(cr.proposedData).map(([key, val]) => {
               let displayVal = String(val);
               if (val === null || val === undefined) displayVal = 'None';
-              else if (Array.isArray(val)) {
+              else if (key === 'callTime') {
+                displayVal = formatTime12h(String(val)) || 'None';
+              } else if (Array.isArray(val)) {
                 if (val.length === 0) displayVal = 'None';
                 else if (key === 'assignments') {
                   displayVal = val.map((v: any) => {
                     const name = typeof v.cameramanId === 'string' ? v.cameramanId.replace('cam-', 'Cameraman ') : 'Unknown';
                     const amt = v.amount !== null && v.amount !== undefined ? `₹${v.amount}` : 'Pending';
-                    return `${name} (${amt})`;
+                    const time = v.callTime ? ` • ${formatTime12h(v.callTime)}` : '';
+                    return `${name} (${amt}${time})`;
                   }).join(', ');
                 } else if (key === 'deliverables') {
                   displayVal = val.map((v: any) => `${v.count}x ${v.type}`).join(', ');

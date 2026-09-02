@@ -29,6 +29,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initi
   const defaultCategory = categoryOptions[0]?.value || '';
 
   useEffect(() => {
+    if (!isOpen) return;
     if (resubmission) {
       const proposed = resubmission.proposedData;
       setDescription(String(proposed.description || '')); setAmount(Number(proposed.amount || 0));
@@ -43,7 +44,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initi
       setCategory(defaultCategory); setShootId('');
     }
     setErrorMessage(null);
-  }, [initialExpense, isOpen, resubmission, defaultCategory]);
+  }, [isOpen, initialExpense?.id, resubmission?.id]);
 
   const clientMap = new Map<string, string>(clients.map(c => [c.id, c.name]));
 

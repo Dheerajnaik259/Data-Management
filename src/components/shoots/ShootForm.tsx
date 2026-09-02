@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { TimeInput12h } from '../common/TimeInput12h';
 import { SlideOver } from '../common/SlideOver';
 import { Shoot, CameramanAssignment, Deliverable, ChangeRequest } from '../../types';
 import { useData } from '../../context/DataContext';
@@ -38,6 +39,7 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
   const defaultStatus = statusOptions[0]?.value || '';
 
   useEffect(() => {
+    if (!isOpen) return;
     if (resubmission) {
       const proposed = resubmission.proposedData;
       setClientId(String(proposed.clientId || '')); setDate(String(proposed.date || new Date().toISOString().split('T')[0]));
@@ -59,7 +61,7 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
       setAssignments([]); setDeliverables([]);
     }
     setErrorMessage(null);
-  }, [initialShoot, isOpen, availableClients, defaultStatus, resubmission]);
+  }, [isOpen, initialShoot?.id, resubmission?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,9 +139,8 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
 
         <div>
           <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">General Call Time</label>
-          <input type="time" value={callTime} onChange={e => setCallTime(e.target.value)}
-            className="w-full max-w-xs text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none" />
-          <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Required when assigning crew unless each cameraman has a call-time override.</p>
+          <TimeInput12h value={callTime} onChange={setCallTime} />
+          <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)]">Required when assigning crew unless each cameraman has a call-time override.</p>
         </div>
 
         <div className="pt-4 border-t border-[var(--color-border)]">

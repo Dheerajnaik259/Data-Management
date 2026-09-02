@@ -12,6 +12,7 @@ import { ArrowLeft, Calendar, MapPin, CheckCircle2, Clock, ExternalLink, Edit2, 
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
 import { buildCameramanScheduleWhatsAppUrl, buildClientPaymentReminderWhatsAppUrl } from '../utils/whatsapp';
+import { formatTime12h } from '../utils/formatTime';
 import { parseOperationalSettings } from '../config/business';
 
 export const ShootDetail: React.FC = () => {
@@ -229,7 +230,7 @@ export const ShootDetail: React.FC = () => {
                           <div>
                             {cam ? <Link to={`/cameramen/${cam.id}`} className="font-semibold text-xs text-[var(--color-text)] hover:underline transition-colors">{cam.name}</Link> : <span className="font-semibold text-xs text-[var(--color-text)]">Unknown Operator</span>}
                             <p className="text-[11px] text-[var(--color-text-secondary)]">Agreed shoot rate: {formatCurrency(assignment.amount)}</p>
-                            <p className="text-[11px] text-[var(--color-text-secondary)]">Call time: {assignment.callTime || shoot.callTime || 'Not set'}</p>
+                            <p className="text-[11px] text-[var(--color-text-secondary)]">Call time: {formatTime12h(assignment.callTime || shoot.callTime) || 'Not set'}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

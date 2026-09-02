@@ -193,10 +193,10 @@ function subscribeToRows<T>(
 
   void refresh();
 
-  // Polling fallback every 5 seconds to ensure live Supabase sync even if Realtime events lag
+  // Polling fallback every 30 seconds to ensure live Supabase sync even if Realtime events lag
   const pollInterval = setInterval(() => {
     if (active) void refresh();
-  }, 5000);
+  }, 30000);
 
   let channel = client.channel(channelName);
   tables.forEach(table => {
@@ -476,10 +476,13 @@ export async function markAllNotificationsRead(recipientId: string): Promise<voi
 }
 
 export async function findUserIdByRole(role: string): Promise<string> {
-  const { data, error } = await clientOrThrow().from('profiles').select('id').eq('role', role).limit(1).maybeSingle();
-  throwOnError(error, `Unable to find ${role} account`);
-  if (!data?.id) throw new Error(`No ${role} account is configured in Supabase profiles.`);
-  return stringValue(data.id);
+  try {
+    const { data, error } = await clientOrThrow().from('profiles').select('id').eq('role', role).limit(1).maybeSingle();
+    if (error || !data?.id) return 'system';
+    return stringValue(data.id);
+  } catch {
+    return 'system';
+  }
 }
 
 export async function requestInvoiceNumber(type: 'client' | 'payout', shootId: string, assignmentIndex?: number): Promise<string> {

@@ -10,6 +10,7 @@ import { TrendingUp, TrendingDown, Receipt, Film, AlertTriangle, Plus, ArrowRigh
 import { GrowthChart } from '../components/dashboard/GrowthChart';
 import { AttentionFeed } from '../components/dashboard/AttentionFeed';
 import { buildCameramanScheduleWhatsAppUrl, buildClientPaymentReminderWhatsAppUrl } from '../utils/whatsapp';
+import { formatTime12h } from '../utils/formatTime';
 import { parseOperationalSettings } from '../config/business';
 import { formatSingularCollection } from '../utils/formatCollection';
 
@@ -227,7 +228,7 @@ export const Dashboard: React.FC = () => {
                                   <div key={idx} className="p-2.5 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-between text-xs">
                                     <div>
                                       <span className="font-semibold text-[var(--color-text)] block">{cam?.name || 'Crew Member'}</span>
-                                      <span className="text-[10px] text-[var(--color-text-secondary)] block">Call: {assignment.callTime || shoot.callTime || 'TBD'}</span>
+                                      <span className="text-[10px] text-[var(--color-text-secondary)] block">Call: {formatTime12h(assignment.callTime || shoot.callTime) || 'TBD'}</span>
                                     </div>
                                     {scheduleWhatsAppUrl && (
                                       <a

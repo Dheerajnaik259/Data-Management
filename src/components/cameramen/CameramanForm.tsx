@@ -25,6 +25,7 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (resubmission) {
       const proposed = resubmission.proposedData;
       setName(String(proposed.name || '')); setPhone(String(proposed.phone || ''));
@@ -36,7 +37,7 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
       setContractLink(initialCameraman.contractLink || '');
     } else { setName(''); setPhone(''); setRate(3000); setNotes(''); setContractLink(''); }
     setErrorMessage(null);
-  }, [initialCameraman, isOpen, resubmission]);
+  }, [isOpen, initialCameraman?.id, resubmission?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

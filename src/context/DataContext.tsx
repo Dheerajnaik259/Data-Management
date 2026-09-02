@@ -531,16 +531,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setChangeRequests(prev => prev.map(item => item.id === crId ? updatedCR : item));
 
+      const recipientId = await getApprovalRecipientId().catch(() => 'system');
+
       await resubmitChangeRequestWithNotification(crId, {
-        proposedData: newData, status: 'pending',
+        proposedData: newData,
+        status: 'pending',
         requestedBy: user.uid,
-        reviewedBy: null, reviewedAt: null, reviewNote: '',
-        revisionCount: cr.revisionCount + 1,
+        reviewedBy: null,
+        reviewedAt: null,
+        reviewNote: '',
+        revisionCount: (cr.revisionCount || 0) + 1,
         requestedAt: now,
-      }, await getApprovalRecipientId(), `${formatSingularCollection(cr.targetCollection)} resubmitted for review`);
+      }, recipientId, `${formatSingularCollection(cr.targetCollection)} resubmitted for review`);
 
       toast({ type: 'success', message: 'Resubmitted for Founder approval.' });
-      void fetchChangeRequests().then(setChangeRequests);
+      const freshCRs = await fetchChangeRequests();
+      setChangeRequests(freshCRs);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to resubmit request';
       toast({ type: 'error', message: msg });

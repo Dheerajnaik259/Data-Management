@@ -4,6 +4,7 @@ import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { Shoot } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
+import { formatTime12h } from '../utils/formatTime';
 import { ShootForm } from '../components/shoots/ShootForm';
 import { ExportCsvButton } from '../components/common/ExportCsvButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
@@ -208,7 +209,7 @@ export const Shoots: React.FC = () => {
                             <div className="flex flex-wrap gap-1 max-w-[180px]">
                               {assignedCams.map((c, i) => (
                                 <span key={i} className="inline-flex items-center px-1.5 py-0.5 bg-[var(--color-bg)] border border-[var(--color-border)] rounded text-[10px] text-[var(--color-text-secondary)]">
-                                  {c.name} (₹{c.amount})
+                                  {c.name} (₹{c.amount}{(c.callTime || shoot.callTime) ? ` • ${formatTime12h(c.callTime || shoot.callTime)}` : ''})
                                 </span>
                               ))}
                             </div>

@@ -29,6 +29,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
   const defaultStatus = statusOptions[0]?.value || '';
 
   useEffect(() => {
+    if (!isOpen) return;
     if (resubmission) {
       const proposed = resubmission.proposedData;
       setName(String(proposed.name || '')); setPhone(String(proposed.phone || ''));
@@ -44,7 +45,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
       setName(''); setPhone(''); setEmail(''); setNotes(''); setStatus(defaultStatus); setContractLink('');
     }
     setErrorMessage(null);
-  }, [initialClient, isOpen, resubmission, defaultStatus]);
+  }, [isOpen, initialClient?.id, resubmission?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Cameraman, CameramanAssignment } from '../../types';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { TimeInput12h } from '../common/TimeInput12h';
 
 interface AssignmentEditorProps {
   assignments: CameramanAssignment[];
@@ -109,11 +110,16 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
                   )}
                 </div>
 
-                <div className="w-full sm:w-32">
+                <div>
                   <label className="block text-[10px] font-medium text-[#78716C] mb-1">Call-time override</label>
-                  <input type="time" value={assignment.callTime || ''} placeholder={generalCallTime} onChange={e => {
-                    const updated = [...assignments]; updated[idx] = { ...updated[idx], callTime: e.target.value || null }; onChange(updated);
-                  }} className="w-full text-xs bg-[#FAF8F5] border border-[#E5E0DA] rounded-md px-2.5 py-1.5 text-[#1C1917]" />
+                  <TimeInput12h
+                    value={assignment.callTime || ''}
+                    onChange={(val) => {
+                      const updated = [...assignments];
+                      updated[idx] = { ...updated[idx], callTime: val || null };
+                      onChange(updated);
+                    }}
+                  />
                 </div>
                 <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 pt-2 sm:pt-4">
                   <button

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { formatCurrency } from '../utils/formatCurrency';
+import { formatTime12h } from '../utils/formatTime';
 import { CameramanForm } from '../components/cameramen/CameramanForm';
 import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal';
 import { Shoot } from '../types';
@@ -166,7 +167,14 @@ export const CameramanDetail: React.FC = () => {
                     const clientName = clientMap.get(item.shoot.clientId) || 'Client';
                     return (
                       <tr key={idx} className="hover:bg-[var(--color-bg-hover)] transition-colors">
-                        <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)]">{item.shoot.date}</td>
+                        <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)]">
+                          {item.shoot.date}
+                          {(item.shoot.assignments[item.assignmentIndex]?.callTime || item.shoot.callTime) && (
+                            <span className="block text-[10px] text-[var(--color-text-muted)] font-sans">
+                              Call: {formatTime12h(item.shoot.assignments[item.assignmentIndex]?.callTime || item.shoot.callTime)}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 font-semibold text-[var(--color-text)]">{clientName}</td>
                         <td className="px-6 py-4 text-[var(--color-text-secondary)]">{item.shoot.location}</td>
                         <td className="px-6 py-4 text-right font-mono font-bold text-[var(--color-text)]">{formatCurrency(item.amount)}</td>
