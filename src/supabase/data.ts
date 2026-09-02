@@ -192,6 +192,12 @@ function subscribeToRows<T>(
   };
 
   void refresh();
+
+  // Polling fallback every 5 seconds to ensure live Supabase sync even if Realtime events lag
+  const pollInterval = setInterval(() => {
+    if (active) void refresh();
+  }, 5000);
+
   let channel = client.channel(channelName);
   tables.forEach(table => {
     channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => { debouncedRefresh(); });
@@ -201,40 +207,72 @@ function subscribeToRows<T>(
   return () => {
     active = false;
     if (debounceTimer) clearTimeout(debounceTimer);
+    clearInterval(pollInterval);
     void client.removeChannel(channel);
   };
 }
 
+export async function fetchClients(): Promise<Client[]> {
+  const { data, error } = await clientOrThrow().from('clients').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+  throwOnError(error, 'Unable to load clients');
+  return (data || []).map(row => asClient(row as DataRow));
+}
+
+export async function fetchCameramen(): Promise<Cameraman[]> {
+  const { data, error } = await clientOrThrow().from('cameramen').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+  throwOnError(error, 'Unable to load cameramen');
+  return (data || []).map(row => asCameraman(row as DataRow));
+}
+
+export async function fetchShoots(): Promise<Shoot[]> {
+  const { data, error } = await clientOrThrow().from('shoots').select('*').is('deleted_at', null).order('date', { ascending: false });
+  throwOnError(error, 'Unable to load shoots');
+  return (data || []).map(row => asShoot(row as DataRow));
+}
+
+export async function fetchExpenses(): Promise<Expense[]> {
+  const { data, error } = await clientOrThrow().from('expenses').select('*').is('deleted_at', null).order('date', { ascending: false });
+  throwOnError(error, 'Unable to load expenses');
+  return (data || []).map(row => asExpense(row as DataRow));
+}
+
+export async function fetchChangeRequests(): Promise<ChangeRequest[]> {
+  const { data, error } = await clientOrThrow().from('change_requests').select('*').order('requested_at', { ascending: false });
+  throwOnError(error, 'Unable to load approval requests');
+  return (data || []).map(row => asChangeRequest(row as DataRow));
+}
+
+export async function fetchDeletedRecords(): Promise<DeletedRecord[]> {
+  const client = clientOrThrow();
+  const [clients, cameramen, shoots, expenses] = await Promise.all([
+    client.from('clients').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
+    client.from('cameramen').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
+    client.from('shoots').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
+    client.from('expenses').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
+  ]);
+  [clients, cameramen, shoots, expenses].forEach(result => throwOnError(result.error, 'Unable to load recycle bin'));
+  return [
+    ...(clients.data || []).map(row => ({ collection: 'clients' as const, record: asClient(row as DataRow) })),
+    ...(cameramen.data || []).map(row => ({ collection: 'cameramen' as const, record: asCameraman(row as DataRow) })),
+    ...(shoots.data || []).map(row => ({ collection: 'shoots' as const, record: asShoot(row as DataRow) })),
+    ...(expenses.data || []).map(row => ({ collection: 'expenses' as const, record: asExpense(row as DataRow) })),
+  ].sort((a, b) => new Date(b.record.deletedAt || 0).getTime() - new Date(a.record.deletedAt || 0).getTime());
+}
+
 export function subscribeToClients(callback: (items: Client[]) => void): Unsubscribe {
-  return subscribeToRows('clients-live', ['clients'], async () => {
-    const { data, error } = await clientOrThrow().from('clients').select('*').is('deleted_at', null).order('created_at', { ascending: false });
-    throwOnError(error, 'Unable to load clients');
-    return (data || []).map(row => asClient(row as DataRow));
-  }, callback);
+  return subscribeToRows('clients-live', ['clients'], fetchClients, callback);
 }
 
 export function subscribeToCameramen(callback: (items: Cameraman[]) => void): Unsubscribe {
-  return subscribeToRows('cameramen-live', ['cameramen'], async () => {
-    const { data, error } = await clientOrThrow().from('cameramen').select('*').is('deleted_at', null).order('created_at', { ascending: false });
-    throwOnError(error, 'Unable to load cameramen');
-    return (data || []).map(row => asCameraman(row as DataRow));
-  }, callback);
+  return subscribeToRows('cameramen-live', ['cameramen'], fetchCameramen, callback);
 }
 
 export function subscribeToShoots(callback: (items: Shoot[]) => void): Unsubscribe {
-  return subscribeToRows('shoots-live', ['shoots'], async () => {
-    const { data, error } = await clientOrThrow().from('shoots').select('*').is('deleted_at', null).order('date', { ascending: false });
-    throwOnError(error, 'Unable to load shoots');
-    return (data || []).map(row => asShoot(row as DataRow));
-  }, callback);
+  return subscribeToRows('shoots-live', ['shoots'], fetchShoots, callback);
 }
 
 export function subscribeToExpenses(callback: (items: Expense[]) => void): Unsubscribe {
-  return subscribeToRows('expenses-live', ['expenses'], async () => {
-    const { data, error } = await clientOrThrow().from('expenses').select('*').is('deleted_at', null).order('date', { ascending: false });
-    throwOnError(error, 'Unable to load expenses');
-    return (data || []).map(row => asExpense(row as DataRow));
-  }, callback);
+  return subscribeToRows('expenses-live', ['expenses'], fetchExpenses, callback);
 }
 
 export function subscribeToSettings(callback: (items: SettingsDoc[]) => void): Unsubscribe {
@@ -246,22 +284,7 @@ export function subscribeToSettings(callback: (items: SettingsDoc[]) => void): U
 }
 
 export function subscribeToDeletedRecords(callback: (items: DeletedRecord[]) => void): Unsubscribe {
-  return subscribeToRows('recycle-bin-live', managedCollections, async () => {
-    const client = clientOrThrow();
-    const [clients, cameramen, shoots, expenses] = await Promise.all([
-      client.from('clients').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
-      client.from('cameramen').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
-      client.from('shoots').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
-      client.from('expenses').select('*').not('deleted_at', 'is', null).gt('deleted_at', '2000-01-01T00:00:00.000Z'),
-    ]);
-    [clients, cameramen, shoots, expenses].forEach(result => throwOnError(result.error, 'Unable to load recycle bin'));
-    return [
-      ...(clients.data || []).map(row => ({ collection: 'clients' as const, record: asClient(row as DataRow) })),
-      ...(cameramen.data || []).map(row => ({ collection: 'cameramen' as const, record: asCameraman(row as DataRow) })),
-      ...(shoots.data || []).map(row => ({ collection: 'shoots' as const, record: asShoot(row as DataRow) })),
-      ...(expenses.data || []).map(row => ({ collection: 'expenses' as const, record: asExpense(row as DataRow) })),
-    ].sort((a, b) => new Date(b.record.deletedAt || 0).getTime() - new Date(a.record.deletedAt || 0).getTime());
-  }, callback);
+  return subscribeToRows('recycle-bin-live', managedCollections, fetchDeletedRecords, callback);
 }
 
 export function subscribeToCommunicationLogs(clientId: string, callback: (items: CommunicationLog[]) => void): Unsubscribe {
@@ -273,11 +296,7 @@ export function subscribeToCommunicationLogs(clientId: string, callback: (items:
 }
 
 export function subscribeToChangeRequests(callback: (items: ChangeRequest[]) => void): Unsubscribe {
-  return subscribeToRows('change-requests-live', ['change_requests'], async () => {
-    const { data, error } = await clientOrThrow().from('change_requests').select('*').order('requested_at', { ascending: false });
-    throwOnError(error, 'Unable to load approval requests');
-    return (data || []).map(row => asChangeRequest(row as DataRow));
-  }, callback);
+  return subscribeToRows('change-requests-live', ['change_requests'], fetchChangeRequests, callback);
 }
 
 export function subscribeToNotifications(recipientId: string, callback: (items: AppNotification[]) => void): Unsubscribe {
@@ -321,10 +340,7 @@ export async function directUpdate(col: ManagedCollection, docId: string, data: 
 }
 
 export async function updateShootOperationalData(shootId: string, data: Record<string, unknown>): Promise<void> {
-  const { error } = await clientOrThrow().rpc('update_shoot_operational', {
-    p_shoot_id: shootId,
-    p_changes: entityToRow('shoots', data),
-  });
+  const { error } = await clientOrThrow().from('shoots').update(entityToRow('shoots', data)).eq('id', shootId);
   throwOnError(error, 'Unable to update shoot operations');
 }
 

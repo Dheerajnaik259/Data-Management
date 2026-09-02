@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { Client } from '../types';
@@ -14,6 +14,7 @@ import { canDelete } from '../utils/permissions';
 import { mergePendingItems } from '../utils/pendingMerge';
 
 export const Clients: React.FC = () => {
+  const navigate = useNavigate();
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { clients, getClientLedger, handleSoftDelete, getSettingsOptions } = useData();
   const { user } = useAuth();
@@ -139,7 +140,7 @@ export const Clients: React.FC = () => {
                     const isRejected = client._pendingStatus === 'rejected';
                     
                     return (
-                      <tr key={client.id} onClick={() => !isPending && !isRejected && (window.location.href = `#/clients/${client.id}`)}
+                      <tr key={client.id} onClick={() => !isPending && !isRejected && navigate(`/clients/${client.id}`)}
                         className={`transition-colors group ${isPending || isRejected ? 'opacity-70 bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)] cursor-pointer'}`}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">

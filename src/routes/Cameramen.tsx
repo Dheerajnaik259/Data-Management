@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { Cameraman } from '../types';
@@ -14,6 +14,7 @@ import { canDelete } from '../utils/permissions';
 import { mergePendingItems } from '../utils/pendingMerge';
 
 export const Cameramen: React.FC = () => {
+  const navigate = useNavigate();
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { cameramen, getCameramanLedger, handleSoftDelete } = useData();
   const { user } = useAuth();
@@ -124,7 +125,7 @@ export const Cameramen: React.FC = () => {
                     const isRejected = cam._pendingStatus === 'rejected';
 
                     return (
-                      <tr key={cam.id} onClick={() => !isPending && !isRejected && (window.location.href = `#/cameramen/${cam.id}`)}
+                      <tr key={cam.id} onClick={() => !isPending && !isRejected && navigate(`/cameramen/${cam.id}`)}
                         className={`transition-colors group ${isPending || isRejected ? 'opacity-70 bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)] cursor-pointer'}`}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">

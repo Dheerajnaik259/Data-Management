@@ -7,6 +7,7 @@ import {
   subscribeToClients, subscribeToCameramen, subscribeToShoots, subscribeToExpenses,
   subscribeToSettings, updateSettingsDoc, subscribeToChangeRequests,
   subscribeToNotifications, subscribeToDeletedRecords,
+  fetchClients, fetchCameramen, fetchShoots, fetchExpenses, fetchChangeRequests, fetchDeletedRecords,
   directCreate, directUpdate, softDelete, restoreRecord, hardDelete,
   markNotificationRead, markAllNotificationsRead,
   addCommunicationLog, resetToSeedData, requestInvoiceNumber, findUserIdByRole,
@@ -278,12 +279,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({ type: 'warning', message: 'An approval request with this exact data is already pending.' });
         return '';
       }
-      return await submitChangeRequestWithNotification({
+      const crId = await submitChangeRequestWithNotification({
         targetCollection: col, targetDocId: null, action: 'create',
         proposedData: data, requestedBy: user.uid,
         requestedAt: new Date().toISOString(), status: 'pending',
         reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
       }, await getApprovalRecipientId(), `New ${col.slice(0, -1)} submission needs review`);
+
+      if (crId) {
+        const newCr: ChangeRequest = {
+          id: crId,
+          targetCollection: col,
+          targetDocId: null,
+          action: 'create',
+          proposedData: data,
+          requestedBy: user.uid,
+          requestedAt: new Date().toISOString(),
+          status: 'pending',
+          reviewedBy: null,
+          reviewedAt: null,
+          reviewNote: '',
+          revisionCount: 0,
+        };
+        setChangeRequests(prev => [newCr, ...prev.filter(c => c.id !== crId)]);
+        toast({ type: 'success', message: `Submitted new ${formatSingularCollection(col)} for approval.` });
+      }
+      return crId;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Operation failed';
       toast({ type: 'error', message: msg });
@@ -299,12 +320,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
-      await submitChangeRequestWithNotification({
+      const crId = await submitChangeRequestWithNotification({
         targetCollection: col, targetDocId: docId, action: 'edit',
         proposedData: data, requestedBy: user.uid,
         requestedAt: new Date().toISOString(), status: 'pending',
         reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
       }, await getApprovalRecipientId(), `${col.slice(0, -1)} edit needs review`);
+
+      if (crId) {
+        const newCr: ChangeRequest = {
+          id: crId,
+          targetCollection: col,
+          targetDocId: docId,
+          action: 'edit',
+          proposedData: data,
+          requestedBy: user.uid,
+          requestedAt: new Date().toISOString(),
+          status: 'pending',
+          reviewedBy: null,
+          reviewedAt: null,
+          reviewNote: '',
+          revisionCount: 0,
+        };
+        setChangeRequests(prev => [newCr, ...prev.filter(c => c.id !== crId)]);
+        toast({ type: 'success', message: `Submitted ${formatSingularCollection(col)} edits for approval.` });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Operation failed';
       toast({ type: 'error', message: msg });
@@ -428,7 +468,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user) throw new Error('Not authenticated.');
       const cr = changeRequests.find(c => c.id === crId);
       if (!cr || cr.status !== 'pending') return;
+
+      const now = new Date().toISOString();
+      setChangeRequests(prev => prev.map(item =>
+        item.id === crId ? { ...item, status: 'approved', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
+      ));
+
       await reviewChangeRequestWithNotification(cr, user.uid, 'approved', reviewNote);
+      toast({ type: 'success', message: `${formatSingularCollection(cr.targetCollection)} ${cr.action} approved.` });
+
+      void fetchChangeRequests().then(setChangeRequests);
+      void fetchClients().then(setClients);
+      void fetchCameramen().then(setCameramen);
+      void fetchShoots().then(setShoots);
+      void fetchExpenses().then(setExpenses);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to approve request';
       toast({ type: 'error', message: msg });
@@ -441,7 +494,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user) throw new Error('Not authenticated.');
       const cr = changeRequests.find(c => c.id === crId);
       if (!cr || cr.status !== 'pending') return;
+
+      const now = new Date().toISOString();
+      setChangeRequests(prev => prev.map(item =>
+        item.id === crId ? { ...item, status: 'rejected', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
+      ));
+
       await reviewChangeRequestWithNotification(cr, user.uid, 'rejected', reviewNote);
+      toast({ type: 'success', message: 'Approval request rejected.' });
+      void fetchChangeRequests().then(setChangeRequests);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to reject request';
       toast({ type: 'error', message: msg });
@@ -453,13 +514,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user || !canSubmitForApproval(user.role)) throw new Error('Not authorized to resubmit.');
       const cr = changeRequests.find(c => c.id === crId);
-      if (!cr || cr.requestedBy !== user.uid || (cr.status !== 'pending' && cr.status !== 'rejected')) return;
+      if (!cr || (cr.status !== 'pending' && cr.status !== 'rejected')) return;
+
+      const now = new Date().toISOString();
+      const updatedCR: ChangeRequest = {
+        ...cr,
+        proposedData: newData,
+        status: 'pending',
+        requestedBy: user.uid,
+        requestedAt: now,
+        reviewedBy: null,
+        reviewedAt: null,
+        reviewNote: '',
+        revisionCount: cr.revisionCount + 1,
+      };
+
+      setChangeRequests(prev => prev.map(item => item.id === crId ? updatedCR : item));
+
       await resubmitChangeRequestWithNotification(crId, {
         proposedData: newData, status: 'pending',
+        requestedBy: user.uid,
         reviewedBy: null, reviewedAt: null, reviewNote: '',
         revisionCount: cr.revisionCount + 1,
-        requestedAt: new Date().toISOString(),
+        requestedAt: now,
       }, await getApprovalRecipientId(), `${formatSingularCollection(cr.targetCollection)} resubmitted for review`);
+
+      toast({ type: 'success', message: 'Resubmitted for Founder approval.' });
+      void fetchChangeRequests().then(setChangeRequests);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to resubmit request';
       toast({ type: 'error', message: msg });

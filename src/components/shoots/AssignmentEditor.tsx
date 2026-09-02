@@ -21,7 +21,7 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
     const firstCam = cameramen[0];
     const newAssignment: CameramanAssignment = {
       cameramanId: firstCam ? firstCam.id : '',
-      amount: null,
+      amount: firstCam ? firstCam.rate : null,
       paid: false,
       callTime: null,
       checkedInAt: null,
@@ -35,10 +35,12 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
   };
 
   const handleCameramanSelect = (index: number, camId: string) => {
+    const selectedCam = cameramen.find(c => c.id === camId);
     const updated = [...assignments];
     updated[index] = {
       ...updated[index],
       cameramanId: camId,
+      amount: updated[index].amount ?? (selectedCam ? selectedCam.rate : null),
     };
     onChange(updated);
   };
