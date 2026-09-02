@@ -2,10 +2,9 @@ import React, { useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Video, Film, IndianRupee, FileText, Receipt,
-  LogOut, Settings, ClipboardCheck, Trash2, Sun, Moon,
+  LogOut, Settings, ClipboardCheck, Trash2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
 import { useData } from '../../context/DataContext';
 import { getRoleLabel } from '../../utils/permissions';
 
@@ -13,7 +12,6 @@ interface SidebarProps { onCloseMobile?: () => void; }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   const { user, logout, isBackendLive } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
   const { dashboardStats, shoots } = useData();
   const navigate = useNavigate();
 
@@ -61,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
           <div className="mt-3 flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px]"
             style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(250,248,245,0.6)' }}>
             <span className={`w-2 h-2 rounded-full ${isBackendLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-            <span className="font-medium">{isBackendLive ? 'Live Supabase' : 'Local Demo'}</span>
+            <span className="font-medium">{isBackendLive ? 'Live System' : 'Offline'}</span>
           </div>
         </div>
 
@@ -108,13 +106,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
 
       {/* Footer */}
       <div className="p-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {/* Dark theme badge */}
-        <div className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md backdrop-blur-md"
-          style={{ color: 'rgba(250,248,245,0.7)', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.04)' }}>
-          <Moon className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-          <span>Dark Liquid Glass</span>
-        </div>
-
         {/* User info */}
         <div className="flex items-center gap-3 px-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold"

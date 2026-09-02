@@ -192,11 +192,11 @@ export const Login: React.FC = () => {
           <p className="text-[11px] text-[#78716C]">
             {isBackendLive ? (
               <span className="text-emerald-700 font-medium">
-                &bull; Connected to Supabase Auth. Three authorized operators maximum.
+                &bull; Connected to Secure Cloud Auth. Authorized operators only.
               </span>
             ) : (
               <span className="text-red-700 font-medium">
-                &bull; Supabase is not configured. Sign-in is disabled until <code className="bg-[#FEE2E2] px-1 py-0.5 rounded text-[10px]">.env.local</code> contains valid Supabase keys.
+                &bull; Database is not configured. Sign-in is disabled until <code className="bg-[#FEE2E2] px-1 py-0.5 rounded text-[10px]">.env.local</code> contains valid credentials.
               </span>
             )}
           </p>

@@ -104,7 +104,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast({
         type: 'error',
         duration: 10000,
-        message: 'Operational data is unavailable until Supabase is configured. No local demo data is used.',
+        message: 'Operational data is unavailable until the database connection is configured.',
       });
       setLoadCount(5);
       return;

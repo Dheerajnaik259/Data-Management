@@ -642,7 +642,7 @@ export const Dashboard: React.FC = () => {
                     <Receipt className="w-4 h-4 text-[var(--color-text-secondary)]" />
                     <span>Financial Snapshot</span>
                   </h3>
-                  <span className="text-xs text-[var(--color-text-secondary)] font-mono">Supabase Ledger</span>
+                  <span className="text-xs text-[var(--color-text-secondary)] font-mono">System Ledger</span>
                 </div>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">

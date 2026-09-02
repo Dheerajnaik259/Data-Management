@@ -33,7 +33,7 @@ export const Settings: React.FC = () => {
         ))}
 
         {optionListSettings.length === 0 && !businessDoc && !operationalDoc && (
-          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No configurable option lists are available yet. Confirm that the Supabase setup SQL has been applied.</p>
+          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No configurable option lists are available yet. Confirm that the database setup SQL has been applied.</p>
         )}
       </div>
     </div>
