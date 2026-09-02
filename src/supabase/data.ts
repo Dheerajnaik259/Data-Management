@@ -435,7 +435,7 @@ export async function reviewChangeRequestWithNotification(changeRequest: ChangeR
   if (status === 'approved') {
     if (changeRequest.action === 'create') await directCreate(changeRequest.targetCollection, changeRequest.proposedData);
     else if (changeRequest.action === 'edit' && changeRequest.targetDocId) await directUpdate(changeRequest.targetCollection, changeRequest.targetDocId, changeRequest.proposedData);
-    else if (changeRequest.action === 'delete' && changeRequest.targetDocId) await setRecordDeleted(changeRequest.targetCollection, changeRequest.targetDocId, true);
+    else if (changeRequest.action === 'delete' && changeRequest.targetDocId) await softDelete(changeRequest.targetCollection, changeRequest.targetDocId);
   }
   await updateChangeRequest(changeRequest.id, { status, reviewedBy: reviewerId, reviewedAt: new Date().toISOString(), reviewNote });
   try {

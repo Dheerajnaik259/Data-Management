@@ -11,7 +11,7 @@ import {
   markNotificationRead, markAllNotificationsRead,
   addCommunicationLog, resetToSeedData, requestInvoiceNumber, findUserIdByRole,
   submitChangeRequestWithNotification, resubmitChangeRequestWithNotification,
-  reviewChangeRequestWithNotification,
+  reviewChangeRequestWithNotification, updateChangeRequest,
   updateShootOperationalData,
 } from '../supabase/data';
 import { isSupabaseConfigured } from '../supabase/config';

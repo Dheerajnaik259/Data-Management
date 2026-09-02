@@ -3,7 +3,7 @@ import { Toast } from '../components/common/Toast';
 
 interface ToastOptions {
   message: string;
-  type?: 'success' | 'error' | 'info';
+  type?: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
 }
 
