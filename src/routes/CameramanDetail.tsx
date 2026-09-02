@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency, parseCurrencyInput } from '../utils/formatCurrency';
 import { formatTime12h } from '../utils/formatTime';
 import { CameramanForm } from '../components/cameramen/CameramanForm';
 import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal';
 import { Shoot } from '../types';
-import { ArrowLeft, Phone, ExternalLink, Edit2, Calendar, MapPin, CheckCircle2, Clock, FileText, Video } from 'lucide-react';
+import { ArrowLeft, Phone, ExternalLink, Edit2, Edit3, Calendar, MapPin, CheckCircle2, Clock, FileText, Video, Check, X } from 'lucide-react';
 
 export const CameramanDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +17,8 @@ export const CameramanDetail: React.FC = () => {
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [receiptModalShoot, setReceiptModalShoot] = useState<{ shoot: Shoot; amount: number; paid: boolean; paidAt?: string | null; } | null>(null);
   const [rateDrafts, setRateDrafts] = useState<Record<string, string>>({});
+  const [editingRowKey, setEditingRowKey] = useState<string | null>(null);
+  const [editingAmount, setEditingAmount] = useState<number>(0);
 
   if (!cameraman) {
     return (
@@ -177,7 +179,52 @@ export const CameramanDetail: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 font-semibold text-[var(--color-text)]">{clientName}</td>
                         <td className="px-6 py-4 text-[var(--color-text-secondary)]">{item.shoot.location}</td>
-                        <td className="px-6 py-4 text-right font-mono font-bold text-[var(--color-text)]">{formatCurrency(item.amount)}</td>
+                        <td className="px-6 py-4 font-mono font-semibold text-[var(--color-text)]">
+                          {editingRowKey === `${item.shoot.id}-${item.assignmentIndex}` ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <input
+                                type="number"
+                                value={editingAmount || ''}
+                                onChange={e => setEditingAmount(parseCurrencyInput(e.target.value))}
+                                className="w-24 px-2 py-1 text-xs font-mono font-bold bg-[var(--color-bg)] border border-[var(--color-border)] rounded text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                              />
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await handleSetCameramanRate(item.shoot.id, item.assignmentIndex, editingAmount);
+                                  setEditingRowKey(null);
+                                }}
+                                className="p-1 text-white bg-emerald-600 rounded hover:bg-emerald-700 transition-colors"
+                                title="Save Payout Rate"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingRowKey(null)}
+                                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                                title="Cancel"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1.5 group/rate">
+                              <span>{formatCurrency(item.amount)}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingRowKey(`${item.shoot.id}-${item.assignmentIndex}`);
+                                  setEditingAmount(item.amount || 0);
+                                }}
+                                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] opacity-60 group-hover/rate:opacity-100 transition-opacity"
+                                title="Edit Agreed Shoot Payout"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-center">
                           <button type="button" disabled={item.amount === null} onClick={() => handleToggleCameramanPayment(item.shoot.id, item.assignmentIndex, !item.paid)} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors ${item.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
                             {item.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>{item.amount === null ? 'Rate not set' : `Disburse ${formatCurrency(item.amount)}`}</span></>}

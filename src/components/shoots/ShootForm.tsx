@@ -41,12 +41,26 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
   useEffect(() => {
     if (!isOpen) return;
     if (resubmission) {
-      const proposed = resubmission.proposedData;
-      setClientId(String(proposed.clientId || '')); setDate(String(proposed.date || new Date().toISOString().split('T')[0]));
-      setCallTime(String(proposed.callTime || '')); setLocation(String(proposed.location || ''));
-      setStatus(String(proposed.status || defaultStatus)); setClientAmount(Number(proposed.clientAmount || 0));
-      setAssignments(Array.isArray(proposed.assignments) ? proposed.assignments as CameramanAssignment[] : []);
-      setDeliverables(Array.isArray(proposed.deliverables) ? proposed.deliverables as Deliverable[] : []);
+      const proposed = resubmission.proposedData || {};
+      const existingShoot = resubmission.targetDocId ? shoots.find(s => s.id === resubmission.targetDocId) : null;
+      
+      const cId = String(proposed.clientId || proposed.client_id || existingShoot?.clientId || (availableClients.length > 0 ? availableClients[0].id : ''));
+      const d = String(proposed.date || existingShoot?.date || new Date().toISOString().split('T')[0]);
+      const ct = String(proposed.callTime || proposed.call_time || existingShoot?.callTime || '');
+      const loc = String(proposed.location || existingShoot?.location || '');
+      const st = String(proposed.status || existingShoot?.status || defaultStatus);
+      const amt = Number(proposed.clientAmount ?? proposed.client_amount ?? existingShoot?.clientAmount ?? 0);
+      const assgn = (proposed.assignments || existingShoot?.assignments || []) as CameramanAssignment[];
+      const deliv = (proposed.deliverables || existingShoot?.deliverables || []) as Deliverable[];
+
+      setClientId(cId);
+      setDate(d);
+      setCallTime(ct);
+      setLocation(loc);
+      setStatus(st);
+      setClientAmount(amt);
+      setAssignments(Array.isArray(assgn) ? assgn : []);
+      setDeliverables(Array.isArray(deliv) ? deliv : []);
     } else if (initialShoot) {
       setClientId(initialShoot.clientId); setDate(initialShoot.date);
       setCallTime(initialShoot.callTime || '');
@@ -61,7 +75,7 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
       setAssignments([]); setDeliverables([]);
     }
     setErrorMessage(null);
-  }, [isOpen, initialShoot?.id, resubmission?.id]);
+  }, [isOpen, initialShoot?.id, resubmission?.id, shoots]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

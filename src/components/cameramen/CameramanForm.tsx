@@ -27,17 +27,21 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
   useEffect(() => {
     if (!isOpen) return;
     if (resubmission) {
-      const proposed = resubmission.proposedData;
-      setName(String(proposed.name || '')); setPhone(String(proposed.phone || ''));
-      setRate(Number(proposed.rate || 0)); setNotes(String(proposed.notes || ''));
-      setContractLink(String(proposed.contractLink || ''));
+      const proposed = resubmission.proposedData || {};
+      const existingCam = resubmission.targetDocId ? cameramen.find(c => c.id === resubmission.targetDocId) : null;
+
+      setName(String(proposed.name || existingCam?.name || ''));
+      setPhone(String(proposed.phone || existingCam?.phone || ''));
+      setRate(Number(proposed.rate ?? existingCam?.rate ?? 0));
+      setNotes(String(proposed.notes || existingCam?.notes || ''));
+      setContractLink(String(proposed.contractLink || proposed.contract_link || existingCam?.contractLink || ''));
     } else if (initialCameraman) {
       setName(initialCameraman.name); setPhone(initialCameraman.phone);
       setRate(initialCameraman.rate || 0); setNotes(initialCameraman.notes || '');
       setContractLink(initialCameraman.contractLink || '');
     } else { setName(''); setPhone(''); setRate(3000); setNotes(''); setContractLink(''); }
     setErrorMessage(null);
-  }, [isOpen, initialCameraman?.id, resubmission?.id]);
+  }, [isOpen, initialCameraman?.id, resubmission?.id, cameramen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

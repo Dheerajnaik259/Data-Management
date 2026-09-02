@@ -14,7 +14,7 @@ interface ExpenseFormProps {
 }
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initialExpense, resubmission }) => {
-  const { shoots, clients, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions } = useData();
+  const { expenses, shoots, clients, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions } = useData();
   const { user } = useAuth();
 
   const [description, setDescription] = useState('');
@@ -31,10 +31,14 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initi
   useEffect(() => {
     if (!isOpen) return;
     if (resubmission) {
-      const proposed = resubmission.proposedData;
-      setDescription(String(proposed.description || '')); setAmount(Number(proposed.amount || 0));
-      setDate(String(proposed.date || new Date().toISOString().split('T')[0]));
-      setCategory(String(proposed.category || defaultCategory)); setShootId(String(proposed.shootId || ''));
+      const proposed = resubmission.proposedData || {};
+      const existingExp = resubmission.targetDocId ? expenses.find(e => e.id === resubmission.targetDocId) : null;
+
+      setDescription(String(proposed.description || existingExp?.description || ''));
+      setAmount(Number(proposed.amount ?? existingExp?.amount ?? 0));
+      setDate(String(proposed.date || existingExp?.date || new Date().toISOString().split('T')[0]));
+      setCategory(String(proposed.category || existingExp?.category || defaultCategory));
+      setShootId(String(proposed.shootId || proposed.shoot_id || existingExp?.shootId || ''));
     } else if (initialExpense) {
       setDescription(initialExpense.description); setAmount(initialExpense.amount || 0);
       setDate(initialExpense.date); setCategory(initialExpense.category || defaultCategory);
@@ -44,7 +48,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initi
       setCategory(defaultCategory); setShootId('');
     }
     setErrorMessage(null);
-  }, [isOpen, initialExpense?.id, resubmission?.id]);
+  }, [isOpen, initialExpense?.id, resubmission?.id, expenses]);
 
   const clientMap = new Map<string, string>(clients.map(c => [c.id, c.name]));
 

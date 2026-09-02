@@ -31,11 +31,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
   useEffect(() => {
     if (!isOpen) return;
     if (resubmission) {
-      const proposed = resubmission.proposedData;
-      setName(String(proposed.name || '')); setPhone(String(proposed.phone || ''));
-      setEmail(String(proposed.email || ''));
-      setNotes(String(proposed.notes || '')); setStatus(String(proposed.status || defaultStatus));
-      setContractLink(String(proposed.contractLink || ''));
+      const proposed = resubmission.proposedData || {};
+      const existingClient = resubmission.targetDocId ? clients.find(c => c.id === resubmission.targetDocId) : null;
+
+      setName(String(proposed.name || existingClient?.name || ''));
+      setPhone(String(proposed.phone || existingClient?.phone || ''));
+      setEmail(String(proposed.email || existingClient?.email || ''));
+      setNotes(String(proposed.notes || existingClient?.notes || ''));
+      setStatus(String(proposed.status || existingClient?.status || defaultStatus));
+      setContractLink(String(proposed.contractLink || proposed.contract_link || existingClient?.contractLink || ''));
     } else if (initialClient) {
       setName(initialClient.name); setPhone(initialClient.phone);
       setEmail(initialClient.email || '');
@@ -45,7 +49,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
       setName(''); setPhone(''); setEmail(''); setNotes(''); setStatus(defaultStatus); setContractLink('');
     }
     setErrorMessage(null);
-  }, [isOpen, initialClient?.id, resubmission?.id]);
+  }, [isOpen, initialClient?.id, resubmission?.id, clients]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

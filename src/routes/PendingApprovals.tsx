@@ -164,7 +164,7 @@ const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, isExpanded,
             by {cr.requestedBy} · {new Date(cr.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
-        {cr.status === 'pending' && (
+        {isFounder && cr.status === 'pending' && (
           <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
             <button type="button" onClick={handleApproveClick} disabled={isApproving} className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md flex items-center gap-1 disabled:opacity-50 shadow-xs">
               <Check className="w-3 h-3" /> {isApproving ? 'Approving...' : 'Approve'}
