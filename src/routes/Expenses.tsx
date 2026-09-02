@@ -206,7 +206,7 @@ export const Expenses: React.FC = () => {
                         <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(exp.amount)}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button type="button" onClick={() => handleEdit(exp as Expense)} disabled={isPending} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors disabled:opacity-50" title="Edit Expense">
+                            <button type="button" onClick={() => handleEdit(exp as Expense)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors" title="Edit Expense">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             {canActDelete && (

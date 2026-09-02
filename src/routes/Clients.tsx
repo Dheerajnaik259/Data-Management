@@ -177,8 +177,8 @@ export const Clients: React.FC = () => {
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             )}
-                            <button type="button" onClick={(e) => handleEdit(client as Client, e)} disabled={isPending}
-                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors disabled:opacity-50" title="Edit Client">
+                            <button type="button" onClick={(e) => handleEdit(client as Client, e)}
+                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors" title="Edit Client">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             {canActDelete && (

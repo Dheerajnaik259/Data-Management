@@ -28,6 +28,10 @@ interface DashboardStats {
   pendingClientCount: number;
   pendingCameramanAmount: number;
   pendingCameramanCount: number;
+  paidCameramanAmount: number;
+  paidCameramanCount: number;
+  paidClientAmount: number;
+  paidClientCount: number;
   totalExpenses: number;
   upcomingShootsCount: number;
   overdueIncomingCount: number;
@@ -245,14 +249,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const dashboardStats: DashboardStats = useMemo(() => {
     let pca = 0, pcc = 0, pcma = 0, pcmc = 0, oic = 0, ooc = 0;
+    let paidCamAmt = 0, paidCamCnt = 0;
+    let paidCliAmt = 0, paidCliCnt = 0;
+
     paymentRecords.forEach(r => {
-      if (r.type === 'incoming' && !r.isPaid) { pca += r.amount; pcc++; if (r.overdueInfo.isOverdue) oic++; }
-      if (r.type === 'outgoing' && !r.isPaid) { pcma += r.amount; pcmc++; if (r.overdueInfo.isOverdue) ooc++; }
+      if (r.type === 'incoming') {
+        if (!r.isPaid) { pca += r.amount; pcc++; if (r.overdueInfo.isOverdue) oic++; }
+        else { paidCliAmt += r.amount; paidCliCnt++; }
+      }
+      if (r.type === 'outgoing') {
+        if (!r.isPaid) { pcma += r.amount; pcmc++; if (r.overdueInfo.isOverdue) ooc++; }
+        else { paidCamAmt += r.amount; paidCamCnt++; }
+      }
     });
+
     const todayStr = new Date().toISOString().split('T')[0];
     return {
       pendingClientAmount: pca, pendingClientCount: pcc,
       pendingCameramanAmount: pcma, pendingCameramanCount: pcmc,
+      paidCameramanAmount: paidCamAmt, paidCameramanCount: paidCamCnt,
+      paidClientAmount: paidCliAmt, paidClientCount: paidCliCnt,
       totalExpenses: expenses.reduce((a, e) => a + (e.amount || 0), 0),
       upcomingShootsCount: shoots.filter(s => s.date >= todayStr).length,
       overdueIncomingCount: oic, overdueOutgoingCount: ooc,

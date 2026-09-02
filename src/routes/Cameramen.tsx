@@ -158,8 +158,8 @@ export const Cameramen: React.FC = () => {
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             )}
-                            <button type="button" onClick={(e) => handleEdit(cam as Cameraman, e)} disabled={isPending}
-                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors disabled:opacity-50" title="Edit Cameraman">
+                            <button type="button" onClick={(e) => handleEdit(cam as Cameraman, e)}
+                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors" title="Edit Cameraman">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             {canActDelete && (

@@ -22,7 +22,8 @@ The tool replaces manual spreadsheet tracking with a live, role-gated Web Applic
 | **Phase 4: Invoices & PDF Engine** | `jsPDF` integration for client invoices (`INV-YYYYMMDD-XXXX`) and crew payout vouchers (`RCP-YYYYMMDD-XXXX`) | ✅ Completed |
 | **Phase 5: Operational Hardening** | Role-Gated Settings (Founder-only Business Profile, Admin Operational Defaults for Payment Grace Days and dynamic WhatsApp templates), My Account password security | ✅ Completed |
 | **Phase 6: Dual-Role Dashboard** | Admin Daily Dispatch Console with WhatsApp call-sheets + Founder Executive Cashflow & Client Profitability Ranking | ✅ Completed |
-| **Phase 7: Production Rollout** | Continuous integration and deployment on GitHub (`origin/main`) | ✅ Completed / Live |
+| **Phase 7: Cashflow Graph & UI Hardening** | 2-Line Cashflow Growth Chart (Income vs Outgoing Outflow) + Inter font app-wide + Optional deliverables cloud links | ✅ Completed |
+| **Phase 8: Production Rollout** | Continuous integration and deployment on GitHub (`origin/main`) | ✅ Completed / Live |
 
 ---
 

@@ -234,7 +234,7 @@ export const Shoots: React.FC = () => {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <Link to={`/shoots/${shoot.id}`} onClick={e => isPending ? e.preventDefault() : e.stopPropagation()} className={`px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] bg-[var(--color-bg)] rounded border border-[var(--color-border)] ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>Open</Link>
-                            <button type="button" onClick={e => handleEdit(shoot as Shoot, e)} disabled={isPending} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors disabled:opacity-50" title="Edit Shoot">
+                            <button type="button" onClick={e => handleEdit(shoot as Shoot, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors" title="Edit Shoot">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             {canActDelete && (

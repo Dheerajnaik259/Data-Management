@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   ];
 
   return (
-    <aside className="w-60 h-full flex flex-col justify-between overflow-y-auto select-none"
+    <aside className="w-60 h-full flex flex-col justify-between overflow-y-auto select-none backdrop-blur-xl border-r border-white/10"
       style={{ backgroundColor: 'var(--color-sidebar)', color: 'var(--color-text-on-dark, #FAF8F5)' }}>
       <div>
         {/* Brand header */}

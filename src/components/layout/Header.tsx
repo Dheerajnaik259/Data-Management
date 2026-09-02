@@ -17,7 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   searchPlaceholder = 'Search records...', action, onOpenMobile,
 }) => {
   return (
-    <header className="sticky top-0 z-20 bg-[var(--color-surface)]/90 backdrop-blur-sm border-b border-[var(--color-border)] px-4 sm:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
+    <header className="sticky top-0 z-20 bg-[var(--color-surface)] backdrop-blur-md border-b border-[var(--color-border)] px-4 sm:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors shadow-2xs">
       <div className="flex items-center gap-3">
         {onOpenMobile && (
           <button type="button" onClick={onOpenMobile}

@@ -80,19 +80,17 @@ of muted colors, kept OUT of the rest of the UI).
 
 ## Typography
 
-- Headings: a distinctive serif or slab (e.g. Fraunces, Signifier). Used for
-  page titles and card titles only.
-- Body/data/UI: a clean grippy sans (e.g. Inter, IBM Plex Sans). Used for
-  everything else — numbers, labels, table content, buttons, inputs.
-- Numbers (stat card values) should feel substantial: larger size, sans,
-  medium/semibold weight — not default system-font thin numerals.
+- Inter is used as the single typography family for the entire application (`--font-sans` and `--font-serif`).
+- Headings: Inter font, bold / semibold weight. Used for page titles and card titles.
+- Body/data/UI: Inter font. Used for numbers, labels, table content, buttons, inputs.
+- Numbers (stat card values) should feel substantial: larger size, Inter sans, medium/semibold weight.
 
 ```css
---font-heading: 'Fraunces', serif;
---font-body: 'Inter', sans-serif;
+--font-heading: 'Inter', sans-serif;
+--font-body:    'Inter', sans-serif;
 
---text-page-title:  28px / serif / 600;
---text-card-title:  18px / serif / 600;
+--text-page-title:  28px / sans / 600;
+--text-card-title:  18px / sans / 600;
 --text-stat-value:  32px / sans / 600;
 --text-body:        14px / sans / 400;
 --text-label:       12px / sans / 500 / uppercase / letter-spacing 0.04em;
