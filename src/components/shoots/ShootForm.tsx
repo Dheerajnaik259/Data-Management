@@ -17,7 +17,7 @@ interface ShootFormProps {
 }
 
 export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialShoot, resubmission }) => {
-  const { clients, cameramen, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions, changeRequests } = useData();
+  const { shoots, clients, cameramen, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions, changeRequests } = useData();
   const { user } = useAuth();
 
   const [clientId, setClientId] = useState('');

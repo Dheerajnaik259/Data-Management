@@ -132,7 +132,30 @@ create policy communication_write on public.communication_logs for insert to aut
 create policy requests_read on public.change_requests for select to authenticated using (public.is_operator());
 create policy requests_write on public.change_requests for insert to authenticated with check (public.is_admin() and requested_by = auth.uid() and status = 'pending');
 create policy requests_review on public.change_requests for update to authenticated using (public.is_founder()) with check (public.is_founder());
-create policy requests_resubmit on public.change_requests for update to authenticated using (public.is_admin() and requested_by = auth.uid()) with check (public.is_admin() and requested_by = auth.uid() and status = 'pending');
+create policy requests_resubmit on public.change_requests for update to authenticated using (public.is_operator()) with check (public.is_operator());
+
+create or replace function public.resubmit_change_request(
+  p_cr_id uuid,
+  p_proposed_data jsonb,
+  p_requested_by uuid,
+  p_requested_at timestamptz,
+  p_revision_count integer
+)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_operator() then raise exception 'Not authorized'; end if;
+  update public.change_requests
+  set proposed_data = p_proposed_data,
+      status = 'pending',
+      requested_by = p_requested_by,
+      requested_at = p_requested_at,
+      reviewed_by = null,
+      reviewed_at = null,
+      review_note = '',
+      revision_count = p_revision_count
+  where id = p_cr_id;
+end;
+$$;
 create policy settings_operator_update on public.settings for update to authenticated using (public.is_operator()) with check (public.is_operator());
 create policy notifications_read_own on public.notifications for select to authenticated using (recipient_id = auth.uid());
 create policy notifications_insert on public.notifications for insert to authenticated with check (public.is_operator());

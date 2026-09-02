@@ -414,8 +414,34 @@ export async function createChangeRequest(changeRequest: Omit<ChangeRequest, 'id
 }
 
 export async function updateChangeRequest(changeRequestId: string, data: Partial<ChangeRequest>): Promise<void> {
-  const { error } = await clientOrThrow().from('change_requests').update(changeRequestToRow(data)).eq('id', changeRequestId);
+  const rowData = changeRequestToRow(data);
+  const client = clientOrThrow();
+
+  // 1. Try security definer RPC first (bypasses RLS ownership mismatch for authorized operators)
+  try {
+    const { error: rpcErr } = await client.rpc('resubmit_change_request', {
+      p_cr_id: changeRequestId,
+      p_proposed_data: rowData.proposed_data,
+      p_requested_by: rowData.requested_by,
+      p_requested_at: rowData.requested_at,
+      p_revision_count: rowData.revision_count || 1,
+    });
+    if (!rpcErr) return;
+  } catch {
+    // RPC function not installed yet, proceed to standard table update
+  }
+
+  // 2. Standard table update with returned row check
+  const { data: updated, error } = await client
+    .from('change_requests')
+    .update(rowData)
+    .eq('id', changeRequestId)
+    .select('id');
+
   throwOnError(error, 'Unable to update approval request');
+  if (!updated || updated.length === 0) {
+    throw new Error('Database permission error: RLS policy prevented updating this change request. Run the SQL migration script in your Supabase SQL Editor.');
+  }
 }
 
 export async function createNotification(notification: Omit<AppNotification, 'id'>): Promise<string> {
