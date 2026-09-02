@@ -68,6 +68,44 @@ This document outlines high-value operational enhancements and the role-permissi
 
 ---
 
+### 6. ⭐ AI Operational Assistant (Natural Language Chatbot & Scheduling Agent) [IMPORTANT]
+- **Priority**: ⭐ **High (Core Productivity Driver)**
+- **Owner**: Admin (Quick data entry & queries), Founder (Direct execution & query lens)
+- **Overview**: An AI-powered operational chatbot assistant accessible via a liquid glass floating drawer. It enables natural language commands for scheduling shoots, creating/editing clients, assigning crew, and querying business metrics without manual form filling.
+- **Key Capabilities**:
+  - **Natural Language Command Processing**: Parses conversational instructions such as:
+    > *"Schedule a shoot for Client RedBull on 5th Sept at 10:00 AM, assign Cameraman Rahul (₹3,000), and add 2 Reels."*
+  - **Automatic Role-Gated Approvals Integration**:
+    - When operated by an **Admin**, parsed schedule/edit actions automatically construct and submit a **Pending Change Request** for Founder approval.
+    - When operated by a **Founder**, actions execute directly.
+  - **Smart Operational Queries**:
+    > *"Who is assigned to Shoot #104?"*
+    > *"What is our total unpaid client balance for this month?"*
+    > *"List all cameramen available on Thursday afternoon."*
+- **Safeguards & UX Design**:
+  - **Confirmation Card Step**: Before executing any data mutation, the assistant presents a structured preview card with parsed fields and explicit `[Confirm Action]` / `[Cancel]` controls.
+  - **Strict Action Scope**: Permanently restricted to Clients, Cameramen, Shoots, and Expenses. System configuration, settings, and auth credentials remain strictly out of scope.
+
+---
+
+### 7. ⭐ Agency Packages & Client Testimonials Showcase (Founder Pitch Mode)
+- **Priority**: ⭐ **High (Sales & Growth Driver)**
+- **Owner**: Founder (Exclusive edit & pitch lens), Admin (Read-only reference)
+- **Overview**: A dedicated showcase module on the Founder page displaying the agency's service packages (monthly retainer tiers) and client testimonials/social proof. Features a 1-click "Client Pitch Mode" toggle for sales meetings.
+- **Key Components**:
+  - **Agency Service Packages**:
+    - Retainer Tiers (e.g., *Starter Socials, Growth Retainer, Enterprise Video Production*).
+    - Included Deliverables (*Reels, Stories, Shoot Days, Editing turnaround*).
+    - Monthly Pricing & Package Specs.
+  - **Client Testimonials & Social Proof Grid**:
+    - Client Brand Logo, Name, & Industry.
+    - Client Quote / Review & Star Rating.
+    - Impact Metrics (e.g., *"1.2M Views in 30 Days"*, *"3x Lead Growth"*).
+  - **Founder "Client Pitch Mode"**:
+    - A 1-click toggle on the Founder Dashboard that transforms the interface into a sleek, presentation-ready dark liquid glass deck for sales and discovery calls.
+
+---
+
 ## 3. Structural Suggestion: Dual-Role Dashboard Architecture
 
 ### Admin Dashboard ("What do I need to do today?")
@@ -85,3 +123,4 @@ This document outlines high-value operational enhancements and the role-permissi
   - Client Profitability & Margin Ranking.
   - Pending Approvals Queue badge count requiring review.
   - Upcoming retainer contract renewals (14-day window).
+  - Agency Packages & Client Testimonials Showcase (1-Click Pitch Mode).
