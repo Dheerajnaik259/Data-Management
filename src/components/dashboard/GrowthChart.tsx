@@ -67,13 +67,14 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
         label: date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
         income: runningIncome,
         outgoing: runningOutgoing,
+        net: runningIncome - runningOutgoing,
       };
     });
 
     if (values.length === 0) {
       const fallbackLabel = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
       return {
-        points: [{ dateStr: 'none', label: fallbackLabel, income: 0, outgoing: 0 }],
+        points: [{ dateStr: 'none', label: fallbackLabel, income: 0, outgoing: 0, net: 0 }],
         latestIncome: 0,
         latestOutgoing: 0,
         netPosition: 0,
@@ -89,9 +90,9 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
     };
   }, [range, shoots, expenses]);
 
-  // Calculate dynamic max value rounded up to clean intervals
-  const rawMax = Math.max(...points.map(p => Math.max(p.income, p.outgoing)), 100);
-  
+  // Calculate dynamic max value considering income, outgoing, and net values
+  const rawMax = Math.max(...points.map(p => Math.max(p.income, p.outgoing, Math.max(0, p.net))), 100);
+
   const getNiceMax = (val: number) => {
     if (val <= 500) return Math.ceil(val / 100) * 100;
     if (val <= 2000) return Math.ceil(val / 500) * 500;
@@ -112,7 +113,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
     0,
   ];
 
-  // Layout Dimensions with left margin for Y-axis numericals
+  // Layout Dimensions
   const paddingLeft = 80;
   const paddingRight = 35;
   const paddingTop = 28;
@@ -129,18 +130,27 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
   };
 
   const getY = (val: number) => {
-    return paddingTop + chartHeight - (val / niceMax) * chartHeight;
+    const clampedVal = Math.max(0, val);
+    return paddingTop + chartHeight - (clampedVal / niceMax) * chartHeight;
   };
 
   const incomePointsStr = points.map((p, i) => `${getX(i)},${getY(p.income)}`).join(' ');
   const outgoingPointsStr = points.map((p, i) => `${getX(i)},${getY(p.outgoing)}`).join(' ');
+  const netPointsStr = points.map((p, i) => `${getX(i)},${getY(p.net)}`).join(' ');
+
+  // Shaded Area Polygon string for Net Cash Position
+  const areaNetStr = [
+    `${paddingLeft},${paddingTop + chartHeight}`,
+    ...points.map((p, i) => `${getX(i)},${getY(p.net)}`),
+    `${width - paddingRight},${paddingTop + chartHeight}`,
+  ].join(' ');
 
   return (
     <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
       <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-base font-semibold text-[var(--color-text)]">Income & Outgoing Cashflow Growth</h2>
-          <p className="text-xs text-[var(--color-text-secondary)]">2-Line visual trend comparing cleared client payments vs crew payouts & operating expenses</p>
+          <h2 className="font-serif text-base font-semibold text-[var(--color-text)]">Cashflow & Net Position Growth</h2>
+          <p className="text-xs text-[var(--color-text-secondary)]">3-Line visual trend tracking Income, Outgoing, and Net Profit Position</p>
         </div>
 
         {/* Range Selector */}
@@ -163,7 +173,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Metric Summaries / Legend */}
+        {/* Metric Summaries / Legend with Color Dots */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-2 border-b border-[var(--color-border)] text-xs">
           <div className="space-y-0.5">
             <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)] font-medium">
@@ -182,16 +192,29 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
           </div>
 
           <div className="space-y-0.5">
-            <span className="text-[var(--color-text-secondary)] font-medium block">Net Cash Position</span>
+            <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)] font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span>Net Cash Position (Profit)</span>
+            </span>
             <div className={`text-xl font-bold font-mono ${netPosition >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
               {formatCurrency(netPosition)}
             </div>
           </div>
         </div>
 
-        {/* Graph Area with Dynamic Y-Axis Scale & Hover Numerical Badges */}
+        {/* Graph Area with 3 Lines (Income, Outgoing, Net Position) */}
         <div className="relative w-full overflow-x-auto">
-          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-60" role="img" aria-label="Income and outgoing cashflow line chart">
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-64" role="img" aria-label="Income, outgoing, and net position cashflow chart">
+            <defs>
+              <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10B981" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            {/* Shaded Area under Net Cash Position Line */}
+            <polygon points={areaNetStr} fill="url(#netGradient)" />
+
             {/* Horizontal Gridlines & Dynamic Clean Y-Axis Numerical Labels */}
             {yTicks.map((numericalVal, idx) => {
               const yVal = getY(numericalVal);
@@ -206,7 +229,6 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
                     strokeWidth="1"
                     strokeDasharray="4 6"
                   />
-                  {/* Y-Axis Numerical Value */}
                   <text
                     x={paddingLeft - 10}
                     y={yVal + 4}
@@ -227,7 +249,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               points={incomePointsStr}
               fill="none"
               stroke="var(--color-accent)"
-              strokeWidth="3"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -237,49 +259,64 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               points={outgoingPointsStr}
               fill="none"
               stroke="#EF4444"
-              strokeWidth="2.5"
+              strokeWidth="2"
               strokeDasharray="5 4"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
 
-            {/* Data Point Vertex Circles and Numerical Labels */}
+            {/* Line 3: Net Cash Position (Emerald Green Solid Line) */}
+            <polyline
+              points={netPointsStr}
+              fill="none"
+              stroke="#10B981"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Vertex Dots & Numerical Badges for Data Points */}
             {points.map((p, index) => {
               const cx = getX(index);
               const cyIncome = getY(p.income);
               const cyOutgoing = getY(p.outgoing);
+              const cyNet = getY(p.net);
               const isHovered = hoverIndex === index;
 
               return (
                 <g key={index} onMouseEnter={() => setHoverIndex(index)} onMouseLeave={() => setHoverIndex(null)} className="cursor-pointer">
                   {/* Income Vertex Circle */}
-                  <circle cx={cx} cy={cyIncome} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2.5" />
-                  {/* Income Point Numerical Value */}
+                  <circle cx={cx} cy={cyIncome} r={isHovered ? 5 : 3.5} fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2" />
+                  
+                  {/* Outgoing Vertex Circle */}
+                  <circle cx={cx} cy={cyOutgoing} r={isHovered ? 5 : 3.5} fill="var(--color-surface)" stroke="#EF4444" strokeWidth="2" />
+
+                  {/* Net Cash Position Vertex Circle */}
+                  <circle cx={cx} cy={cyNet} r={isHovered ? 6 : 4.5} fill="#10B981" stroke="var(--color-surface)" strokeWidth="2" />
+
+                  {/* Numerical Value Labels */}
                   <text
                     x={cx}
-                    y={cyIncome - 10}
+                    y={cyIncome - 8}
                     textAnchor="middle"
                     fill="var(--color-accent)"
-                    fontSize="10"
+                    fontSize="9"
                     fontFamily="monospace"
                     fontWeight="700"
                   >
                     {formatCurrency(p.income)}
                   </text>
 
-                  {/* Outgoing Vertex Circle */}
-                  <circle cx={cx} cy={cyOutgoing} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="#EF4444" strokeWidth="2.5" />
-                  {/* Outgoing Point Numerical Value */}
                   <text
                     x={cx}
-                    y={cyOutgoing + 16}
+                    y={cyNet + (cyNet < cyOutgoing ? -10 : 16)}
                     textAnchor="middle"
-                    fill="#EF4444"
+                    fill="#10B981"
                     fontSize="10"
                     fontFamily="monospace"
-                    fontWeight="700"
+                    fontWeight="800"
                   >
-                    {formatCurrency(p.outgoing)}
+                    {formatCurrency(p.net)}
                   </text>
                 </g>
               );
