@@ -2,7 +2,7 @@ import React from 'react';
 
 export const TableSkeleton: React.FC<{ rows?: number; cols?: number }> = ({ rows = 5, cols = 5 }) => {
   return (
-    <div className="w-full bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden p-4 space-y-4 animate-pulse">
+    <div className="liquid-table-container w-full overflow-hidden p-4 space-y-4 animate-pulse">
       <div className="h-8 bg-white/[0.055] rounded-md w-1/3" />
       <div className="space-y-3">
         {Array.from({ length: rows }).map((_, r) => (
@@ -27,7 +27,7 @@ export const CardSkeleton: React.FC<{ count?: number }> = ({ count = 4 }) => {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="p-5 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] space-y-3 animate-pulse"
+          className="liquid-glass p-5 space-y-3 animate-pulse"
         >
           <div className="h-3 bg-white/[0.055] rounded-sm w-1/2" />
           <div className="h-8 bg-white/[0.055] rounded-sm w-3/4" />

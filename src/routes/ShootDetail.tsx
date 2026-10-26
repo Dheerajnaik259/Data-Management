@@ -112,7 +112,7 @@ export const ShootDetail: React.FC = () => {
       />
 
       <main className="flex-1 p-4 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
-        <div className="bg-[var(--color-surface)] p-4 sm:p-6 rounded-lg border border-[var(--color-border)] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="liquid-control-tray p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button type="button" onClick={handleStatusToggle} className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider border transition-all ${shoot.status === 'done' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300'}`} title="Click to toggle status">
               Status: {shoot.status}
@@ -131,7 +131,7 @@ export const ShootDetail: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-4">
+            <div className="liquid-content-panel p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
                 <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Shoot Overview & Client Details</h3>
                 <span className="text-[11px] font-mono text-[var(--color-text-muted)]">ID: {shoot.id.slice(0, 8)}</span>
@@ -161,7 +161,7 @@ export const ShootDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+            <div className="liquid-table-container overflow-hidden">
               <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
                 <div>
                   <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Deliverables & Asset Links</h3>
@@ -200,7 +200,7 @@ export const ShootDetail: React.FC = () => {
               )}
             </div>
 
-            <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+            <div className="liquid-table-container overflow-hidden">
               <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
                 <div>
                   <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Freelance Crew & Payouts</h3>
@@ -257,7 +257,7 @@ export const ShootDetail: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-4">
+            <div className="liquid-content-panel p-6 space-y-4">
               <h3 className="font-serif text-base font-bold text-[var(--color-text)] border-b border-[var(--color-border)] pb-2">Financial Breakdown</h3>
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between">
@@ -287,7 +287,7 @@ export const ShootDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-3">
+            <div className="liquid-content-panel p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-serif text-sm font-bold text-[var(--color-text)]">Tagged Expenses ({expenses.filter(e => e.shootId === shoot.id).length})</h4>
                 <Link to="/expenses" className="text-xs font-semibold text-[var(--color-accent)] hover:underline">+ Add Expense</Link>

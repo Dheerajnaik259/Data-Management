@@ -86,7 +86,7 @@ export const PendingApprovals: React.FC = () => {
       <Header title="Pending Approvals" subtitle="Review and manage change requests" onOpenMobile={ctx?.onOpenMobileNav} />
       <div className="flex-1 overflow-y-auto p-4 sm:p-8">
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-[var(--color-bg)] rounded-lg p-1 w-fit border border-[var(--color-border)]">
+        <div className="liquid-control-tray flex gap-1 mb-6 p-1 w-fit">
           {TAB_FILTERS.map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-3.5 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${
@@ -98,7 +98,7 @@ export const PendingApprovals: React.FC = () => {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-center py-16 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]">
+          <div className="liquid-content-panel text-center py-16">
             <Clock className="w-8 h-8 text-[var(--color-text-muted)] mx-auto mb-2 opacity-50" />
             <p className="text-sm font-medium text-[var(--color-text-muted)]">No {tab === 'all' ? '' : tab} change requests found</p>
           </div>
@@ -120,7 +120,7 @@ export const PendingApprovals: React.FC = () => {
         {rejectId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isRejecting && setRejectId(null)} />
-            <div className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl max-w-md w-full p-6 z-10 space-y-4">
+            <div className="liquid-dialog relative rounded-2xl max-w-md w-full p-6 z-10 space-y-4">
               <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Reject Request</h3>
               {rejectError && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-xs text-red-800 dark:text-red-300">
@@ -144,7 +144,7 @@ export const PendingApprovals: React.FC = () => {
         {deleteConfirmId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isDeleting && setDeleteConfirmId(null)} />
-            <div className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl max-w-md w-full p-6 z-10 space-y-4">
+            <div className="liquid-dialog relative rounded-2xl max-w-md w-full p-6 z-10 space-y-4">
               <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Delete Change Request?</h3>
@@ -166,7 +166,7 @@ export const PendingApprovals: React.FC = () => {
         {viewModalCR && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setViewModalCR(null)} />
-            <div className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl max-w-2xl w-full p-6 z-10 space-y-5 my-8">
+            <div className="liquid-dialog relative rounded-2xl max-w-2xl w-full p-6 z-10 space-y-5 my-8">
               
               {/* Header */}
               <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] pb-4">
@@ -204,7 +204,7 @@ export const PendingApprovals: React.FC = () => {
               {/* Proposed Data Grid */}
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Proposed Field Details</h4>
-                <div className="bg-[var(--color-bg)] rounded-lg border border-[var(--color-border)] p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+                <div className="liquid-glass-inner rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
                   {Object.entries(viewModalCR.proposedData || {}).map(([key, val]) => {
                     let displayVal = String(val);
                     if (val === null || val === undefined) displayVal = 'None';
@@ -232,7 +232,7 @@ export const PendingApprovals: React.FC = () => {
                     }
 
                     return (
-                      <div key={key} className="bg-[var(--color-surface)] p-2.5 rounded border border-[var(--color-border)] space-y-0.5">
+                      <div key={key} className="liquid-glass-inner p-2.5 rounded-lg space-y-0.5">
                         <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] block uppercase tracking-wider">{key}</span>
                         <span className="text-xs font-medium text-[var(--color-text)] block break-words font-mono">{displayVal}</span>
                       </div>
@@ -304,7 +304,7 @@ const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, onView, onA
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-all hover:border-[var(--color-accent)]">
+    <div className="liquid-content-panel overflow-hidden">
       <div className="flex items-center gap-4 px-5 py-4 cursor-pointer" onClick={onView}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

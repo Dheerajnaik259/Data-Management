@@ -87,7 +87,7 @@ export const DeliverablesEditor: React.FC<DeliverablesEditorProps> = ({
                     value={item.type}
                     onChange={(e) => handleChange(idx, 'type', e.target.value)}
                     required
-                    className="w-full text-xs bg-[#0C0F11] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
+                    className="w-full text-xs bg-[#050505] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
                   >
                     {typeOptions.map(option => <option key={option.value} value={option.value}>{option.value}</option>)}
                   </select>
@@ -104,7 +104,7 @@ export const DeliverablesEditor: React.FC<DeliverablesEditorProps> = ({
                     value={item.count}
                     onChange={(e) => handleChange(idx, 'count', e.target.value)}
                     required
-                    className="w-full text-xs bg-[#0C0F11] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
+                    className="w-full text-xs bg-[#050505] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
                   />
                 </div>
 
@@ -132,7 +132,7 @@ export const DeliverablesEditor: React.FC<DeliverablesEditorProps> = ({
                   value={item.fileLink}
                   onChange={(e) => handleChange(idx, 'fileLink', e.target.value)}
                   placeholder="https://drive.google.com/..."
-                  className="w-full text-xs bg-[#0C0F11] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
+                  className="w-full text-xs bg-[#050505] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
                 />
               </div>
             </div>

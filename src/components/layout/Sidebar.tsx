@@ -53,19 +53,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   ];
 
   return (
-    <aside className="w-60 h-full flex flex-col justify-between overflow-y-auto select-none backdrop-blur-xl border-r border-[var(--color-border)]"
+    <aside className="liquid-sidebar h-full flex flex-col justify-between select-none"
       style={{ backgroundColor: 'var(--color-sidebar)', color: 'var(--color-text)' }}>
       <div>
         {/* Brand header */}
-        <div className="p-5 border-b border-[var(--color-border)]">
+        <div className="p-5 border-b border-white/[0.07]">
           <div className="flex items-center gap-3">
-            <img src={mpixelMediaLogo} alt="mpixelmedia" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+            <img src={mpixelMediaLogo} alt="mpixelmedia" className="w-12 h-12 rounded-xl object-contain shrink-0" />
             <div>
               <h1 className="text-sm font-semibold tracking-tight leading-tight text-[var(--color-text)]">ERP Mpixel Media</h1>
               <span className="text-[10px] font-medium tracking-wide uppercase text-[var(--color-text-muted)]">Operations Desk</span>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-[var(--color-border)] bg-white/[0.035] text-[11px] text-[var(--color-text-secondary)]">
+          <div className="mt-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.035] text-[11px] text-[var(--color-text-secondary)]">
             <span className={`w-2 h-2 rounded-full ${isBackendLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
             <span className="font-medium">{isBackendLive ? 'Live System' : 'Offline'}</span>
           </div>
@@ -78,11 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             return (
               <NavLink key={item.to} to={item.to} end={item.end} onClick={() => onCloseMobile?.()}
                 className={({ isActive }) =>
-                  `relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 ${
-                    isActive
-                      ? 'font-semibold bg-[rgba(66,222,213,0.09)]'
-                      : 'hover:bg-white/[0.045]'
-                  }`
+                  `liquid-nav-link relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13px] font-medium ${isActive ? 'is-active font-semibold' : ''}`
                 }
                 style={({ isActive }) => ({
                   color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
@@ -108,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
       </div>
 
       {/* Footer */}
-      <div className="p-4 space-y-3 border-t border-[var(--color-border)]">
+      <div className="p-4 space-y-3 border-t border-white/[0.07]">
         {/* User info */}
         <div className="flex items-center gap-3 px-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-white/[0.08] text-[var(--color-accent-mint)]">

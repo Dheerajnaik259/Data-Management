@@ -99,28 +99,28 @@ export const Expenses: React.FC = () => {
 
       <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-2">
+          <div className="liquid-metric-card p-5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Travel & Transport</span>
               <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center"><Car className="w-4 h-4" /></div>
             </div>
             <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(categoryStats.travel)}</div>
           </div>
-          <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-2">
+          <div className="liquid-metric-card p-5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Equipment & Gear</span>
               <div className="w-7 h-7 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 flex items-center justify-center"><Camera className="w-4 h-4" /></div>
             </div>
             <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(categoryStats.equipment)}</div>
           </div>
-          <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-2">
+          <div className="liquid-metric-card p-5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Software & Cloud</span>
               <div className="w-7 h-7 rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center"><Laptop className="w-4 h-4" /></div>
             </div>
             <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(categoryStats.software)}</div>
           </div>
-          <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-2">
+          <div className="liquid-metric-card p-5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Total Operating Costs</span>
               <div className="w-7 h-7 rounded-md bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)] flex items-center justify-center"><Receipt className="w-4 h-4" /></div>
@@ -130,7 +130,7 @@ export const Expenses: React.FC = () => {
           </div>
         </section>
 
-        <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="liquid-control-tray p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-1 bg-[var(--color-bg)] p-1 rounded-md border border-[var(--color-border)] text-xs flex-wrap">
             <button type="button" onClick={() => setCategoryFilter('all')}
               className={`px-3 py-1.5 rounded font-medium transition-colors ${categoryFilter === 'all' ? 'bg-[var(--color-surface)] text-[var(--color-text)] font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>
@@ -157,7 +157,7 @@ export const Expenses: React.FC = () => {
           <EmptyState icon={<Receipt className="w-6 h-6 text-[var(--color-text-muted)]" />} title="No Expenses Found" description="No expense receipts match your filters. Log a new expense to get started."
             actionLabel="Log Expense" onAction={() => { setEditingExpense(null); setIsFormOpen(true); }} />
         ) : (
-          <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+          <div className="liquid-table-container overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
                 <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">

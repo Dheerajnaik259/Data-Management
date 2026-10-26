@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useData } from '../../context/DataContext';
 import { AppNotification } from '../../types';
 
@@ -8,7 +9,9 @@ export const NotificationBell: React.FC = () => {
   const { notifications, changeRequests, handleMarkRead, handleMarkAllRead } = useData();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
@@ -18,6 +21,18 @@ export const NotificationBell: React.FC = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [open]);
 
   const handleClick = async (n: AppNotification) => {
     await handleMarkRead(n.id);
@@ -42,8 +57,10 @@ export const NotificationBell: React.FC = () => {
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)] transition-colors">
+      <button type="button" onClick={() => setOpen(!open)} aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+        aria-expanded={open} aria-controls="notification-popover"
+        ref={triggerRef}
+        className="liquid-floating-control relative p-2.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[var(--color-accent)] text-white text-[10px] font-bold px-1">
@@ -52,8 +69,14 @@ export const NotificationBell: React.FC = () => {
         )}
       </button>
 
+      <AnimatePresence>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl overflow-hidden z-50">
+        <motion.div id="notification-popover" role="region" aria-label="Notifications"
+          initial={shouldReduceMotion ? false : { opacity: 0, y: -5, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -4, scale: 0.985 }}
+          transition={{ duration: 0.16 }}
+          className="liquid-popover absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-96 overflow-hidden z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
             <h3 className="text-sm font-semibold text-[var(--color-text)]">Notifications</h3>
             {unreadCount > 0 && (
@@ -87,8 +110,9 @@ export const NotificationBell: React.FC = () => {
               ))
             )}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

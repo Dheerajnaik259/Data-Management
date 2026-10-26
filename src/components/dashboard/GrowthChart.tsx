@@ -139,8 +139,8 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
   const netPointsStr = points.map((p, i) => `${getX(i)},${getY(p.net)}`).join(' ');
 
   return (
-    <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex flex-wrap items-center justify-between gap-4">
+    <section className="liquid-content-panel overflow-hidden">
+      <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-base font-semibold text-[var(--color-text)]">Cashflow & Net Position Growth</h2>
           <p className="text-xs text-[var(--color-text-secondary)]">3-Line visual trend tracking Income, Outgoing, and Net Profit Position</p>
@@ -153,10 +153,10 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               key={option}
               type="button"
               onClick={() => setRange(option)}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded border transition-colors ${
+              className={`liquid-glass-button px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors ${
                 range === option
-                  ? 'bg-[var(--color-accent)] text-white border-[var(--color-accent)]'
-                  : 'text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'
+                  ? 'liquid-glass-button-active'
+                  : 'text-[var(--color-text-secondary)]'
               }`}
             >
               {option}
@@ -167,8 +167,8 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
 
       <div className="p-5 space-y-4">
         {/* Metric Summaries / Legend with Color Dots */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-2 border-b border-[var(--color-border)] text-xs">
-          <div className="space-y-0.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-2 border-b border-[var(--color-border)] text-xs">
+          <div className="liquid-glass-inner rounded-xl p-3 space-y-0.5">
             <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)] font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-accent)]" />
               <span>Income (Client Revenue)</span>
@@ -176,7 +176,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
             <div className="text-xl font-bold font-mono text-[var(--color-text)]">{formatCurrency(latestIncome)}</div>
           </div>
 
-          <div className="space-y-0.5">
+          <div className="liquid-glass-inner rounded-xl p-3 space-y-0.5">
             <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)] font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
               <span>Outgoing (Crew & Expenses)</span>
@@ -184,7 +184,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
             <div className="text-xl font-bold font-mono text-red-500">{formatCurrency(latestOutgoing)}</div>
           </div>
 
-          <div className="space-y-0.5">
+          <div className="liquid-glass-inner rounded-xl p-3 space-y-0.5">
             <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)] font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span>Net Cash Position (Profit)</span>

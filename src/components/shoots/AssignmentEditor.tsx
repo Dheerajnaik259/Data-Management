@@ -93,7 +93,7 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
                     value={assignment.cameramanId}
                     onChange={(e) => handleCameramanSelect(idx, e.target.value)}
                     required
-                    className="w-full text-xs bg-[#0C0F11] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
+                    className="w-full text-xs bg-[#050505] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
                   >
                     <option value="" disabled>
                       Select Cameraman...

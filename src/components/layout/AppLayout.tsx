@@ -2,17 +2,18 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { CommandPalette } from '../common/CommandPalette';
 import { KeyboardShortcuts } from '../common/KeyboardShortcuts';
 
 export const AppLayout: React.FC = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div className="min-h-screen flex bg-[var(--color-bg)] text-[var(--color-text)] relative">
+    <div className="min-h-screen flex bg-transparent text-[var(--color-text)] relative">
       {/* Desktop Sidebar (Persistent) */}
-      <div className="hidden md:flex shrink-0 h-screen sticky top-0">
+      <div className="hidden md:flex shrink-0 h-screen sticky top-0 py-3 pl-3 pr-1">
         <Sidebar />
       </div>
 
@@ -22,20 +23,20 @@ export const AppLayout: React.FC = () => {
           <div className="fixed inset-0 z-50 md:hidden flex">
             {/* Backdrop */}
             <motion.div
-              initial={{ opacity: 0 }}
+              initial={{ opacity: shouldReduceMotion ? 1 : 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: shouldReduceMotion ? 1 : 0 }}
               onClick={() => setMobileNavOpen(false)}
               className="fixed inset-0 bg-black/65 backdrop-blur-sm"
             />
 
             {/* Slide menu */}
             <motion.div
-              initial={{ x: '-100%' }}
+              initial={{ x: shouldReduceMotion ? 0 : '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="relative w-72 max-w-[80vw] bg-[var(--color-sidebar)] h-full shadow-2xl flex flex-col z-10 border-r border-[var(--color-border)]"
+              exit={{ x: shouldReduceMotion ? 0 : '-100%' }}
+              transition={shouldReduceMotion ? { duration: 0.01 } : { type: 'spring', damping: 25, stiffness: 250 }}
+              className="relative w-72 max-w-[80vw] h-full flex flex-col z-10 p-3"
             >
               <button
                 type="button"

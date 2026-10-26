@@ -2,30 +2,49 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { Search, User, Film, Camera, Receipt, Settings, ArrowRight } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 export const CommandPalette: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const previousOverflowRef = useRef('');
+  const wasOpenRef = useRef(false);
+  const shouldReduceMotion = useReducedMotion();
   const navigate = useNavigate();
   const { clients, shoots, cameramen, expenses } = useData();
 
   useEffect(() => {
     const handlePaletteEvent = (event: Event) => {
       const action = (event as CustomEvent<'toggle' | 'close'>).detail;
+      if (action === 'toggle' && !isOpen) {
+        previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      }
       setIsOpen(previous => action === 'toggle' ? !previous : false);
     };
     window.addEventListener('app:command-palette', handlePaletteEvent);
     return () => window.removeEventListener('app:command-palette', handlePaletteEvent);
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
       setQuery('');
       setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      previousOverflowRef.current = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => inputRef.current?.focus());
+      wasOpenRef.current = true;
+    } else if (wasOpenRef.current) {
+      document.body.style.overflow = previousOverflowRef.current;
+      if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus();
+      wasOpenRef.current = false;
     }
+    return () => {
+      if (wasOpenRef.current) document.body.style.overflow = previousOverflowRef.current;
+    };
   }, [isOpen]);
 
   const items = [
@@ -70,7 +89,32 @@ export const CommandPalette: React.FC = () => {
     setSelectedIndex(0);
   }, [query]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsOpen(false);
+      return;
+    }
+    if (e.key === 'Tab') {
+      const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+        'input:not(:disabled), button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      ) || []).filter(element => element.offsetParent !== null);
+      if (!focusable.length) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+      return;
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex(prev => (prev < filteredItems.length - 1 ? prev + 1 : prev));
@@ -89,22 +133,34 @@ export const CommandPalette: React.FC = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-32 px-4 sm:px-6">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)} />
-      
-      <div className="glass-panel-elevated relative w-full max-w-xl overflow-hidden flex flex-col max-h-[60vh]" role="dialog" aria-modal="true" aria-label="Command palette">
+    <AnimatePresence>
+    {isOpen && (
+    <motion.div className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh] px-4 sm:px-6"
+      initial={shouldReduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}>
+      <button type="button" aria-label="Close command palette" className="fixed inset-0 bg-black/55 backdrop-blur-[3px]" onClick={() => setIsOpen(false)} />
+
+      <motion.div ref={dialogRef} onKeyDown={handleKeyDown}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: -8, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -5, scale: 0.99 }}
+        transition={shouldReduceMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 360, damping: 32 }}
+        className="glass-panel-elevated relative w-full max-w-xl overflow-hidden flex flex-col max-h-[70vh]"
+        role="dialog" aria-modal="true" aria-label="Command palette">
         <div className="flex items-center px-4 py-3 border-b border-[var(--color-border)]">
           <Search className="w-5 h-5 text-[var(--color-text-muted)] mr-3" />
           <input
             ref={inputRef}
             type="text"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="command-palette-results"
+            aria-activedescendant={filteredItems[selectedIndex] ? `command-option-${filteredItems[selectedIndex].id}` : undefined}
             aria-label="Search commands and records"
             autoComplete="off"
             className="flex-1 bg-transparent border-none outline-none text-base text-[var(--color-text)] placeholder-[var(--color-text-muted)]"
             placeholder="Search clients, shoots, cameramen, or actions..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
           />
           <div className="flex items-center gap-1 text-[10px] font-mono text-[var(--color-text-muted)] border border-[var(--color-border)] rounded px-1.5 py-0.5">
             <span>ESC</span>
@@ -112,12 +168,13 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {filteredItems.length > 0 ? (
-          <div className="overflow-y-auto py-2" role="listbox" aria-label="Commands and search results">
+          <div id="command-palette-results" className="overflow-y-auto py-2" role="listbox" aria-label="Commands and search results">
             {filteredItems.map((item, index) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.id}
+                  id={`command-option-${item.id}`}
                   type="button"
                   role="option"
                   aria-selected={selectedIndex === index}
@@ -128,7 +185,9 @@ export const CommandPalette: React.FC = () => {
                   }`}
                 >
                   <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 mr-3 ${
-                    item.type === 'action' ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
+                    selectedIndex === index
+                      ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)]'
+                      : 'bg-white/[0.055] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
                   }`}>
                     <Icon className="w-4 h-4" />
                   </div>
@@ -148,8 +207,8 @@ export const CommandPalette: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="py-12 text-center">
-            <p className="text-sm text-[var(--color-text-muted)]">No results found for "{query}"</p>
+          <div className="py-12 text-center" role="status">
+            <p className="text-sm text-[var(--color-text-muted)]">No results found for &quot;{query}&quot;</p>
           </div>
         )}
         <div className="px-4 py-2 border-t border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
@@ -158,7 +217,9 @@ export const CommandPalette: React.FC = () => {
             <span>Select with <kbd className="font-sans px-1 py-0.5 rounded border border-[var(--color-border)] bg-[var(--color-surface)]">Enter</kbd></span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+    )}
+    </AnimatePresence>
   );
 };

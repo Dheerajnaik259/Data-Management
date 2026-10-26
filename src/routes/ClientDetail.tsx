@@ -64,7 +64,7 @@ export const ClientDetail: React.FC = () => {
 
       <main className="flex-1 p-4 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-4">
+          <div className="liquid-content-panel p-6 space-y-4">
             <div className="flex items-center justify-between">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider border ${client.status === 'active' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)]'}`}>
                 {client.status} Client
@@ -96,7 +96,7 @@ export const ClientDetail: React.FC = () => {
             )}
           </div>
 
-          <div className="lg:col-span-2 bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs flex flex-col justify-between">
+          <div className="liquid-content-panel lg:col-span-2 p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -132,7 +132,7 @@ export const ClientDetail: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden flex flex-col">
+          <div className="liquid-table-container overflow-hidden flex flex-col">
             <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
               <div>
                 <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Production Shoots History</h3>
@@ -168,7 +168,7 @@ export const ClientDetail: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs">
+          <div className="liquid-content-panel p-6">
             <CommunicationLogEditor clientId={client.id} logs={logs} />
           </div>
         </div>

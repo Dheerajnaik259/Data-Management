@@ -36,7 +36,7 @@ export function ExportCsvButton<T extends Record<string, unknown>>({
       type="button"
       onClick={handleExport}
       disabled={disabled || data.length === 0}
-      className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] bg-white/[0.035] border border-[var(--color-border)] rounded-md hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs ${className}`}
+      className={`liquid-glass-button inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] rounded-lg hover:text-[var(--color-text)] disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       title="Download CSV spreadsheet"
     >
       <Download className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />

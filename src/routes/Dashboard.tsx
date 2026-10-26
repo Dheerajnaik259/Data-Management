@@ -32,6 +32,13 @@ import { formatTime12h } from '../utils/formatTime';
 import { formatSingularCollection } from '../utils/formatCollection';
 import { toLocalDateString } from '../utils/localDate';
 
+const updateMetricHighlight = (event: React.PointerEvent<HTMLElement>) => {
+  if (event.pointerType !== 'mouse') return;
+  const bounds = event.currentTarget.getBoundingClientRect();
+  event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - bounds.left}px`);
+  event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - bounds.top}px`);
+};
+
 export const Dashboard: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { shoots, clients, cameramen, expenses, changeRequests, dashboardStats, handleToggleCameramanCheckIn } = useData();
@@ -185,7 +192,7 @@ export const Dashboard: React.FC = () => {
                 <span>Approvals ({pendingFounderApprovals.length})</span>
               </Link>
             )}
-            <button type="button" onClick={() => setIsShootFormOpen(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[var(--color-accent)] rounded hover:bg-[var(--color-accent-hover)] transition-colors">
+            <button type="button" onClick={() => setIsShootFormOpen(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-[var(--color-text-on-accent)] bg-[var(--color-accent)] rounded hover:bg-[var(--color-accent-hover)] transition-colors">
               <Plus className="w-3.5 h-3.5" /> <span>Schedule Shoot</span>
             </button>
           </div>
@@ -203,7 +210,7 @@ export const Dashboard: React.FC = () => {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               
               {/* 1. Shoots Today / Tomorrow */}
-              <Link to="/shoots" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/shoots" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Shoots Today / Tomorrow</span>
                   <Film className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -213,7 +220,7 @@ export const Dashboard: React.FC = () => {
               </Link>
 
               {/* 2. Client Invoices to Chase */}
-              <Link to="/payments" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Invoices To Chase</span>
                   <TrendingUp className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -226,7 +233,7 @@ export const Dashboard: React.FC = () => {
               </Link>
 
               {/* 3. Crew Payouts Status */}
-              <Link to="/payments" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Crew Payouts Status</span>
                   <TrendingDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -239,7 +246,7 @@ export const Dashboard: React.FC = () => {
               </Link>
 
               {/* 4. Deliverables Assets */}
-              <Link to="/shoots" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/shoots" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Deliverables Assets</span>
                   <Clock className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -252,7 +259,7 @@ export const Dashboard: React.FC = () => {
               </Link>
 
               {/* 5. My Submissions Queue */}
-              <Link to="/approvals" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/approvals" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">My Submissions</span>
                   <CheckSquare className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -263,8 +270,8 @@ export const Dashboard: React.FC = () => {
             </section>
 
             {/* ADMIN SECTION A — DAILY CREW DISPATCH CONSOLE */}
-            <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-background)] flex items-center justify-between">
+            <section className="liquid-content-panel liquid-dispatch-panel overflow-hidden">
+              <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
                 <div>
                   <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                     <UserCheck className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -272,13 +279,13 @@ export const Dashboard: React.FC = () => {
                   </h3>
                   <p className="text-xs text-[var(--color-text-secondary)]">Send prefilled call-sheets and WhatsApp reminders to videographers for immediate shoots (Today & Tomorrow)</p>
                 </div>
-                <span className="text-xs font-medium text-[var(--color-text-secondary)]">
+                <span className="liquid-glass-status px-2.5 py-1 rounded-full text-xs font-medium text-[var(--color-text-secondary)]">
                   {dispatchShoots.length} Immediate Shoot{dispatchShoots.length === 1 ? '' : 's'}
                 </span>
               </div>
 
               {dispatchShoots.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[var(--color-text-secondary)] space-y-1">
+                <div className="liquid-glass-inner m-3 p-6 text-center text-xs text-[var(--color-text-secondary)] space-y-1 rounded-xl">
                   <CheckCircle2 className="w-6 h-6 mx-auto text-[var(--color-success)] mb-1" />
                   <p className="font-semibold text-[var(--color-text-primary)]">No shoots scheduled for today or tomorrow.</p>
                   <p>All crew dispatches are up to date.</p>
@@ -288,7 +295,7 @@ export const Dashboard: React.FC = () => {
                   {dispatchShoots.map(shoot => {
                     const client = clientMap.get(shoot.clientId);
                     return (
-                      <div key={shoot.id} className="p-4 flex items-center justify-between gap-4 hover:bg-[var(--color-background)] transition-colors">
+                      <div key={shoot.id} className="liquid-glass-inner m-3 p-4 flex items-center justify-between gap-4 rounded-xl hover:bg-white/[0.025] transition-colors">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-sm text-[var(--color-text-primary)]">{client?.name || 'Unknown Client'}</span>
@@ -319,7 +326,7 @@ export const Dashboard: React.FC = () => {
                                     location: shoot.location
                                   }) : null;
                                   return (
-                                    <div key={idx} className="flex items-center gap-1.5 bg-[var(--color-background)] px-2.5 py-1 rounded border border-[var(--color-border)]">
+                                    <div key={idx} className="liquid-glass-status flex items-center gap-1.5 px-2.5 py-1 rounded-lg">
                                       <span className="font-medium text-[var(--color-text-primary)]">{cam?.name || 'Unassigned'}</span>
                                       {asgn.checkedInAt ? (
                                         <span className="text-[10px] text-[var(--color-success)] font-semibold">✓ Checked In</span>
@@ -340,7 +347,7 @@ export const Dashboard: React.FC = () => {
                             )}
                           </div>
 
-                          <Link to={`/shoots/${shoot.id}`} className="px-3 py-1.5 text-xs font-semibold text-[var(--color-text-primary)] bg-[var(--color-background)] hover:bg-[var(--color-border)] rounded border border-[var(--color-border)] transition-colors shrink-0">
+                          <Link to={`/shoots/${shoot.id}`} className="liquid-glass-button px-3 py-1.5 text-xs font-semibold text-[var(--color-text-primary)] rounded-lg shrink-0">
                             View Shoot &rarr;
                           </Link>
                         </div>
@@ -352,8 +359,8 @@ export const Dashboard: React.FC = () => {
             </section>
 
             {/* ADMIN SECTION B — ACTION REQUIRED (Operational Exceptions) */}
-            <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
+            <section className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
+              <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
                 <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-[var(--color-warning)]" />
                   <span>Action Required (Operational Exceptions)</span>
@@ -362,13 +369,13 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {operationalExceptions.length === 0 ? (
-                <div className="p-3 text-center text-xs text-[var(--color-success)] font-medium bg-[var(--color-background)] rounded border border-[var(--color-border)]">
+                <div className="liquid-glass-inner p-3 text-center text-xs text-[var(--color-success)] font-medium rounded-xl">
                   ✨ All caught up! No operational actions required.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {operationalExceptions.map(item => (
-                    <div key={item.id} className="p-2.5 bg-[var(--color-background)] rounded border border-[var(--color-border)] flex items-center justify-between text-xs">
+                    <div key={item.id} className="liquid-glass-inner p-2.5 rounded-xl flex items-center justify-between text-xs">
                       <span className="font-medium text-[var(--color-text-primary)] flex items-center gap-2">
                         <span className={`w-1.5 h-1.5 rounded-full ${item.type === 'error' ? 'bg-[var(--color-error)]' : 'bg-[var(--color-warning)]'}`} />
                         <span>{item.label}</span>
@@ -386,8 +393,8 @@ export const Dashboard: React.FC = () => {
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Deliverables Tracker */}
-              <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
+              <div className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
+                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
                   <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[var(--color-text-secondary)]" />
                     <span>Deliverables Tracker</span>
@@ -395,15 +402,15 @@ export const Dashboard: React.FC = () => {
                   <Link to="/shoots" className="text-xs text-[var(--color-text-primary)] hover:underline font-semibold">View Shoots &rarr;</Link>
                 </div>
                 <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-text-secondary)] font-medium block">Total Assets</span>
                     <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.totalDeliverablesCount}</div>
                   </div>
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-text-secondary)] font-medium block">Shoots Tracked</span>
                     <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.shootsWithDeliverablesCount}</div>
                   </div>
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-text-secondary)] font-medium block">With Cloud Link</span>
                     <div className="text-xl font-bold font-sans text-[var(--color-text-secondary)]">{deliverablesStats.withCloudLinkCount}</div>
                   </div>
@@ -411,8 +418,8 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* Crew Availability */}
-              <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
+              <div className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
+                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
                   <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                     <Users className="w-4 h-4 text-[var(--color-text-secondary)]" />
                     <span>Crew Availability Summary</span>
@@ -420,21 +427,21 @@ export const Dashboard: React.FC = () => {
                   <Link to="/cameramen" className="text-xs text-[var(--color-text-primary)] hover:underline font-semibold">Manage Crew &rarr;</Link>
                 </div>
                 <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-text-secondary)] font-medium block">Total Roster</span>
                     <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{crewAvailabilityStats.totalCrew}</div>
                   </div>
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-success)] font-medium block">Assigned Crew</span>
                     <div className="text-xl font-bold font-sans text-[var(--color-success)]">{crewAvailabilityStats.assignedCrewCount}</div>
                   </div>
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-error)] font-medium block">Unavailable Today</span>
                     <div className="text-xl font-bold font-sans text-[var(--color-error)]">{crewAvailabilityStats.unavailableCrewCount}</div>
                   </div>
                 </div>
                 {shootsWithoutCrewCount > 0 && (
-                  <p className="text-xs text-[var(--color-error)] font-medium text-center bg-[var(--color-background)] py-1 rounded border border-[var(--color-border)]">
+                  <p className="liquid-glass-status text-xs text-[var(--color-error)] font-medium text-center py-1 rounded-lg">
                     {shootsWithoutCrewCount} upcoming shoot(s) require crew assignment
                   </p>
                 )}
@@ -442,8 +449,8 @@ export const Dashboard: React.FC = () => {
             </section>
 
             {/* ADMIN SECTION E — MY CHANGE REQUESTS */}
-            <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-background)] flex items-center justify-between">
+            <section className="liquid-content-panel liquid-dispatch-panel overflow-hidden">
+              <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
                 <div>
                   <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)]">My Change Requests Submitted for Approval</h3>
                   <p className="text-xs text-[var(--color-text-secondary)]">Status of record additions/edits submitted to Founder governance</p>
@@ -507,7 +514,7 @@ export const Dashboard: React.FC = () => {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
               {/* 1. Net Operating Cashflow (Primary Highlight Card) */}
-              <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] space-y-2">
+              <div onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Net Operating Cashflow</span>
                   <TrendingUp className="w-4 h-4 text-[var(--color-accent)]" />
@@ -519,7 +526,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* 2. Pending Approvals Queue */}
-              <Link to="/approvals" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/approvals" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Pending Approvals</span>
                   <ShieldCheck className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -529,7 +536,7 @@ export const Dashboard: React.FC = () => {
               </Link>
 
               {/* 3. Client Receivables */}
-              <Link to="/payments" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Client Receivables</span>
                   <Receipt className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -539,7 +546,7 @@ export const Dashboard: React.FC = () => {
               </Link>
 
               {/* 4. Total Operating Outflow */}
-              <Link to="/expenses" className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors space-y-2 block">
+              <Link to="/expenses" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Total Operating Outflow</span>
                   <TrendingDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -554,7 +561,7 @@ export const Dashboard: React.FC = () => {
 
             {/* FOUNDER SECTION A — GOVERNANCE ACTION CALLOUT BANNER */}
             {pendingFounderApprovals.length > 0 ? (
-              <div className="p-4 bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg flex items-center justify-between gap-3 text-xs">
+              <div className="liquid-dispatch-panel p-4 rounded-xl flex items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-3">
                   <ShieldCheck className="w-4 h-4 text-[var(--color-warning)] shrink-0" />
                   <div>
@@ -569,7 +576,7 @@ export const Dashboard: React.FC = () => {
                 </Link>
               </div>
             ) : (
-              <div className="p-3.5 bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+              <div className="liquid-glass-inner p-3.5 rounded-xl flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
                 <span className="flex items-center gap-2 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" />
                   <span>No approvals requiring your attention. All admin submissions reviewed.</span>
@@ -579,8 +586,8 @@ export const Dashboard: React.FC = () => {
             )}
 
             {/* FOUNDER SECTION B — CLIENT PROFITABILITY & MARGIN RANKING TABLE */}
-            <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-background)] flex items-center justify-between">
+            <section className="liquid-content-panel overflow-hidden">
+              <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
                 <div>
                   <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-[var(--color-text-secondary)]" />
@@ -637,8 +644,8 @@ export const Dashboard: React.FC = () => {
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Financial Snapshot */}
-              <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
+              <div className="liquid-content-panel p-4 space-y-3">
+                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
                   <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                     <Receipt className="w-4 h-4 text-[var(--color-text-secondary)]" />
                     <span>Financial Snapshot</span>
@@ -672,8 +679,8 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* Business Overview */}
-              <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
+              <div className="liquid-content-panel p-4 space-y-3">
+                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
                   <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                     <PieChart className="w-4 h-4 text-[var(--color-text-secondary)]" />
                     <span>Business Overview KPIs</span>
@@ -681,19 +688,19 @@ export const Dashboard: React.FC = () => {
                   <span className="text-xs text-[var(--color-text-secondary)] font-mono">Agency Totals</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5 text-xs">
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-text-secondary)] font-medium block">Active Client Brands</span>
                     <span className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{clients.filter(c => c.status === 'active').length}</span>
                   </div>
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-text-secondary)] font-medium block">Total Production Jobs</span>
                     <span className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{shoots.length}</span>
                   </div>
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-success)] font-medium block">Completed Shoots</span>
                     <span className="text-xl font-bold font-sans text-[var(--color-success)]">{shoots.filter(s => s.status === 'done').length}</span>
                   </div>
-                  <div className="p-3 bg-[var(--color-background)] rounded border border-[var(--color-border)] space-y-1">
+                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
                     <span className="text-[var(--color-accent)] font-medium block">Collection Rate</span>
                     <span className="text-xl font-bold font-sans text-[var(--color-accent)]">{collectionRate}%</span>
                   </div>
@@ -711,7 +718,7 @@ export const Dashboard: React.FC = () => {
         {/* ════════════════════════════════════════════════════════════ */}
         {/* ── SHARED: ACTIVE SHOOT SCHEDULE SUMMARY ── */}
         {/* ════════════════════════════════════════════════════════════ */}
-        <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
+        <section className="liquid-content-panel overflow-hidden">
           <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-background)] flex items-center justify-between">
             <div>
               <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)]">Active Shoot Schedule Summary</h3>

@@ -114,7 +114,7 @@ export const Shoots: React.FC = () => {
       />
 
       <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
-        <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-3">
+        <div className="liquid-control-tray p-4 space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text)]">
             <Filter className="w-3.5 h-3.5 text-[var(--color-accent)]" /> <span>Filter Shoots</span>
           </div>
@@ -163,7 +163,7 @@ export const Shoots: React.FC = () => {
             onAction={searchQuery ? undefined : () => { setEditingShoot(null); setIsFormOpen(true); }}
           />
         ) : (
-          <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+          <div className="liquid-table-container overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
                 <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">

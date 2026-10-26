@@ -159,7 +159,7 @@ export const RecycleBin: React.FC = () => {
               const isChecked = selectedKeys.has(itemKey);
               return (
                 <div key={itemKey}
-                  className={`flex items-center gap-4 bg-[var(--color-surface)] border rounded-lg px-5 py-3 transition-colors ${isChecked ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]/10' : 'border-[var(--color-border)]'}`}>
+                  className={`liquid-glass-inner flex items-center gap-4 border rounded-xl px-5 py-3 transition-colors ${isChecked ? 'is-selected border-[var(--color-accent)]' : 'border-[var(--color-border)]'}`}>
                   <input
                     type="checkbox"
                     checked={isChecked}

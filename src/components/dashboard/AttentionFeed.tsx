@@ -121,7 +121,7 @@ export const AttentionFeed: React.FC = () => {
 
   if (feedItems.length === 0) {
     return (
-      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs p-8 text-center">
+      <div className="liquid-content-panel p-8 text-center">
         <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
         <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">You're all caught up!</h3>
         <p className="text-xs text-[var(--color-text-secondary)] mt-1">No overdue payments, pending approvals, or pending rates.</p>
@@ -130,19 +130,19 @@ export const AttentionFeed: React.FC = () => {
   }
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden flex flex-col">
-      <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
+    <div className="liquid-content-panel overflow-hidden flex flex-col">
+      <div className="liquid-panel-header px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
           <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Needs Your Attention</h3>
         </div>
-        <span className="text-xs font-semibold text-[var(--color-text-secondary)] bg-[var(--color-surface)] border border-[var(--color-border)] px-2 py-0.5 rounded-full">
+        <span className="liquid-glass-status text-xs font-semibold text-[var(--color-text-secondary)] px-2 py-0.5 rounded-full">
           {items.length} item{items.length > 1 ? 's' : ''}
         </span>
       </div>
       <div className="flex-1 divide-y divide-[var(--color-border)]">
         {feedItems.map(item => (
-          <div key={item.id} className="p-4 flex items-center justify-between gap-3 hover:bg-[var(--color-bg-hover)] transition-colors group">
+          <div key={item.id} className="p-4 flex items-center justify-between gap-3 hover:bg-white/[0.035] transition-colors group">
             <div className="flex items-start gap-3">
               <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                 item.type === 'overdue_incoming' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :

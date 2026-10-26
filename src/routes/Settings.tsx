@@ -75,8 +75,8 @@ const MyAccountCard: React.FC = () => {
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors shadow-2xs">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+    <div className="liquid-content-panel overflow-hidden">
+      <div className="liquid-panel-header flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center">
             <User className="w-4 h-4" />
@@ -181,8 +181,8 @@ const OperationalDefaultsCard: React.FC<OperationalDefaultsCardProps> = ({ setti
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors shadow-2xs">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+    <div className="liquid-content-panel overflow-hidden">
+      <div className="liquid-panel-header flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center">
             <Sliders className="w-4 h-4" />
@@ -299,8 +299,8 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors shadow-2xs">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+    <div className="liquid-content-panel overflow-hidden">
+      <div className="liquid-panel-header flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center">
             <Building2 className="w-4 h-4" />
@@ -449,7 +449,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ setting, isEditing, onEdit,
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg overflow-hidden transition-colors">
+    <div className="liquid-content-panel overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
         <div>
           <h3 className="font-serif text-base font-bold text-[var(--color-text)]">{setting.label}</h3>

@@ -71,7 +71,7 @@ export const CameramanDetail: React.FC = () => {
 
       <main className="flex-1 p-4 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-4">
+          <div className="liquid-content-panel p-6 space-y-4">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
                 Freelance Operator
@@ -107,7 +107,7 @@ export const CameramanDetail: React.FC = () => {
             )}
           </div>
 
-          <div className="lg:col-span-2 bg-[var(--color-surface)] p-6 rounded-lg border border-[var(--color-border)] shadow-2xs flex flex-col justify-between">
+          <div className="liquid-content-panel lg:col-span-2 p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -142,7 +142,7 @@ export const CameramanDetail: React.FC = () => {
           </div>
         </div>
 
-        <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+        <section className="liquid-table-container overflow-hidden">
           <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
             <div>
               <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Shoot Assignments & Payout Vouchers</h3>
@@ -247,7 +247,7 @@ export const CameramanDetail: React.FC = () => {
           )}
         </section>
 
-        <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+        <section className="liquid-table-container overflow-hidden">
           <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
             <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Pending Rates</h3>
             <p className="text-xs text-[var(--color-text-secondary)]">Set payout amounts after a shoot assignment has been approved.</p>

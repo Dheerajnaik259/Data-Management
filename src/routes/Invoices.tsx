@@ -112,7 +112,7 @@ export const Invoices: React.FC = () => {
     <div className="flex-1 flex flex-col min-w-0 pb-12">
       <Header title="Invoices & Payout Vouchers" subtitle="Generate and download branded PDF invoices for clients and disbursement vouchers for cameramen" searchQuery={searchQuery} onSearchChange={setSearchQuery} searchPlaceholder="Search by invoice #, client, cameraman, location..." onOpenMobile={onOpenMobileNav} />
       <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
-        <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="liquid-control-tray p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-1 bg-[var(--color-bg)] p-1 rounded-md border border-[var(--color-border)] text-xs">
             <button type="button" onClick={() => setTypeFilter('all')} className={`px-3 py-1.5 rounded font-medium transition-colors ${typeFilter === 'all' ? 'bg-[var(--color-surface)] text-[var(--color-text)] font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>All Documents ({allDocItems.length})</button>
             <button type="button" onClick={() => setTypeFilter('client_invoice')} className={`px-3 py-1.5 rounded font-medium transition-colors ${typeFilter === 'client_invoice' ? 'bg-[var(--color-surface)] text-emerald-600 dark:text-emerald-400 font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>Client Invoices</button>
@@ -130,7 +130,7 @@ export const Invoices: React.FC = () => {
         {filteredItems.length === 0 ? (
           <EmptyState icon={<FileText className="w-6 h-6 text-[var(--color-text-muted)]" />} title="No Documents Found" description="No invoices or payout vouchers match your current filters." />
         ) : (
-          <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+          <div className="liquid-table-container overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
                 <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">

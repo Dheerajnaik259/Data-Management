@@ -20,7 +20,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div
-      className={`flex flex-col items-center justify-center p-12 text-center bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] ${className}`}
+      className={`liquid-content-panel flex flex-col items-center justify-center p-12 text-center ${className}`}
     >
       <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] mb-4">
         {icon || <FolderOpen className="w-6 h-6 text-[var(--color-text-muted)]" />}

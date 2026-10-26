@@ -104,7 +104,7 @@ export const Cameramen: React.FC = () => {
             onAction={searchQuery ? undefined : () => { setEditingCameraman(null); setIsFormOpen(true); }}
           />
         ) : (
-          <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+          <div className="liquid-table-container overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
                 <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">

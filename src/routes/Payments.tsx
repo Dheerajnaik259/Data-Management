@@ -83,7 +83,7 @@ export const Payments: React.FC = () => {
       <Header title="Payments & Disbursements Desk" subtitle="Track incoming client receivables, freelance crew payouts, and overdue balances" searchQuery={searchQuery} onSearchChange={setSearchQuery} searchPlaceholder="Search payments by client, cameraman, location, phone..." onOpenMobile={onOpenMobileNav} action={<div className="flex items-center gap-2"><ExportCsvButton filename="Payments_Disbursements_Ledger" data={csvData} label="Export CSV" /></div>} />
       <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-1.5">
+          <div className="liquid-metric-card p-5 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Money In (Pending Client Bills)</span>
               <div className="w-7 h-7 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><TrendingUp className="w-4 h-4" /></div>
@@ -91,7 +91,7 @@ export const Payments: React.FC = () => {
             <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(stats.pendingIncoming)}</div>
             <div className="text-xs text-[var(--color-text-secondary)]">{stats.overdueIncoming > 0 ? <span className="text-red-600 dark:text-red-400 font-semibold">{stats.overdueIncoming} client payment{stats.overdueIncoming > 1 ? 's' : ''} overdue</span> : <span>No overdue receivables</span>}</div>
           </div>
-          <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-1.5">
+          <div className="liquid-metric-card p-5 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Money Out (Pending Crew Payouts)</span>
               <div className="w-7 h-7 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center"><TrendingDown className="w-4 h-4" /></div>
@@ -99,7 +99,7 @@ export const Payments: React.FC = () => {
             <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(stats.pendingOutgoing)}</div>
             <div className="text-xs text-[var(--color-text-secondary)]">{stats.overdueOutgoing > 0 ? <span className="text-red-600 dark:text-red-400 font-semibold">{stats.overdueOutgoing} crew payout{stats.overdueOutgoing > 1 ? 's' : ''} overdue</span> : <span>All crew payouts on schedule</span>}</div>
           </div>
-          <div className="bg-[var(--color-surface)] p-5 rounded-lg border border-[var(--color-border)] shadow-2xs space-y-1.5">
+          <div className="liquid-metric-card p-5 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Net Pending Cashflow</span>
               <div className="w-7 h-7 rounded-md bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs">₹</div>
@@ -109,7 +109,7 @@ export const Payments: React.FC = () => {
           </div>
         </section>
 
-        <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="liquid-control-tray p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-1 bg-[var(--color-bg)] p-1 rounded-md border border-[var(--color-border)] text-xs">
             <button type="button" onClick={() => setActiveTab('all')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'all' ? 'bg-[var(--color-surface)] text-[var(--color-text)] font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>All Transactions ({paymentRecords.length})</button>
             <button type="button" onClick={() => setActiveTab('incoming')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'incoming' ? 'bg-[var(--color-surface)] text-emerald-600 dark:text-emerald-400 font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>Money In (Client Bills)</button>
@@ -129,7 +129,7 @@ export const Payments: React.FC = () => {
         {filteredRecords.length === 0 ? (
           <EmptyState icon={<Clock className="w-6 h-6 text-[var(--color-text-muted)]" />} title="No Payment Records Found" description="No transactions match your current search and filter settings." />
         ) : (
-          <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] shadow-2xs overflow-hidden">
+          <div className="liquid-table-container overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
                 <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">
