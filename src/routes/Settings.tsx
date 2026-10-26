@@ -326,7 +326,7 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
               disabled={!isFounder}
               value={formData.businessName}
               onChange={e => setFormData({ ...formData, businessName: e.target.value })}
-              placeholder="e.g. SMM Ops Media"
+              placeholder="e.g. ERP Mpixel Media"
               className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
               required
             />
@@ -338,7 +338,7 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
               disabled={!isFounder}
               value={formData.businessEmail}
               onChange={e => setFormData({ ...formData, businessEmail: e.target.value })}
-              placeholder="operations@smmops.com"
+              placeholder="business@example.com"
               className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
               required
             />

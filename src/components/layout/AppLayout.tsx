@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CommandPalette } from '../common/CommandPalette';
+import { KeyboardShortcuts } from '../common/KeyboardShortcuts';
 
 export const AppLayout: React.FC = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const location = useLocation();
 
   return (
     <div className="min-h-screen flex bg-[var(--color-bg)] text-[var(--color-text)] relative">
@@ -26,7 +26,7 @@ export const AppLayout: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileNavOpen(false)}
-              className="fixed inset-0 bg-[#1C1917]/50 backdrop-blur-xs"
+              className="fixed inset-0 bg-black/65 backdrop-blur-sm"
             />
 
             {/* Slide menu */}
@@ -35,12 +35,12 @@ export const AppLayout: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="relative w-72 max-w-[80vw] bg-[var(--color-surface)] h-full shadow-2xl flex flex-col z-10"
+              className="relative w-72 max-w-[80vw] bg-[var(--color-sidebar)] h-full shadow-2xl flex flex-col z-10 border-r border-[var(--color-border)]"
             >
               <button
                 type="button"
                 onClick={() => setMobileNavOpen(false)}
-                className="absolute top-4 right-4 p-2 text-[#78716C] hover:text-[#1C1917] rounded-md"
+                className="absolute top-4 right-4 p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded-md"
                 aria-label="Close navigation"
               >
                 <X className="w-5 h-5" />
@@ -53,10 +53,11 @@ export const AppLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        <Outlet key={location.pathname} context={{ onOpenMobileNav: () => setMobileNavOpen(true) }} />
+        <Outlet context={{ onOpenMobileNav: () => setMobileNavOpen(true) }} />
       </div>
 
       <CommandPalette />
+      <KeyboardShortcuts />
     </div>
   );
 };

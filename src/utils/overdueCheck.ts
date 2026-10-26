@@ -1,4 +1,5 @@
 import { OverdueInfo } from '../types';
+import { toLocalDateString } from './localDate';
 
 // Default payment grace period threshold in days after shoot date
 export const DEFAULT_PAYMENT_GRACE_DAYS = 7;
@@ -54,7 +55,7 @@ export function checkOverdue(
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysDiff = Math.floor((today.getTime() - due.getTime()) / msPerDay);
 
-  const formattedDueDate = due.toISOString().split('T')[0];
+  const formattedDueDate = toLocalDateString(due);
 
   if (daysDiff > 0) {
     return {

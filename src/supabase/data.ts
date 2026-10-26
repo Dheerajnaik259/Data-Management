@@ -340,71 +340,35 @@ export async function directUpdate(col: ManagedCollection, docId: string, data: 
 }
 
 export async function updateShootOperationalData(shootId: string, data: Record<string, unknown>): Promise<void> {
-  const { error } = await clientOrThrow().from('shoots').update(entityToRow('shoots', data)).eq('id', shootId);
+  const { error } = await clientOrThrow().rpc('update_shoot_operational', {
+    p_shoot_id: shootId,
+    p_changes: entityToRow('shoots', data),
+  });
   throwOnError(error, 'Unable to update shoot operations');
 }
 
 export async function softDelete(col: ManagedCollection, docId: string): Promise<void> {
-  const client = clientOrThrow();
-  const { error: rpcErr } = await client.rpc('set_record_deleted', {
+  const { error } = await clientOrThrow().rpc('set_record_deleted', {
     p_collection: col,
     p_record_id: docId,
     p_deleted: true,
   });
-  if (!rpcErr) return;
-
-  const { error } = await client.from(col).update({ deleted_at: new Date().toISOString() }).eq('id', docId);
   throwOnError(error, `Unable to delete ${col.slice(0, -1)}`);
 }
 
 export async function restoreRecord(col: ManagedCollection, docId: string): Promise<void> {
-  const client = clientOrThrow();
-  const { error: rpcErr } = await client.rpc('set_record_deleted', {
+  const { error } = await clientOrThrow().rpc('set_record_deleted', {
     p_collection: col,
     p_record_id: docId,
     p_deleted: false,
   });
-  if (!rpcErr) return;
-
-  const { error } = await client.from(col).update({ deleted_at: null, deleted_by: null }).eq('id', docId);
   throwOnError(error, `Unable to restore ${col.slice(0, -1)}`);
 }
 
 export async function hardDelete(col: ManagedCollection, docId: string): Promise<void> {
   const client = clientOrThrow();
-
-  if (col === 'clients') {
-    const { data: clientShoots } = await client.from('shoots').select('id').eq('client_id', docId);
-    if (clientShoots && clientShoots.length > 0) {
-      const shootIds = clientShoots.map(s => s.id);
-      const { data: clientExpenses } = await client.from('expenses').select('id').in('shoot_id', shootIds);
-      if (clientExpenses && clientExpenses.length > 0) {
-        for (const exp of clientExpenses) {
-          await client.rpc('hard_delete_record', { p_collection: 'expenses', p_record_id: exp.id });
-        }
-      }
-      for (const shootId of shootIds) {
-        await client.rpc('hard_delete_record', { p_collection: 'shoots', p_record_id: shootId });
-      }
-    }
-    await client.from('communication_logs').delete().eq('client_id', docId);
-  } else if (col === 'shoots') {
-    const { data: shootExpenses } = await client.from('expenses').select('id').eq('shoot_id', docId);
-    if (shootExpenses && shootExpenses.length > 0) {
-      for (const exp of shootExpenses) {
-        await client.rpc('hard_delete_record', { p_collection: 'expenses', p_record_id: exp.id });
-      }
-    }
-  }
-
-  await client.from('change_requests').delete().eq('target_doc_id', docId);
-  await client.from('change_requests').delete().eq('target_collection', col).eq('target_doc_id', docId);
-
-  const { error: rpcErr } = await client.rpc('hard_delete_record', { p_collection: col, p_record_id: docId });
-  if (rpcErr) {
-    console.error(`RPC hard_delete_record failed for ${col} ${docId}:`, rpcErr);
-    throw new Error(rpcErr.message || `Unable to permanently delete ${col.slice(0, -1)}`);
-  }
+  const { error } = await client.rpc('hard_delete_record', { p_collection: col, p_record_id: docId });
+  throwOnError(error, `Unable to permanently delete ${col.slice(0, -1)}`);
 }
 
 export async function createChangeRequest(changeRequest: Omit<ChangeRequest, 'id'>): Promise<string> {
@@ -417,21 +381,18 @@ export async function updateChangeRequest(changeRequestId: string, data: Partial
   const rowData = changeRequestToRow(data);
   const client = clientOrThrow();
 
-  // 1. Try security definer RPC first (bypasses RLS ownership mismatch for authorized operators)
-  try {
+  if (data.status === 'pending' && data.proposedData && data.requestedBy && data.revisionCount !== undefined) {
     const { error: rpcErr } = await client.rpc('resubmit_change_request', {
       p_cr_id: changeRequestId,
       p_proposed_data: rowData.proposed_data,
       p_requested_by: rowData.requested_by,
       p_requested_at: rowData.requested_at,
-      p_revision_count: rowData.revision_count || 1,
+      p_revision_count: rowData.revision_count,
     });
-    if (!rpcErr) return;
-  } catch {
-    // RPC function not installed yet, proceed to standard table update
+    throwOnError(rpcErr, 'Unable to resubmit approval request');
+    return;
   }
 
-  // 2. Standard table update with returned row check
   const { data: updated, error } = await client
     .from('change_requests')
     .update(rowData)
@@ -445,11 +406,7 @@ export async function updateChangeRequest(changeRequestId: string, data: Partial
 }
 
 export async function deleteChangeRequest(changeRequestId: string): Promise<void> {
-  const client = clientOrThrow();
-  const { error } = await client
-    .from('change_requests')
-    .delete()
-    .eq('id', changeRequestId);
+  const { error } = await clientOrThrow().rpc('delete_change_request', { p_cr_id: changeRequestId });
   throwOnError(error, 'Unable to delete change request');
 }
 

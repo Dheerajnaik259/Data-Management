@@ -37,6 +37,9 @@ export function exportToCsv<T extends Record<string, unknown>>(
               formatted = String(rawVal);
             }
           }
+          if (typeof rawVal === 'string' && /^[\u0000-\u0020]*[=+\-@]/.test(formatted)) {
+            formatted = `'${formatted}`;
+          }
           const str = formatted.replace(/"/g, '""');
           return `"${str}"`;
         })

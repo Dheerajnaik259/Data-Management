@@ -156,8 +156,8 @@ export const Clients: React.FC = () => {
                           <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3 text-[var(--color-text-muted)]" />{client.phone}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
-                            client.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                          <span className={`text-[10px] font-semibold uppercase tracking-wider ${
+                            client.status === 'active' ? 'text-[var(--color-success)]' : 'text-[var(--color-text-muted)]'
                           }`}>
                             {client.status}
                           </span>

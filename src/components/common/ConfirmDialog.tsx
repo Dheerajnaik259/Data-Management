@@ -32,7 +32,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-[#1C1917]/40 backdrop-blur-xs"
+          className="fixed inset-0 bg-black/65 backdrop-blur-sm"
         />
 
         {/* Modal Window */}
@@ -40,35 +40,39 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative bg-white rounded-lg border border-[#E5E0DA] shadow-xl max-w-md w-full p-6 overflow-hidden z-10"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          className="glass-panel-elevated relative max-w-md w-full p-6 overflow-hidden z-10"
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  isDestructive ? 'bg-[#FEE2E2] text-[#991B1B]' : 'bg-[#FEF3C7] text-[#92400E]'
+                  isDestructive ? 'bg-red-500/10 text-red-300' : 'bg-amber-500/10 text-amber-300'
                 }`}
               >
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <h3 className="font-serif text-lg font-bold text-[#1C1917]">{title}</h3>
+              <h3 id="confirm-dialog-title" className="text-lg font-bold text-[var(--color-text)]">{title}</h3>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="text-[#A8A29E] hover:text-[#1C1917] transition-colors"
+              aria-label="Close confirmation dialog"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <p className="text-sm text-[#57534E] mb-6 leading-relaxed">{message}</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-6 leading-relaxed">{message}</p>
 
           <div className="flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-[#57534E] bg-white border border-[#E5E0DA] rounded-md hover:bg-[#FAF8F5] transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-white/[0.035] border border-[var(--color-border)] rounded-md hover:bg-[var(--color-bg-hover)] transition-colors"
             >
               Cancel
             </button>
@@ -78,10 +82,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 onConfirm();
                 onClose();
               }}
-              className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors shadow-xs ${
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors shadow-xs ${
                 isDestructive
-                  ? 'bg-[#DC2626] hover:bg-[#B91C1C]'
-                  : 'bg-[#C85A32] hover:bg-[#B84A24]'
+                  ? 'bg-red-600 text-white hover:bg-red-500'
+                  : 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)]'
               }`}
             >
               {confirmLabel}

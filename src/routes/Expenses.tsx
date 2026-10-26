@@ -74,10 +74,10 @@ export const Expenses: React.FC = () => {
   const canActDelete = user ? canDelete(user.role) : false;
 
   const getCategoryIcon = (cat: string) => {
-    if (cat === 'travel') return <Car className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />;
-    if (cat === 'equipment') return <Camera className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />;
-    if (cat === 'software') return <Laptop className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />;
-    return <Layers className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />;
+    if (cat === 'travel') return <Car className="w-3.5 h-3.5 text-[var(--color-accent)]" />;
+    if (cat === 'equipment') return <Camera className="w-3.5 h-3.5 text-[var(--color-accent-peach)]" />;
+    if (cat === 'software') return <Laptop className="w-3.5 h-3.5 text-[var(--color-accent-mint)]" />;
+    return <Layers className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />;
   };
 
   return (

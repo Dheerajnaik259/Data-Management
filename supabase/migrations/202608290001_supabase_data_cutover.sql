@@ -11,7 +11,7 @@ set search_path = public
 as $$
 begin
   if (select count(*) from public.profiles) >= 2 then
-    raise exception 'Only two SMM Ops operators are allowed';
+    raise exception 'Only two ERP Mpixel Media operators are allowed';
   end if;
   return new;
 end;

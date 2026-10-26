@@ -1,4 +1,4 @@
-# Antigravity Rules — SMM Ops Tool
+# Antigravity Rules — ERP Mpixel Media
 
 These rules apply to every task in this workspace. Follow them exactly.
 When something isn't covered, ask a clarifying question instead of guessing.

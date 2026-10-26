@@ -241,7 +241,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
             <polyline
               points={outgoingPointsStr}
               fill="none"
-              stroke="#EF4444"
+              stroke="var(--color-error)"
               strokeWidth="2.5"
               strokeDasharray="5 4"
               strokeLinecap="round"
@@ -252,7 +252,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
             <polyline
               points={netPointsStr}
               fill="none"
-              stroke="#10B981"
+              stroke="var(--color-success)"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -276,10 +276,10 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
                   <circle cx={cx} cy={cyIncome} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2.5" />
                   
                   {/* Outgoing Vertex Circle */}
-                  <circle cx={cx} cy={cyOutgoing} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="#EF4444" strokeWidth="2.5" />
+                  <circle cx={cx} cy={cyOutgoing} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="var(--color-error)" strokeWidth="2.5" />
 
                   {/* Net Cash Position Vertex Circle */}
-                  <circle cx={cx} cy={cyNet} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="#10B981" strokeWidth="2.5" />
+                  <circle cx={cx} cy={cyNet} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="2.5" />
 
                   {/* Income Point Numerical Value (Above dot) */}
                   <text
@@ -299,7 +299,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
                     x={cx}
                     y={cyOutgoing + 16}
                     textAnchor="middle"
-                    fill="#EF4444"
+                    fill="var(--color-error)"
                     fontSize="10"
                     fontFamily="monospace"
                     fontWeight="700"
@@ -312,7 +312,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
                     x={cx}
                     y={netY}
                     textAnchor="middle"
-                    fill="#10B981"
+                    fill="var(--color-success)"
                     fontSize="10"
                     fontFamily="monospace"
                     fontWeight="700"

@@ -109,7 +109,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-[#1C1917]/50 backdrop-blur-xs"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm"
         />
 
         {/* Modal Window */}
@@ -117,19 +117,19 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative bg-white rounded-lg border border-[#E5E0DA] shadow-2xl w-full max-w-4xl h-[88vh] flex flex-col z-10 overflow-hidden"
+          className="glass-panel-elevated relative w-full max-w-4xl h-[88vh] flex flex-col z-10 overflow-hidden"
         >
           {/* Top Bar */}
-          <div className="px-6 py-4 border-b border-[#E5E0DA] bg-[#FAF8F5] flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-[var(--color-border)] bg-white/[0.025] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md bg-[#C85A32]/10 text-[#C85A32] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-md bg-[rgba(66,222,213,0.10)] text-[var(--color-accent)] flex items-center justify-center">
                 <FileText className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-serif text-base font-bold text-[#1C1917]">
+                <h3 className="text-base font-bold text-[var(--color-text)]">
                   {type === 'client_invoice' ? 'Client Invoice PDF Preview' : 'Cameraman Payout Receipt Preview'}
                 </h3>
-                <p className="text-xs text-[#78716C]">
+                <p className="text-xs text-[var(--color-text-secondary)]">
                   {type === 'client_invoice' ? client?.name : cameraman?.name} &bull; Shoot {shoot.date} ({shoot.location})
                 </p>
               </div>
@@ -139,7 +139,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               <button
                 type="button"
                 onClick={handlePrint}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#57534E] bg-white border border-[#E5E0DA] rounded-md hover:bg-[#FAF8F5] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)] bg-white/[0.035] border border-[var(--color-border)] rounded-md hover:bg-[var(--color-bg-hover)] transition-colors"
                 title="Print PDF Document"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -149,7 +149,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               <button
                 type="button"
                 onClick={handleDownload}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#C85A32] rounded-md hover:bg-[#B84A24] transition-colors shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[var(--color-text-on-accent)] bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors shadow-xs"
                 title="Download PDF Document"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -159,7 +159,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 text-[#78716C] hover:text-[#1C1917] hover:bg-[#E5E0DA]/50 rounded-md transition-colors ml-2"
+                className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors ml-2"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />

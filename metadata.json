@@ -1,6 +1,6 @@
 {
-  "name": "SMM Ops Tool",
-  "description": "Production-ready SMM operations, shoots, client ledger, cameramen payouts, invoice generation and expenses management system.",
+  "name": "ERP Mpixel Media",
+  "description": "Mpixel Media's ERP for operations, shoots, client ledger, crew payouts, invoices, and expenses.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

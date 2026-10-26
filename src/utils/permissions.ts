@@ -16,8 +16,8 @@ const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
   founder: {
     canCreateDirect: true,
     canApprove: true,
-    canDelete: true,
-    canRestore: true,
+    canDelete: false,
+    canRestore: false,
     canHardDelete: false,
     canEditSettings: true,
     canSubmitForApproval: false,

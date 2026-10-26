@@ -49,28 +49,28 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
   const totalCrewCost = assignments.reduce((acc, a) => acc + (a.amount || 0), 0);
 
   return (
-    <div className="space-y-3 bg-[#FAF8F5] p-4 rounded-lg border border-[#E5E0DA]">
+    <div className="space-y-3 bg-white/[0.025] p-4 rounded-lg border border-[var(--color-border)]">
       <div className="flex items-center justify-between">
         <div>
-          <label className="block text-xs font-semibold text-[#1C1917] uppercase tracking-wider">
+          <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider">
             Cameramen & Crew Assignments
           </label>
-          <p className="text-[11px] text-[#78716C]">
-            Assign one or multiple cameramen. Set payout rates later from the Cameraman page.
+          <p className="text-[11px] text-[var(--color-text-secondary)]">
+            Assign crew. Payout-rate changes follow the role-based approval workflow.
           </p>
         </div>
-      <span className="text-xs font-bold text-[#C85A32]">
+      <span className="text-xs font-bold text-[var(--color-accent)]">
           Crew Total: {formatCurrency(totalCrewCost)}
         </span>
       </div>
 
       {assignments.length === 0 ? (
-        <div className="py-4 text-center border border-dashed border-[#D6D3D1] rounded-md bg-white">
-          <p className="text-xs text-[#78716C] mb-2">No cameramen assigned yet.</p>
+        <div className="py-4 text-center border border-dashed border-[var(--color-border)] rounded-md bg-[var(--color-surface)]">
+          <p className="text-xs text-[var(--color-text-secondary)] mb-2">No cameramen assigned yet.</p>
           <button
             type="button"
             onClick={handleAdd}
-            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-white bg-[#C85A32] rounded-md hover:bg-[#B84A24] transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-[var(--color-text-on-accent)] bg-[var(--color-accent)] rounded-md hover:bg-[var(--color-accent-hover)] transition-colors shadow-xs"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Cameraman</span>
@@ -82,18 +82,18 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
             return (
               <div
                 key={idx}
-                className="bg-white p-3 rounded-md border border-[#E5E0DA] flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-2xs"
+                className="bg-[var(--color-surface)] p-3 rounded-md border border-[var(--color-border)] flex flex-col sm:flex-row items-start sm:items-center gap-3"
               >
                 {/* Cameraman Selection */}
                 <div className="flex-1 w-full sm:w-auto">
-                  <label className="block text-[10px] font-medium text-[#78716C] mb-1">
+                  <label className="block text-[10px] font-medium text-[var(--color-text-secondary)] mb-1">
                     Cameraman #{idx + 1}
                   </label>
                   <select
                     value={assignment.cameramanId}
                     onChange={(e) => handleCameramanSelect(idx, e.target.value)}
                     required
-                    className="w-full text-xs bg-[#FAF8F5] border border-[#E5E0DA] rounded-md px-2.5 py-1.5 text-[#1C1917] focus:ring-1 focus:ring-[#C85A32] focus:border-[#C85A32] outline-none"
+                    className="w-full text-xs bg-[#0C0F11] border border-[var(--color-border)] rounded-md px-2.5 py-1.5 text-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
                   >
                     <option value="" disabled>
                       Select Cameraman...
@@ -111,7 +111,7 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-medium text-[#78716C] mb-1">Call-time override</label>
+                  <label className="block text-[10px] font-medium text-[var(--color-text-secondary)] mb-1">Call-time override</label>
                   <TimeInput12h
                     value={assignment.callTime || ''}
                     onChange={(val) => {
@@ -125,7 +125,7 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleRemove(idx)}
-                    className="p-1.5 text-[#A8A29E] hover:text-[#DC2626] rounded-md hover:bg-[#FEE2E2]/50 transition-colors"
+                    className="p-1.5 text-[var(--color-text-muted)] hover:text-red-300 rounded-md hover:bg-red-500/10 transition-colors"
                     title="Remove assignment"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -138,7 +138,7 @@ export const AssignmentEditor: React.FC<AssignmentEditorProps> = ({
           <button
             type="button"
             onClick={handleAdd}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-[#C85A32] bg-white border border-[#E5E0DA] rounded-md hover:bg-[#FAF8F5] transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md hover:bg-[var(--color-bg-hover)] transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Another Cameraman</span>

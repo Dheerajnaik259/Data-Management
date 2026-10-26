@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Film, Lock, Mail, ShieldAlert, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, KeyRound, Eye, EyeOff } from 'lucide-react';
+
+const mpixelMediaLogo = new URL('../assets/mpixelmedia-logo.png', import.meta.url).href;
+
+function getSafeReturnPath(locationState: unknown): string {
+  const from = (locationState as { from?: { pathname?: unknown } } | null)?.from?.pathname;
+  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') && !from.includes('\\')
+    ? from
+    : '/';
+}
 
 export const Login: React.FC = () => {
   const { login, loginWithGoogle, resetPassword, updatePassword, user, isBackendLive } = useAuth();
@@ -22,8 +31,7 @@ export const Login: React.FC = () => {
     setIsInvite(new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type') === 'invite');
     setIsRecovery(new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type') === 'recovery');
     if (user && !isInvite && !isRecovery) {
-      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      navigate(getSafeReturnPath(location.state), { replace: true });
     }
   }, [user, isInvite, isRecovery, navigate, location]);
 
@@ -36,8 +44,7 @@ export const Login: React.FC = () => {
     try {
       if (isInvite || isRecovery) await updatePassword(password);
       else await login(email, password);
-      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      navigate(getSafeReturnPath(location.state), { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       setErrorMessage(
@@ -73,90 +80,87 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#FAF8F5]">
+    <div className="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-transparent">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Brand Logo */}
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#C85A32] text-white shadow-md mb-4">
-          <Film className="w-7 h-7" />
-        </div>
-        <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1C1917]">
-          SMM Ops Tool
+        <img src={mpixelMediaLogo} alt="mpixelmedia" className="w-28 h-28 mx-auto rounded-2xl object-cover border border-[var(--color-border)] shadow-xl mb-4" />
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text)]">
+          ERP Mpixel Media
         </h1>
-        <p className="mt-1 text-xs text-[#78716C] tracking-wide uppercase font-medium">
+        <p className="mt-1 text-xs text-[var(--color-text-secondary)] tracking-wide uppercase font-medium">
           Internal Operations & Production Admin Desk
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 sm:px-10 rounded-xl border border-[#E5E0DA] shadow-xs">
+        <div className="glass-panel-elevated py-8 px-6 sm:px-10">
           {/* Security Notice */}
-          <div className="mb-6 p-3.5 bg-[#FAF8F5] border border-[#E5E0DA] rounded-lg flex items-start gap-2.5">
-            <ShieldAlert className="w-4 h-4 text-[#C85A32] shrink-0 mt-0.5" />
-            <div className="text-[11px] text-[#57534E] leading-relaxed">
-              <span className="font-bold text-[#1C1917] block">Restricted Access</span>
+          <div className="mb-6 p-3.5 bg-white/[0.035] border border-[var(--color-border)] rounded-lg flex items-start gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-[var(--color-accent)] shrink-0 mt-0.5" />
+            <div className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
+              <span className="font-bold text-[var(--color-text)] block">Restricted Access</span>
               This system is strictly reserved for the two authorized account holders. Public registration and guest sessions are permanently disabled.
             </div>
           </div>
 
           {errorMessage && (
-            <div className="mb-5 p-3.5 bg-[#FEE2E2] border border-[#FECACA] rounded-lg text-xs text-[#991B1B]">
+            <div className="mb-5 p-3.5 bg-red-500/10 border border-red-400/25 rounded-lg text-xs text-red-200">
               {errorMessage}
             </div>
           )}
-          {resetMessage && <div className="mb-5 p-3.5 bg-[#DCFCE7] border border-[#BBF7D0] rounded-lg text-xs text-[#166534]">{resetMessage}</div>}
+          {resetMessage && <div className="mb-5 p-3.5 bg-emerald-500/10 border border-emerald-400/25 rounded-lg text-xs text-emerald-200">{resetMessage}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <button
               type="button"
               onClick={handleGoogleLogin}
               disabled={isLoading || !isBackendLive}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-[#1C1917] bg-white border border-[#D6D3D1] hover:bg-[#F5F5F4] rounded-md transition-colors shadow-xs disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-[var(--color-text)] bg-white/[0.045] border border-[var(--color-border)] hover:bg-white/[0.08] rounded-md transition-colors shadow-xs disabled:opacity-50"
             >
               <span className="font-bold text-[#4285F4]">G</span>
               <span>Continue with Google</span>
             </button>
-            <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-[#A8A29E]">
-              <span className="h-px flex-1 bg-[#E5E0DA]" />
+            <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
+              <span className="h-px flex-1 bg-[var(--color-border)]" />
               <span>or email password</span>
-              <span className="h-px flex-1 bg-[#E5E0DA]" />
+              <span className="h-px flex-1 bg-[var(--color-border)]" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#1C1917] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
+                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your Gmail address"
                   required
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#E5E0DA] rounded-md text-[#1C1917] placeholder:text-[#A8A29E] focus:ring-1 focus:ring-[#C85A32] focus:border-[#C85A32] outline-none"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#0C0F11] border border-[var(--color-border)] rounded-md text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1C1917] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--color-text)] uppercase tracking-wider mb-1.5">
                 {isInvite || isRecovery ? 'Create New Password' : 'Password'}
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
+                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   required
-                  className="w-full pl-9 pr-10 py-2 text-sm bg-white border border-[#E5E0DA] rounded-md text-[#1C1917] placeholder:text-[#A8A29E] focus:ring-1 focus:ring-[#C85A32] focus:border-[#C85A32] outline-none"
+                  className="w-full pl-9 pr-10 py-2 text-sm bg-[#0C0F11] border border-[var(--color-border)] rounded-md text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(value => !value)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   title={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#A8A29E] hover:text-[#57534E] rounded focus:outline-none focus:ring-1 focus:ring-[#C85A32]"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -166,7 +170,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading || !isBackendLive}
-              className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-white bg-[#C85A32] hover:bg-[#B84A24] rounded-md transition-colors shadow-xs disabled:opacity-50"
+              className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-[#071110] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-md transition-colors shadow-xs disabled:opacity-50"
             >
               {isLoading ? (
                 <>
@@ -180,7 +184,7 @@ export const Login: React.FC = () => {
                 </>
               )}
             </button>
-            <button type="button" onClick={handleResetPassword} disabled={!isBackendLive} className="w-full text-xs font-semibold text-[#C85A32] hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="button" onClick={handleResetPassword} disabled={!isBackendLive} className="w-full text-xs font-semibold text-[var(--color-accent)] hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
               Forgot password?
             </button>
           </form>
@@ -189,14 +193,14 @@ export const Login: React.FC = () => {
 
         {/* Cloud configuration status */}
         <div className="mt-4 text-center">
-          <p className="text-[11px] text-[#78716C]">
+          <p className="text-[11px] text-[var(--color-text-muted)]">
             {isBackendLive ? (
-              <span className="text-emerald-700 font-medium">
+              <span className="text-emerald-300 font-medium">
                 &bull; Connected to Secure Cloud Auth. Authorized operators only.
               </span>
             ) : (
-              <span className="text-red-700 font-medium">
-                &bull; Database is not configured. Sign-in is disabled until <code className="bg-[#FEE2E2] px-1 py-0.5 rounded text-[10px]">.env.local</code> contains valid credentials.
+              <span className="text-red-300 font-medium">
+                &bull; Database is not configured. Sign-in is disabled until <code className="bg-red-500/15 px-1 py-0.5 rounded text-[10px]">.env.local</code> contains valid credentials.
               </span>
             )}
           </p>

@@ -20,7 +20,7 @@ export const OverdueBadge: React.FC<OverdueBadgeProps> = ({
   if (isPaid) {
     return (
       <span
-        className={`inline-flex items-center gap-1 font-medium rounded-md bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0] ${pad} ${className}`}
+        className={`inline-flex items-center gap-1 font-medium rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-400/20 ${pad} ${className}`}
       >
         <CheckCircle2 className={size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
         <span>Paid</span>
@@ -31,7 +31,7 @@ export const OverdueBadge: React.FC<OverdueBadgeProps> = ({
   if (!overdueInfo) {
     return (
       <span
-        className={`inline-flex items-center gap-1 font-medium rounded-md bg-[#F5F5F4] text-[#57534E] border border-[#E7E5E4] ${pad} ${className}`}
+        className={`inline-flex items-center gap-1 font-medium rounded-md bg-white/[0.04] text-[var(--color-text-secondary)] border border-[var(--color-border)] ${pad} ${className}`}
       >
         <Clock className={size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
         <span>Pending</span>
@@ -42,7 +42,7 @@ export const OverdueBadge: React.FC<OverdueBadgeProps> = ({
   if (overdueInfo.isOverdue) {
     return (
       <span
-        className={`inline-flex items-center gap-1 font-medium rounded-md bg-[#FEE2E2] text-[#991B1B] border border-[#FECACA] animate-pulse-subtle ${pad} ${className}`}
+        className={`inline-flex items-center gap-1 font-medium rounded-md bg-red-500/10 text-red-300 border border-red-400/25 ${pad} ${className}`}
       >
         <AlertTriangle className={size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
         <span>{overdueInfo.label}</span>
@@ -53,7 +53,7 @@ export const OverdueBadge: React.FC<OverdueBadgeProps> = ({
   if (overdueInfo.label === 'Due Today') {
     return (
       <span
-        className={`inline-flex items-center gap-1 font-medium rounded-md bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A] ${pad} ${className}`}
+        className={`inline-flex items-center gap-1 font-medium rounded-md bg-amber-500/10 text-amber-300 border border-amber-400/25 ${pad} ${className}`}
       >
         <Clock className={size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
         <span>Due Today</span>
@@ -63,7 +63,7 @@ export const OverdueBadge: React.FC<OverdueBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 font-medium rounded-md bg-[#F5F5F4] text-[#57534E] border border-[#E7E5E4] ${pad} ${className}`}
+      className={`inline-flex items-center gap-1 font-medium rounded-md bg-white/[0.04] text-[var(--color-text-secondary)] border border-[var(--color-border)] ${pad} ${className}`}
     >
       <Clock className={size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
       <span>{overdueInfo.label}</span>

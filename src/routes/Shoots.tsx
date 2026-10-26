@@ -91,9 +91,9 @@ export const Shoots: React.FC = () => {
   const canActDelete = user ? canDelete(user.role) : false;
 
   const getStatusColor = (status: string) => {
-    if (status === 'done') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
-    if (status === 'scheduled') return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    if (status === 'done') return 'bg-[var(--color-success)]/10 text-[var(--color-success)]';
+    if (status === 'scheduled') return 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]';
+    return 'bg-[var(--color-badge-bg)] text-[var(--color-text-secondary)]';
   };
 
   return (

@@ -191,7 +191,7 @@ export function generateClientInvoicePDF(
   doc.setFontSize(8);
   doc.setTextColor(80, 75, 70);
   doc.text(opt.paymentDetails, 14, footerY + 6);
-  doc.text('Thank you for partnering with SMM Ops Tool for your visual marketing assets.', 14, footerY + 12);
+  doc.text(`Thank you for partnering with ${opt.businessName} for your visual marketing assets.`, 14, footerY + 12);
   doc.text('All deliverables are shared via authorized cloud links upon payment clearance.', 14, footerY + 18);
 
   return doc;

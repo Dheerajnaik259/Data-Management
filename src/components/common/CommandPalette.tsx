@@ -12,18 +12,13 @@ export const CommandPalette: React.FC = () => {
   const { clients, shoots, cameramen, expenses } = useData();
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-      }
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
+    const handlePaletteEvent = (event: Event) => {
+      const action = (event as CustomEvent<'toggle' | 'close'>).detail;
+      setIsOpen(previous => action === 'toggle' ? !previous : false);
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+    window.addEventListener('app:command-palette', handlePaletteEvent);
+    return () => window.removeEventListener('app:command-palette', handlePaletteEvent);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -34,12 +29,21 @@ export const CommandPalette: React.FC = () => {
   }, [isOpen]);
 
   const items = [
+    { id: 'nav-dashboard', title: 'Go to Dashboard', subtitle: 'Home', icon: Film, onSelect: () => navigate('/'), type: 'action' },
+    { id: 'nav-shoots', title: 'Go to Shoots', subtitle: 'Scheduling and shoot operations', icon: Film, onSelect: () => navigate('/shoots'), type: 'action' },
+    { id: 'nav-clients', title: 'Go to Clients', subtitle: 'Client accounts', icon: User, onSelect: () => navigate('/clients'), type: 'action' },
+    { id: 'nav-cameramen', title: 'Go to Cameramen', subtitle: 'Crew directory', icon: Camera, onSelect: () => navigate('/cameramen'), type: 'action' },
+    { id: 'nav-payments', title: 'Go to Payments', subtitle: 'Receivables and payouts', icon: Receipt, onSelect: () => navigate('/payments'), type: 'action' },
+    { id: 'nav-invoices', title: 'Go to Invoices', subtitle: 'Invoices and vouchers', icon: Receipt, onSelect: () => navigate('/invoices'), type: 'action' },
+    { id: 'nav-expenses', title: 'Go to Expenses', subtitle: 'Operating expenses', icon: Receipt, onSelect: () => navigate('/expenses'), type: 'action' },
+    { id: 'nav-approvals', title: 'Go to Approvals', subtitle: 'Review change submissions', icon: Settings, onSelect: () => navigate('/approvals'), type: 'action' },
+    { id: 'nav-trash', title: 'Go to Recycle Bin', subtitle: 'Restore deleted records', icon: Receipt, onSelect: () => navigate('/recycle-bin'), type: 'action' },
     // Quick Actions
-    { id: 'qa-1', title: 'Schedule new Shoot', subtitle: '', icon: Film, onSelect: () => navigate('/shoots'), type: 'action' },
-    { id: 'qa-2', title: 'Add new Client', subtitle: '', icon: User, onSelect: () => navigate('/clients'), type: 'action' },
-    { id: 'qa-3', title: 'Add new Cameraman', subtitle: '', icon: Camera, onSelect: () => navigate('/cameramen'), type: 'action' },
-    { id: 'qa-4', title: 'Log new Expense', subtitle: '', icon: Receipt, onSelect: () => navigate('/expenses'), type: 'action' },
-    { id: 'qa-5', title: 'Settings', subtitle: '', icon: Settings, onSelect: () => navigate('/settings'), type: 'action' },
+    { id: 'qa-1', title: 'Open shoot scheduling', subtitle: 'Create or manage shoots', icon: Film, onSelect: () => navigate('/shoots'), type: 'action' },
+    { id: 'qa-2', title: 'Open client directory', subtitle: 'Create or manage clients', icon: User, onSelect: () => navigate('/clients'), type: 'action' },
+    { id: 'qa-3', title: 'Open cameramen directory', subtitle: 'Manage production crew', icon: Camera, onSelect: () => navigate('/cameramen'), type: 'action' },
+    { id: 'qa-4', title: 'Open expense log', subtitle: 'Record operating expenses', icon: Receipt, onSelect: () => navigate('/expenses'), type: 'action' },
+    { id: 'qa-5', title: 'Open Settings', subtitle: 'Manage account and options', icon: Settings, onSelect: () => navigate('/settings'), type: 'action' },
     
     // Clients
     ...clients.map(c => ({ id: `client-${c.id}`, title: c.name, subtitle: c.phone, icon: User, onSelect: () => navigate(`/clients/${c.id}`), type: 'client' })),
@@ -88,12 +92,14 @@ export const CommandPalette: React.FC = () => {
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-32 px-4 sm:px-6">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)} />
       
-      <div className="relative bg-[var(--color-surface)] w-full max-w-xl rounded-xl shadow-2xl border border-[var(--color-border)] overflow-hidden flex flex-col max-h-[60vh]" role="dialog">
+      <div className="glass-panel-elevated relative w-full max-w-xl overflow-hidden flex flex-col max-h-[60vh]" role="dialog" aria-modal="true" aria-label="Command palette">
         <div className="flex items-center px-4 py-3 border-b border-[var(--color-border)]">
           <Search className="w-5 h-5 text-[var(--color-text-muted)] mr-3" />
           <input
             ref={inputRef}
             type="text"
+            aria-label="Search commands and records"
+            autoComplete="off"
             className="flex-1 bg-transparent border-none outline-none text-base text-[var(--color-text)] placeholder-[var(--color-text-muted)]"
             placeholder="Search clients, shoots, cameramen, or actions..."
             value={query}
@@ -106,12 +112,15 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {filteredItems.length > 0 ? (
-          <div className="overflow-y-auto py-2">
+          <div className="overflow-y-auto py-2" role="listbox" aria-label="Commands and search results">
             {filteredItems.map((item, index) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.id}
+                  type="button"
+                  role="option"
+                  aria-selected={selectedIndex === index}
                   onClick={() => { item.onSelect(); setIsOpen(false); }}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`w-full flex items-center px-4 py-2.5 text-left transition-colors ${

@@ -12,7 +12,7 @@ import {
   markNotificationRead, markAllNotificationsRead,
   addCommunicationLog, resetToSeedData, requestInvoiceNumber, findUserIdByRole,
   submitChangeRequestWithNotification, resubmitChangeRequestWithNotification,
-  reviewChangeRequestWithNotification, updateChangeRequest, deleteChangeRequest,
+  reviewChangeRequestWithNotification, deleteChangeRequest,
   updateShootOperationalData,
 } from '../supabase/data';
 import { isSupabaseConfigured } from '../supabase/config';
@@ -21,6 +21,7 @@ import { useToast } from './ToastContext';
 import { checkOverdue } from '../utils/overdueCheck';
 import { formatSingularCollection } from '../utils/formatCollection';
 import { parseOperationalSettings } from '../config/business';
+import { toLocalDateString } from '../utils/localDate';
 import { canCreateDirect, canApprove, canDelete as canDeletePerm, canHardDelete as canHardDeletePerm, canSubmitForApproval } from '../utils/permissions';
 
 interface DashboardStats {
@@ -100,6 +101,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loading = loadCount < 5; // wait for clients, cameramen, shoots, expenses, settings
 
   useEffect(() => {
+    if (!user) {
+      setClients([]);
+      setCameramen([]);
+      setShoots([]);
+      setExpenses([]);
+      setSettings([]);
+      setChangeRequests([]);
+      setNotifications([]);
+      setDeletedRecords([]);
+      setLoadCount(5);
+      return;
+    }
     if (!isSupabaseConfigured) {
       toast({
         type: 'error',
@@ -121,7 +134,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscribeToDeletedRecords(setDeletedRecords),
     ];
     return () => unsubs.forEach(u => u());
-  }, [toast]);
+  }, [toast, user?.uid]);
 
   useEffect(() => {
     const reportUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -263,7 +276,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toLocalDateString(new Date());
     return {
       pendingClientAmount: pca, pendingClientCount: pcc,
       pendingCameramanAmount: pcma, pendingCameramanCount: pcmc,
@@ -373,7 +386,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to delete records.');
       if (docId.startsWith('pending-cr-')) {
         const crId = docId.replace('pending-cr-', '');
-        await updateChangeRequest(crId, { status: 'rejected', reviewNote: 'Cancelled duplicate pending request' });
+        await deleteChangeRequest(crId);
         setChangeRequests(prev => prev.filter(cr => cr.id !== crId));
         toast({ type: 'success', message: 'Pending request cancelled.' });
         return;
@@ -409,7 +422,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user || !canHardDeletePerm(user.role)) throw new Error('Only Admin can permanently delete records from the Recycle Bin.');
       if (docId.startsWith('pending-cr-')) {
         const crId = docId.replace('pending-cr-', '');
-        await updateChangeRequest(crId, { status: 'rejected', reviewNote: 'Permanently deleted by Admin' });
+        await deleteChangeRequest(crId);
         setChangeRequests(prev => prev.filter(cr => cr.id !== crId));
       } else {
         await hardDelete(col, docId);
@@ -455,8 +468,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!shoot?.assignments?.[idx]) return;
       const updated = [...shoot.assignments];
       updated[idx] = { ...updated[idx], amount };
-      await updateShootOperationalData(shootId, { assignments: updated });
-      toast({ type: 'success', message: 'Payout rate updated.' });
+      await handleUpdateOrSubmit('shoots', shootId, { ...shoot, assignments: updated });
+      toast({
+        type: 'success',
+        message: canCreateDirect(user?.role || '') ? 'Payout rate updated.' : 'Payout rate submitted for Founder approval.',
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save payout rate';
       toast({ type: 'error', message: msg });

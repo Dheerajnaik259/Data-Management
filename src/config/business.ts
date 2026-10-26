@@ -46,7 +46,7 @@ export type OperationalSettingsData = {
 
 export const defaultOperationalSettings: OperationalSettingsData = {
   paymentGraceDays: 7,
-  clientReminderTemplate: 'Hi {clientName}! Greetings from SMM Ops. This is a gentle reminder regarding the invoice of {amount} for the shoot at {location} on {date}. Please let us know once transferred. Thank you!',
+  clientReminderTemplate: 'Hi {clientName}! Greetings from Mpixel Media. This is a gentle reminder regarding the invoice of {amount} for the shoot at {location} on {date}. Please let us know once transferred. Thank you!',
   crewScheduleTemplate: 'Hi {cameramanName},\n\nYou have been scheduled for a shoot.\nDate: {date}\nCall time: {callTime}\nLocation: {location}\nClient: {clientName}\n\nPlease confirm your availability. Thank you!',
 };
 

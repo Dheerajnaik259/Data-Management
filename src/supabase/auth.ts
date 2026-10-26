@@ -83,13 +83,20 @@ export async function sendPasswordReset(email: string): Promise<void> {
 export function subscribeToAuthState(callback: (user: AuthUser | null) => void): () => void {
   if (isSupabaseConfigured && supabase) {
     let active = true;
+    let latestProfileRequest = 0;
     const applySession = async (sessionUser: { id: string; email?: string | null; user_metadata?: { full_name?: string } } | null) => {
       if (!active) return;
+      const requestId = ++latestProfileRequest;
       try {
-        callback(sessionUser ? await toAuthUser(sessionUser.id, sessionUser.email || null, sessionUser.user_metadata?.full_name || null) : null);
+        const user = sessionUser
+          ? await toAuthUser(sessionUser.id, sessionUser.email || null, sessionUser.user_metadata?.full_name || null)
+          : null;
+        if (active && requestId === latestProfileRequest) callback(user);
       } catch (error) {
-        console.warn('Supabase session rejected:', error);
-        callback(null);
+        if (active && requestId === latestProfileRequest) {
+          console.warn('Supabase session rejected:', error);
+          callback(null);
+        }
       }
     };
     supabase.auth.getSession().then(({ data }) => applySession(data.session?.user || null));

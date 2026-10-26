@@ -88,7 +88,7 @@ export const buildClientPaymentReminderWhatsAppUrl = ({
       .replace(/\{date\}/g, formatShootDate(date))
       .replace(/\{location\}/g, location);
   } else {
-    message = `Hi ${clientName}! Greetings from SMM Ops Tool. This is a gentle reminder regarding the invoice of ${amount} for the shoot at ${location} on ${formatShootDate(date)}. Please let us know once transferred so we can release full final master assets. Thank you!`;
+    message = `Hi ${clientName}! Greetings from Mpixel Media. This is a gentle reminder regarding the invoice of ${amount} for the shoot at ${location} on ${formatShootDate(date)}. Please let us know once transferred so we can release full final master assets. Thank you!`;
   }
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;

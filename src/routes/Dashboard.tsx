@@ -30,6 +30,7 @@ import { AttentionFeed } from '../components/dashboard/AttentionFeed';
 import { buildCameramanScheduleWhatsAppUrl } from '../utils/whatsapp';
 import { formatTime12h } from '../utils/formatTime';
 import { formatSingularCollection } from '../utils/formatCollection';
+import { toLocalDateString } from '../utils/localDate';
 
 export const Dashboard: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
@@ -43,10 +44,10 @@ export const Dashboard: React.FC = () => {
   const isAdmin = user?.role === 'admin';
   const isFounder = user?.role === 'founder';
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateString(new Date());
   const tomorrowObj = new Date();
   tomorrowObj.setDate(tomorrowObj.getDate() + 1);
-  const tomorrowStr = tomorrowObj.toISOString().split('T')[0];
+  const tomorrowStr = toLocalDateString(tomorrowObj);
 
   // ── ADMIN COMPUTED DATA ──
 

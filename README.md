@@ -1,4 +1,4 @@
-# SMM Ops Tool
+# ERP Mpixel Media
 
 A production-grade, role-gated operational platform built for Social Media Management (SMM) agencies and video production teams. It centralizes client accounts, freelance cameramen, shoot scheduling, operating expenses, financial disbursements, dynamic WhatsApp communication, and governance approvals in a unified dashboard.
 
@@ -80,14 +80,47 @@ A production-grade, role-gated operational platform built for Social Media Manag
    VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
    ```
 
-4. **Initialize Supabase Schema**
-   Apply the Database SQL schema located in `supabase/schema.sql` via your Supabase SQL Editor. This sets up tables (`clients`, `cameramen`, `shoots`, `expenses`, `settings_docs`, `change_requests`, `app_notifications`, `deleted_records`), RLS policies, and seed data.
+4. **Initialize Supabase**
+   For a new project, apply `supabase/schema.sql` using the Supabase SQL Editor. For an existing project, preserve its data and apply unapplied files from `supabase/migrations/` in chronological order; do not rerun the full schema over a live database. Test migrations against a staging project and verify the deployed RPCs and RLS policies before releasing the matching client code.
 
 5. **Start Development Server**
    ```bash
    npm run dev
    ```
    Open `http://localhost:3000` in your browser.
+
+### Development checks
+
+```bash
+npm run lint       # TypeScript check (no emit)
+npm test           # Focused unit/component tests
+npm run build      # Production Vite build
+npm audit          # Dependency advisory check
+```
+
+`npm run clean` is also available on Windows, macOS, and Linux. Run these checks before opening a pull request.
+
+### Architecture map
+
+- `src/routes/` contains route-level pages.
+- `src/components/` contains reusable UI and feature forms.
+- `src/context/` owns authenticated application state and shared data workflows.
+- `src/supabase/` contains Supabase client, auth, and data-access code.
+- `src/utils/` contains shared business and formatting helpers.
+- `supabase/schema.sql` defines a fresh database; `supabase/migrations/` evolves existing databases.
+- Route modules are lazy-loaded so less-used and PDF-heavy screens do not all load with the first page.
+
+The browser uses the Supabase anon/publishable key; this key is not a server secret. Never put a Supabase service-role key or other privileged credential in a `VITE_*` variable. Authorization must be enforced by database RLS and guarded RPCs, not by hiding buttons in the UI.
+
+## Production security checklist
+
+- Apply and review database migrations in staging before deploying client changes that call new RPCs.
+- Test RLS and RPC permissions as each supported role, including direct API requests; client-side role checks are only a UX layer.
+- Use HTTPS and configure the hosting platform to send a restrictive Content-Security-Policy and other appropriate security headers. These headers depend on the hosting provider and are not configured by Vite itself.
+- Configure Supabase Auth redirect URLs, allowed origins, and session policies for the deployed domain.
+- Keep secrets out of source control and browser environment variables. Rotate credentials if they are exposed.
+- Define retention and backup policies for operational and financial records; confirm audit requirements with the business owner.
+- Check `npm audit` and review dependency changes as part of routine maintenance.
 
 ---
 

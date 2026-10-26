@@ -1,4 +1,4 @@
-# SMM Ops Tool - Future Feature Roadmap & Role Architecture
+# ERP Mpixel Media - Future Feature Roadmap & Role Architecture
 
 This document outlines high-value operational enhancements and the role-permission architecture for scaling Social Media Management (SMM) agencies and video production teams.
 

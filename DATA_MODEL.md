@@ -1,6 +1,6 @@
-# SMM Ops Tool — Data Model & Schema Specification
+# ERP Mpixel Media — Data Model & Schema Specification
 
-This document defines the single source of truth for the database schema, role permissions, approval queue workflows, and operational settings in the **SMM Ops Tool**.
+This document defines the single source of truth for the database schema, role permissions, approval queue workflows, and operational settings in **ERP Mpixel Media**.
 
 ---
 
@@ -116,10 +116,10 @@ Configurable operational settings and dropdown option lists.
 1. **`businessProfile`** (Founder Only Edit):
    ```json
    {
-     "businessName": "SMM Ops Media",
-     "businessEmail": "operations@smmops.com",
+     "businessName": "ERP Mpixel Media",
+     "businessEmail": "business@example.com",
      "businessPhone": "+91 98765 43210",
-     "paymentDetails": "UPI ID: smmops@hdfcbank | Bank: HDFC | A/C: 50200012345678 | IFSC: HDFC0001234"
+     "paymentDetails": "Configure payment details in Settings."
    }
    ```
 

@@ -1,4 +1,4 @@
-# SMM Ops Tool — Project Plan & Architecture Roadmap
+# ERP Mpixel Media — Project Plan & Architecture Roadmap
 
 Internal role-gated operational platform for managing social media management (SMM) clients, freelance camera crews, shoots, expenses, financial ledgers, and governance approvals.
 
