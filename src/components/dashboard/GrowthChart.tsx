@@ -138,13 +138,6 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
   const outgoingPointsStr = points.map((p, i) => `${getX(i)},${getY(p.outgoing)}`).join(' ');
   const netPointsStr = points.map((p, i) => `${getX(i)},${getY(p.net)}`).join(' ');
 
-  // Shaded Area Polygon string for Net Cash Position
-  const areaNetStr = [
-    `${paddingLeft},${paddingTop + chartHeight}`,
-    ...points.map((p, i) => `${getX(i)},${getY(p.net)}`),
-    `${width - paddingRight},${paddingTop + chartHeight}`,
-  ].join(' ');
-
   return (
     <section className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
       <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex flex-wrap items-center justify-between gap-4">
@@ -202,19 +195,9 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
           </div>
         </div>
 
-        {/* Graph Area with 3 Lines (Income, Outgoing, Net Position) */}
+        {/* Graph Area with 3 Clean Lines (Income, Outgoing, Net Position) */}
         <div className="relative w-full overflow-x-auto">
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-64" role="img" aria-label="Income, outgoing, and net position cashflow chart">
-            <defs>
-              <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
-            {/* Shaded Area under Net Cash Position Line */}
-            <polygon points={areaNetStr} fill="url(#netGradient)" />
-
             {/* Horizontal Gridlines & Dynamic Clean Y-Axis Numerical Labels */}
             {yTicks.map((numericalVal, idx) => {
               const yVal = getY(numericalVal);
@@ -259,7 +242,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               points={outgoingPointsStr}
               fill="none"
               stroke="#EF4444"
-              strokeWidth="2"
+              strokeWidth="2.5"
               strokeDasharray="5 4"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -270,12 +253,12 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               points={netPointsStr}
               fill="none"
               stroke="#10B981"
-              strokeWidth="3"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
 
-            {/* Vertex Dots & Numerical Badges for Data Points */}
+            {/* Vertex Dots & Non-Overlapping Numerical Labels */}
             {points.map((p, index) => {
               const cx = getX(index);
               const cyIncome = getY(p.income);
@@ -283,38 +266,56 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               const cyNet = getY(p.net);
               const isHovered = hoverIndex === index;
 
+              // Check vertical proximity between Income & Net labels to prevent overlap
+              const isIncomeNetClose = Math.abs(cyIncome - cyNet) < 22;
+              const netY = isIncomeNetClose ? cyNet + 16 : cyNet - 10;
+
               return (
                 <g key={index} onMouseEnter={() => setHoverIndex(index)} onMouseLeave={() => setHoverIndex(null)} className="cursor-pointer">
                   {/* Income Vertex Circle */}
-                  <circle cx={cx} cy={cyIncome} r={isHovered ? 5 : 3.5} fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2" />
+                  <circle cx={cx} cy={cyIncome} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2.5" />
                   
                   {/* Outgoing Vertex Circle */}
-                  <circle cx={cx} cy={cyOutgoing} r={isHovered ? 5 : 3.5} fill="var(--color-surface)" stroke="#EF4444" strokeWidth="2" />
+                  <circle cx={cx} cy={cyOutgoing} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="#EF4444" strokeWidth="2.5" />
 
                   {/* Net Cash Position Vertex Circle */}
-                  <circle cx={cx} cy={cyNet} r={isHovered ? 6 : 4.5} fill="#10B981" stroke="var(--color-surface)" strokeWidth="2" />
+                  <circle cx={cx} cy={cyNet} r={isHovered ? 5.5 : 4} fill="var(--color-surface)" stroke="#10B981" strokeWidth="2.5" />
 
-                  {/* Numerical Value Labels */}
+                  {/* Income Point Numerical Value (Above dot) */}
                   <text
                     x={cx}
-                    y={cyIncome - 8}
+                    y={cyIncome - 10}
                     textAnchor="middle"
                     fill="var(--color-accent)"
-                    fontSize="9"
+                    fontSize="10"
                     fontFamily="monospace"
                     fontWeight="700"
                   >
                     {formatCurrency(p.income)}
                   </text>
 
+                  {/* Outgoing Point Numerical Value (Below dot) */}
                   <text
                     x={cx}
-                    y={cyNet + (cyNet < cyOutgoing ? -10 : 16)}
+                    y={cyOutgoing + 16}
+                    textAnchor="middle"
+                    fill="#EF4444"
+                    fontSize="10"
+                    fontFamily="monospace"
+                    fontWeight="700"
+                  >
+                    {formatCurrency(p.outgoing)}
+                  </text>
+
+                  {/* Net Cash Position Numerical Value (Smartly positioned to avoid overlap) */}
+                  <text
+                    x={cx}
+                    y={netY}
                     textAnchor="middle"
                     fill="#10B981"
                     fontSize="10"
                     fontFamily="monospace"
-                    fontWeight="800"
+                    fontWeight="700"
                   >
                     {formatCurrency(p.net)}
                   </text>
