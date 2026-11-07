@@ -1,182 +1,136 @@
-# ERP Mpixel Media — Data Model & Schema Specification
+# ERP Mpixel Media — Data Model
 
-This document defines the single source of truth for the database schema, role permissions, approval queue workflows, and operational settings in **ERP Mpixel Media**.
+This document describes the Supabase schema and application data types in the current build. The canonical SQL definitions are in `supabase/schema.sql`; the migrations in `supabase/migrations/` apply later authorization and behavior changes. Apply those migrations in filename order to an existing database.
 
----
+## Roles and permissions
 
-## 1. Role & Access Control Matrix
+The `public.app_role` enum contains `admin` and `founder`. A corresponding `profiles` row associates a Supabase Auth user with one of these roles.
 
-The platform supports two primary operational roles: `admin` and `founder`.
-
-| Feature / Action | Admin (`admin`) | Founder (`founder`) | Governance Rule |
-|---|---|---|---|
-| **Data Creation & Edits** | Submits to pending approval queue (`canSubmitForApproval: true`) | Direct write; reviews and approves/rejects Admin requests (`canApprove: true`) | Prevents unreviewed financial or contractual updates |
-| **Deletion Operations** | Direct soft-delete, restore, and permanent hard-delete (`canDelete: true`) | Read-only visibility in Recycle Bin (`canDelete: false`) | Admin handles operational housekeeping |
-| **Payment Status Toggles** | Direct write (`clientPaid`, `cameramanPaid`) | Direct write | Routine operational updates do not require approval |
-| **Crew Call-Sheet Check-Ins** | Direct write (`checkedInAt`) | Direct write | Real-time shoot coordination |
-| **Settings: Company & Invoice Profile** | Read-Only (`🔒 Founder Only` badge) | Exclusive edit authority | Legal business name, email, phone, and Bank/UPI details |
-| **Settings: Operational Defaults** | Full Edit permissions | Full Edit permissions | Configurable payment grace period and WhatsApp templates |
-| **Settings: Dropdown Option Lists** | Full Edit permissions | Full Edit permissions | Operational categories for daily data entry |
-| **Settings: My Account** | Self-service password updates | Self-service password updates | Account credential security |
-
----
-
-## 2. Database Schema Overview (Supabase PostgreSQL)
-
-### 1. Table: `clients`
-Primary client account records.
-
-| Column | Type | Constraints / Description |
+| Capability | Admin | Founder |
 |---|---|---|
-| `id` | `UUID` | Primary Key |
-| `name` | `TEXT` | Required — Client brand or company name |
-| `phone` | `TEXT` | Required — Prefilled into WhatsApp links |
-| `email` | `TEXT` | Required — Billing contact email |
-| `notes` | `TEXT` | Optional notes |
-| `status` | `TEXT` | Value from `settings_docs.key = 'clientStatus'` |
-| `contract_link` | `TEXT` | Optional agreement URL |
-| `created_at` | `TIMESTAMPTZ` | Timestamp of record creation |
-| `deleted_at` | `TIMESTAMPTZ` | Soft-delete timestamp (`NULL` = active) |
-| `deleted_by` | `UUID` | ID of Admin who soft-deleted record |
+| Create or edit clients, cameramen, shoots, and expenses | Submits a change request | Writes directly |
+| Review and approve/reject change requests | No | Yes |
+| Soft-delete, restore, or permanently delete operational records | Yes | No |
+| Update routine payment status or crew check-in data | Yes, through guarded operational updates | Yes |
+| Manage operational option lists and templates | Yes | Yes |
+| Edit the business/invoice profile | No | Yes |
+| Update own password | Yes | Yes |
 
----
+These are application capabilities, not a substitute for database authorization. RLS policies and restricted RPCs in the schema/migrations enforce access at the Supabase boundary.
 
-### 2. Table: `cameramen`
-Freelance videographers and crew members.
+## Tables
 
-| Column | Type | Constraints / Description |
+All tables below are in the `public` schema. Database columns use `snake_case`; the TypeScript interfaces in `src/types.ts` generally expose the matching application properties in `camelCase`.
+
+### `profiles`
+
+Maps authenticated users to ERP roles. `id` is the Auth user UUID; `email` is unique and required; `name` and `role` are required; `created_at` defaults to the current timestamp. The schema limits the installation to two operator profiles.
+
+### `clients`
+
+| Column | Type | Notes |
 |---|---|---|
-| `id` | `UUID` | Primary Key |
-| `name` | `TEXT` | Required — Full name |
-| `phone` | `TEXT` | Required — Phone number for WhatsApp call-sheets |
-| `email` | `TEXT` | Optional contact email |
-| `rate` | `NUMERIC` | Default day rate (in ₹), editable per shoot |
-| `notes` | `TEXT` | Optional notes |
-| `contract_link` | `TEXT` | Optional agreement URL |
-| `unavailability` | `JSONB` | Array of blackout dates: `[{ date: "YYYY-MM-DD", reason: "" }]` |
-| `created_at` | `TIMESTAMPTZ` | Record creation timestamp |
-| `deleted_at` | `TIMESTAMPTZ` | Soft-delete timestamp (`NULL` = active) |
-| `deleted_by` | `UUID` | ID of Admin who soft-deleted record |
+| `id` | `uuid` | Primary key, generated by default |
+| `name` | `text` | Required |
+| `phone`, `email`, `notes` | `text` | Required columns with empty-string defaults |
+| `status` | `text` | Defaults to `active`; options are configured in `settings` |
+| `contract_link` | `text` | Defaults to an empty string |
+| `created_at` | `timestamptz` | Defaults to `now()` |
+| `deleted_at` | `timestamptz` | Null while active; set for soft deletion |
+| `deleted_by` | `uuid` | References the deleting profile |
 
----
+### `cameramen`
 
-### 3. Table: `shoots`
-Shoot jobs, client billings, and crew assignments.
-
-| Column | Type | Constraints / Description |
+| Column | Type | Notes |
 |---|---|---|
-| `id` | `UUID` | Primary Key |
-| `client_id` | `UUID` | Foreign Key → `clients.id` |
-| `date` | `DATE` | Shoot date (`YYYY-MM-DD`) |
-| `call_time` | `TEXT` | General shoot start time (e.g. `"09:00 AM"`) |
-| `location` | `TEXT` | Shoot venue or address |
-| `status` | `TEXT` | Value from `settings_docs.key = 'shootStatus'` |
-| `client_amount` | `NUMERIC` | Billed amount to client (in ₹) |
-| `client_paid` | `BOOLEAN` | Payment settlement status |
-| `client_paid_at` | `TIMESTAMPTZ` | Timestamp when marked paid |
-| `client_invoice_number` | `TEXT` | Stable invoice identifier (`INV-YYYYMMDD-XXXX`) |
-| `assignments` | `JSONB` | Array of assigned cameramen: `[{ cameramanId, amount, paid, paidAt, callTime, checkedInAt }]` |
-| `assigned_cameraman_ids` | `UUID[]` | Array of cameraman IDs for query indexing |
-| `deliverables` | `JSONB` | Array of video/photo assets: `[{ type, count, fileLink }]` |
-| `created_at` | `TIMESTAMPTZ` | Record creation timestamp |
-| `deleted_at` | `TIMESTAMPTZ` | Soft-delete timestamp |
-| `deleted_by` | `UUID` | Admin who soft-deleted |
+| `id` | `uuid` | Primary key, generated by default |
+| `name` | `text` | Required |
+| `phone`, `notes`, `contract_link` | `text` | Required columns with empty-string defaults |
+| `rate` | `numeric` | Default rate; defaults to zero |
+| `unavailability` | `jsonb` | Defaults to `[]`; entries contain a date and optional reason |
+| `created_at` | `timestamptz` | Defaults to `now()` |
+| `deleted_at` | `timestamptz` | Null while active; set for soft deletion |
+| `deleted_by` | `uuid` | References the deleting profile |
 
----
+### `shoots`
 
-### 4. Table: `expenses`
-Operating expenses and receipts.
-
-| Column | Type | Constraints / Description |
+| Column | Type | Notes |
 |---|---|---|
-| `id` | `UUID` | Primary Key |
-| `description` | `TEXT` | Required — Description of expense |
-| `amount` | `NUMERIC` | Required — Cost in ₹ |
-| `date` | `DATE` | Expense date (`YYYY-MM-DD`) |
-| `shoot_id` | `UUID` | Optional Foreign Key → `shoots.id` |
-| `category` | `TEXT` | Value from `settings_docs.key = 'expenseCategories'` |
-| `created_at` | `TIMESTAMPTZ` | Record creation timestamp |
-| `deleted_at` | `TIMESTAMPTZ` | Soft-delete timestamp |
-| `deleted_by` | `UUID` | Admin who soft-deleted |
+| `id` | `uuid` | Primary key, generated by default |
+| `client_id` | `uuid` | Required foreign key to `clients.id` |
+| `date` | `date` | Required |
+| `call_time`, `location` | `text` | Required; default to an empty string |
+| `status` | `text` | Required; options are configured in `settings` |
+| `client_amount` | `numeric` | Defaults to zero |
+| `client_paid` | `boolean` | Defaults to false |
+| `client_paid_at` | `timestamptz` | Set when the client payment is marked paid |
+| `client_invoice_number` | `text` | Assigned when an invoice number is generated |
+| `assigned_cameraman_ids` | `uuid[]` | Indexed-query mirror of crew assignment IDs |
+| `assignments` | `jsonb` | Defaults to `[]`; stores crew, payout, call-time, check-in, and voucher data |
+| `deliverables` | `jsonb` | Defaults to `[]`; stores type, count, and optional file link |
+| `client_notified_at` | `timestamptz` | Optional notification timestamp |
+| `created_at` | `timestamptz` | Defaults to `now()` |
+| `deleted_at` | `timestamptz` | Null while active; set for soft deletion |
+| `deleted_by` | `uuid` | References the deleting profile |
 
----
+An assignment contains a `cameramanId`, payout `amount`, `paid` state, and optional `paidAt`, `callTime`, `checkedInAt`, and `payoutVoucherNumber` values. Crew assignments and deliverables are JSON values rather than separate tables.
 
-### 5. Table: `settings_docs`
-Configurable operational settings and dropdown option lists.
+### `expenses`
 
-| Column | Type | Description |
+| Column | Type | Notes |
 |---|---|---|
-| `id` | `TEXT` | Primary Key (matches `key`) |
-| `key` | `TEXT` | Unique key (`businessProfile`, `operationalSettings`, `clientStatus`, `shootStatus`, `deliverableTypes`, `expenseCategories`) |
-| `label` | `TEXT` | Display label in Settings UI |
-| `options` | `JSONB` | Array of options: `[{ value, order, archived }]` |
+| `id` | `uuid` | Primary key, generated by default |
+| `description` | `text` | Required |
+| `amount` | `numeric` | Required; defaults to zero |
+| `date` | `date` | Required |
+| `shoot_id` | `uuid` | Optional foreign key to `shoots.id` |
+| `category` | `text` | Required; options are configured in `settings` |
+| `created_at` | `timestamptz` | Defaults to `now()` |
+| `deleted_at` | `timestamptz` | Null while active; set for soft deletion |
+| `deleted_by` | `uuid` | References the deleting profile |
 
-#### Special Settings Docs Payload Structures:
+### `communication_logs`
 
-1. **`businessProfile`** (Founder Only Edit):
-   ```json
-   {
-     "businessName": "ERP Mpixel Media",
-     "businessEmail": "business@example.com",
-     "businessPhone": "+91 98765 43210",
-     "paymentDetails": "Configure payment details in Settings."
-   }
-   ```
+Client contact history: `id` (UUID primary key), `client_id` (required client foreign key with cascading delete), `date`, `note`, `logged_by` (optional profile foreign key), `logged_by_name` (text, empty by default), and `created_at`.
 
-2. **`operationalSettings`** (Admin & Founder Edit):
-   ```json
-   {
-     "paymentGraceDays": 7,
-     "clientReminderTemplate": "Hi {clientName}, hope you are doing great! Friendly reminder regarding pending invoice of {amount} for shoot on {date} at {location}. Thank you!",
-     "crewScheduleTemplate": "Hi {cameramanName}, schedule for shoot with {clientName} on {date}. Call time: {callTime}. Location: {location}. Please confirm!"
-   }
-   ```
+### `settings`
 
----
+Stores one row per setting. `id` is the text primary key, `key` is unique, `label` is the display label, `editable` is a boolean, and `options` is JSONB. The option-list keys are `clientStatus`, `shootStatus`, `deliverableTypes`, and `expenseCategories`. The `businessProfile` and `operationalSettings` keys store configuration payloads in their `options` JSONB field; they are not separate tables.
 
-### 6. Table: `change_requests`
-Governance approval queue for Admin submissions.
+The operational settings payload includes `paymentGraceDays`, `clientReminderTemplate`, and `crewScheduleTemplate`. The business profile includes business identity and invoice/payment details. The business-profile row is Founder-editable only; operational settings and option lists are editable by both roles.
 
-| Column | Type | Description |
+### `change_requests`
+
+| Column | Type | Notes |
 |---|---|---|
-| `id` | `UUID` | Primary Key |
-| `target_collection` | `TEXT` | Target table (`clients`, `shoots`, `cameramen`, `expenses`) |
-| `target_doc_id` | `TEXT` | Target record ID (`NULL` if create new) |
-| `action` | `TEXT` | `create` or `edit` |
-| `proposed_data` | `JSONB` | JSON object containing proposed fields |
-| `requested_by` | `UUID` | User ID of submitting Admin |
-| `requested_at` | `TIMESTAMPTZ` | Submission timestamp |
-| `status` | `TEXT` | `pending`, `approved`, `rejected` |
-| `reviewed_by` | `UUID` | User ID of Founder who reviewed |
-| `reviewed_at` | `TIMESTAMPTZ` | Review timestamp |
-| `review_note` | `TEXT` | Founder review notes / rejection reason |
-| `revision_count` | `INT` | Number of resubmission revisions |
+| `id` | `uuid` | Primary key |
+| `target_collection` | `text` | Target operational table |
+| `target_doc_id` | `uuid` | Target record; null for a create |
+| `action` | `text` | Constrained to `create`, `edit`, or `delete` |
+| `proposed_data` | `jsonb` | Proposed change payload |
+| `requested_by` | `uuid` | Required profile foreign key |
+| `requested_at` | `timestamptz` | Defaults to `now()` |
+| `status` | `text` | Constrained to `pending`, `approved`, or `rejected` |
+| `reviewed_by`, `reviewed_at` | `uuid`, `timestamptz` | Optional reviewer and review time |
+| `review_note` | `text` | Defaults to an empty string |
+| `revision_count` | `integer` | Defaults to zero |
 
----
+### `notifications`
 
-### 7. Table: `app_notifications`
-Notifications triggering bell icon alerts for approval workflow events.
+Stores approval workflow notifications: UUID `id`, required `recipient_id` profile reference, `type`, optional related change-request UUID, `message`, boolean `read` flag, and `created_at`.
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | `UUID` | Primary Key |
-| `recipient_id` | `UUID` | Target user ID |
-| `type` | `TEXT` | `pending_approval`, `approved`, `rejected`, `resubmitted` |
-| `related_change_request_id` | `UUID` | Foreign Key → `change_requests.id` |
-| `message` | `TEXT` | Notification text |
-| `read` | `BOOLEAN` | Unread status boolean |
-| `created_at` | `TIMESTAMPTZ` | Timestamp |
+### `counters`
 
----
+One row per `year`, with independent `client_invoice_next` and `payout_voucher_next` counters. Generated numbers use `INV-YYYY-NNNN` and `RCP-YYYY-NNNN` formats. The database procedure assigns a number only after the relevant client payment or crew payout is marked paid.
 
-### 8. Table: `deleted_records`
-Audited log of soft-deleted items visible in the Recycle Bin.
+## Authorization and database operations
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | `UUID` | Primary Key |
-| `collection_name` | `TEXT` | Origin table name |
-| `record_id` | `UUID` | ID of soft-deleted record |
-| `record_data` | `JSONB` | Snapshot of record content at soft-deletion time |
-| `deleted_by` | `UUID` | User ID of deleting Admin |
-| `deleted_at` | `TIMESTAMPTZ` | Timestamp |
+- `is_operator()`, `is_admin()`, and `is_founder()` are role-check helpers used by policies and procedures.
+- Admin operational-record additions/edits are stored as change requests; a Founder reviews and approves or rejects them. Rejected requests can be resubmitted with an updated revision.
+- `update_shoot_operational` restricts direct shoot updates to payment and crew check-in fields; it does not permit changing assignment membership or payout details.
+- `set_record_deleted` and `hard_delete_record` are Admin-only procedures. Soft deletion uses `deleted_at` and `deleted_by` on each operational record; there is no separate `deleted_records` table.
+- `assign_invoice_number` assigns stable, sequential invoice/voucher identifiers.
+- Realtime publication is configured for operational data and workflow tables in the bootstrap schema when the Supabase publication is available.
+- The private Storage bucket is named `smm-ops-files`.
+
+The bootstrap schema and later migrations together define the current database behavior. Test the complete migration chain and policies in staging; do not treat UI role checks as database protection.

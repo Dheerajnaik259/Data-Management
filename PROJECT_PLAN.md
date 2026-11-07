@@ -1,75 +1,68 @@
-# ERP Mpixel Media — Project Plan & Architecture Roadmap
+# ERP Mpixel Media — Project Plan
 
-Internal role-gated operational platform for managing social media management (SMM) clients, freelance camera crews, shoots, expenses, financial ledgers, and governance approvals.
+## Purpose
 
----
+An internal operational application for managing social media and video-production agency work: clients, freelance crew, shoots, deliverables, expenses, payments, documents, and change approvals.
 
-## 1. Executive Summary & Goals
+## Implemented scope
 
-The tool replaces manual spreadsheet tracking with a live, role-gated Web Application. It enforces strict separation between:
-1. **Daily Operational Execution (Admin Role)**: Scheduling shoots, dispatching cameramen via WhatsApp call-sheets, logging expenses, toggling routine payment statuses, and soft-deleting/restoring records.
-2. **Business Governance & Financial Health (Founder Role)**: Managing company/bank profile details, reviewing and approving/rejecting Admin data submissions, monitoring executive cashflow, and tracking client profitability margins.
+The following features are present in the current source:
 
----
+| Area | Implemented functionality |
+|---|---|
+| Authentication and roles | Supabase Auth; Admin and Founder roles; protected application routes |
+| Core operations | Client, cameraman, shoot, and expense records; detail pages; shoot assignment and deliverable editors |
+| Governance | Admin change requests, Founder review, review notes, resubmission, and notifications |
+| Routine operations | Payment/payout status and crew check-in updates through operational actions |
+| Dashboards | Admin dispatch and follow-up views; Founder approval summary, cashflow, client margin ranking, and growth chart |
+| Financial tools | Payment ledger, overdue indicators, configurable grace period, PDF invoices and payout vouchers, CSV exports |
+| Communication and files | WhatsApp call sheets/reminders, client communication log, Supabase Storage integration for file links |
+| Administration | Settings and password update; soft-delete, restore, and permanent deletion for Admin |
+| UI support | Responsive route layout with compact desktop icon rail and grouped full-label mobile navigation; keyboard-accessible drawer; command palette, keyboard shortcut help, loading and empty states, confirmations, and notifications |
 
-## 2. Implementation Milestones & Status
+The shared UI uses the black Liquid Glass system documented in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). The Founder growth chart is a cashflow/net-position view based on paid client receipts, paid crew payouts, and logged expenses; it should not be described as profit.
 
-| Phase / Feature | Description | Status |
-|---|---|---|
-| **Phase 1: Core Web App** | Client management, cameraman availability tracking, shoot scheduling, deliverables, payments, and expenses ledgers | ✅ Completed |
-| **Phase 2: Database Migration** | Migrated backend to Supabase (PostgreSQL, Realtime Subscriptions, Row Level Security) | ✅ Completed |
-| **Phase 3: Change Approvals** | Governance approval queue for Admin adds/edits with Founder review notes and resubmission flows | ✅ Completed |
-| **Phase 4: Invoices & PDF Engine** | `jsPDF` integration for client invoices (`INV-YYYYMMDD-XXXX`) and crew payout vouchers (`RCP-YYYYMMDD-XXXX`) | ✅ Completed |
-| **Phase 5: Operational Hardening** | Role-Gated Settings (Founder-only Business Profile, Admin Operational Defaults for Payment Grace Days and dynamic WhatsApp templates), My Account password security | ✅ Completed |
-| **Phase 6: Dual-Role Dashboard** | Admin Daily Dispatch Console with WhatsApp call-sheets + Founder Executive Cashflow & Client Profitability Ranking | ✅ Completed |
-| **Phase 7: Cashflow Graph & UI Hardening** | 2-Line Cashflow Growth Chart (Income vs Outgoing Outflow) + Inter font app-wide + Optional deliverables cloud links | ✅ Completed |
-| **Phase 8: Production Rollout** | Continuous integration and deployment on GitHub (`origin/main`) | ✅ Completed / Live |
+## Routes
 
----
+The current route tree is defined in `src/App.tsx`: `/login`, `/`, `/shoots`, `/shoots/:id`, `/clients`, `/clients/:id`, `/cameramen`, `/cameramen/:id`, `/payments`, `/invoices`, `/expenses`, `/settings`, `/approvals`, and `/recycle-bin`.
 
-## 3. Key Operational Workflows
+## Key workflows
 
-### A. Dual-Role Dashboard Architecture
-- **Admin Dashboard**:
-  - **Daily Crew Dispatch Desk**: Focuses on shoots for *Today* and *Tomorrow*, offering **1-click WhatsApp Call Sheet** buttons prefilled with call times and locations.
-  - **My Submissions Queue**: Real-time status cards showing submitted change requests (*Pending*, *Approved*, *Rejected* with review notes).
-  - **Receivables & Payout Action Desks**: Flags overdue client invoices and pending crew disbursements.
-- **Founder Dashboard**:
-  - **Governance Action Callout**: Direct banner alerting Founder to pending submissions requiring approval.
-  - **Client Profitability & Margin Ranking**: Ranks clients by Revenue, Production Cost, Net Margin (₹), and Margin % badges.
-  - **Net Operating Cashflow**: Real-time business financial health metric.
+### Admin change request
 
----
+1. Admin proposes an addition or edit to an operational record.
+2. The app creates a pending `change_requests` record and notifies the Founder.
+3. Founder reviews the request and approves or rejects it, optionally including a note.
+4. Admin sees the status and can revise and resubmit a rejected request.
 
-### B. Change Approval Governance Workflow
-1. When an **Admin** creates or edits a record (client, cameraman, shoot, or expense), a `change_requests` record is submitted instead of writing directly to the live table.
-2. The record enters a `pending` state and triggers an `app_notifications` alert for the **Founder**.
-3. The **Founder** reviews the request on `/approvals`:
-   - **Approve**: Applies `proposed_data` to the live table, updating `status: approved`.
-   - **Reject**: Leaves live data untouched, sets `status: rejected`, and records a `review_note`.
-4. **Admin** receives a notification and can edit the rejected request and click **Resubmit**, resetting the status back to `pending`.
+### Routine payment and crew updates
 
----
+Payment statuses and crew check-in information are operational changes, not full record edits. The database procedure restricts direct shoot updates to these allowed fields and does not permit changing assignment membership or payout details through that path.
 
-### C. Direct Action Exceptions (Routine Operations)
-To eliminate friction in daily operations, the following actions bypass the approval queue and apply immediately for both Admin and Founder:
-- **Payment Status Toggles**: Marking client invoices or cameraman payouts as paid (`clientPaid`, `cameramanPaid`).
-- **Crew Check-Ins**: Recording videographer arrival time on set (`checkedInAt`).
-- **Deletions**: Moving records to the Recycle Bin (`softDelete`) or purging them (Admin only).
+### Record recovery
 
----
+Admin soft deletion sets `deleted_at` and `deleted_by` on the record. Admin can restore it or permanently delete it from the Recycle Bin. The current model does not use a separate deleted-record snapshot table.
 
-## 4. Technology Stack & Architecture
+## Technology and data
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4
-- **Database & Auth**: Supabase (PostgreSQL, Realtime Subscriptions, RLS Policies, Auth)
-- **PDF & Exports**: `jsPDF` with `jsPDF-AutoTable`, Client-side CSV Exporter
-- **Icons & UI**: Lucide React, Custom Dark/Light Glassmorphism Theme
+- React 19, TypeScript 5.8, Vite 6, React Router 7
+- Tailwind CSS 4 and the shared CSS system in `src/index.css`
+- Supabase Auth, PostgreSQL, Realtime, Row Level Security, and Storage
+- jsPDF/jsPDF-AutoTable; Vitest and Testing Library
+- Bootstrap SQL in `supabase/schema.sql`; subsequent changes in ordered `supabase/migrations/`
 
----
+## Verification and release
 
-## 5. Security & Deployment
+Run the project checks after code changes:
 
-- **Environment Variables**: `.env.local` configured with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-- **Database Rules**: Row Level Security (RLS) configured in `supabase/schema.sql`.
-- **Repository**: Hosted on GitHub (`Dheerajnaik259/Data-Management`).
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+The repository contains no verified deployment configuration in this plan. A production rollout should be treated as an external release task: stage and apply database migrations first, validate RLS/RPC behavior for both roles, then deploy the matching frontend and configure Supabase Auth URLs and hosting security headers.
+
+## Not in the current build
+
+Monthly retainer quotas, per-deliverable editing/review/publishing stages, contract-renewal alerts, an AI operational assistant, and a sales/pitch showcase are proposals only. See [FUTURE_SCOPE.md](FUTURE_SCOPE.md).

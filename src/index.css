@@ -286,9 +286,28 @@ select:focus {
     inset 0 -1px 0 rgba(255, 255, 255, 0.025);
 }
 
+.liquid-sidebar.is-compact {
+  width: 76px;
+}
+
+.liquid-sidebar:not(.is-compact) {
+  width: 100%;
+  min-width: 0;
+}
+
+.liquid-sidebar-navigation {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.13) transparent;
+}
+
 .liquid-nav-link {
   border: 1px solid transparent;
   transition: color var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+}
+
+.liquid-nav-link:focus-visible {
+  outline-offset: 3px;
 }
 
 .liquid-nav-link:hover {
@@ -302,6 +321,15 @@ select:focus {
     linear-gradient(110deg, rgba(66, 222, 213, 0.095), rgba(66, 222, 213, 0.025)),
     rgba(255, 255, 255, 0.025);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.liquid-signout {
+  border: 1px solid transparent;
+  transition: color var(--transition-fast) ease, background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+}
+
+.liquid-signout:hover {
+  border-color: rgba(255, 120, 120, 0.12);
 }
 
 .liquid-sidebar::before {
@@ -482,6 +510,12 @@ select:focus {
   }
 
   .liquid-header-search { min-width: 100%; }
+}
+
+@media (min-width: 768px) {
+  .liquid-sidebar.is-compact .liquid-nav-link {
+    overflow: visible;
+  }
 }
 
 ::-webkit-scrollbar { width: 7px; height: 7px; }

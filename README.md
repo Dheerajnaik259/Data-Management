@@ -1,138 +1,115 @@
 # ERP Mpixel Media
 
-A production-grade, role-gated operational platform built for Social Media Management (SMM) agencies and video production teams. It centralizes client accounts, freelance cameramen, shoot scheduling, operating expenses, financial disbursements, dynamic WhatsApp communication, and governance approvals in a unified dashboard.
+ERP Mpixel Media is a React web application for the day-to-day operations of a social media management and video production agency. It manages clients, freelance cameramen, shoots, deliverables, expenses, payment tracking, invoices, and approval workflows.
 
----
+## Current features
 
-## Key Features
+- **Role-gated dashboards:** Admin operations view with daily/tomorrow shoot dispatch, payment follow-ups, crew payouts, and submission status; Founder view with approvals, cashflow, and client profitability.
+- **Operations:** Client, cameraman, shoot, and expense records; shoot assignments and deliverables; client communication logs; cameraman availability.
+- **Payments and documents:** Receivables and crew payouts, overdue indicators, WhatsApp reminders/call sheets, CSV exports, and downloadable PDF invoices and payout vouchers.
+- **Approvals and recovery:** Admin change requests with Founder review notes and resubmission; Admin recycle-bin restore and permanent deletion.
+- **Settings and access:** Configurable status/category lists, payment grace period and WhatsApp templates, Founder-managed company/invoice profile, and self-service password updates.
+- **Dashboard chart:** Income and outflow trends based on shoot payments and expenses.
 
-### 1. Role-Based Access Control (RBAC)
-- **Admin Role (Operator)**: Enters day-to-day operational data (clients, cameramen, shoots, expenses), which are submitted to the Founder approval queue. Holds direct authority over soft-deletions, restores, permanent hard-deletions, routine payment status toggles, and daily crew dispatches.
-- **Founder Role (Business Owner)**: Final authority on financial identity and legal business profiles. Reviews and approves/rejects submitted change requests with review notes. Owns high-level cashflow oversight and client profitability intelligence.
+## Technology
 
----
+- React 19, TypeScript, Vite 6, React Router 7
+- Tailwind CSS 4 and the shared CSS design system in `src/index.css`
+- Supabase Auth, PostgreSQL, Realtime, Row Level Security, and Storage
+- jsPDF and jsPDF-AutoTable for PDFs; Lucide React for icons
+- Vitest and Testing Library for tests
 
-### 2. Dual-Role Dashboard Architecture
+## Requirements
 
-#### Admin Operations Dashboard (`/`)
-- **Daily Crew Dispatch Console**: Isolates shoots scheduled for *Today* and *Tomorrow*, displaying assigned videographers with **1-click WhatsApp Call Sheets** prefilled with shoot details and call times.
-- **My Submissions Queue Widget**: Displays live status of submitted change requests (*Pending*, *Approved*, *Rejected*), complete with Founder review notes and 1-click resubmit links.
-- **Receivables & Payout Action Desks**: Highlights overdue client invoices and pending crew disbursements for immediate resolution.
-
-#### Founder Executive Dashboard (`/`)
-- **Governance Action Callout**: Top-priority banner alerting the Founder to pending change requests awaiting approval.
-- **Client Profitability & Margin Ranking Table**: Ranks client accounts by *Invoiced Revenue*, *Total Production Cost* (Crew Payouts + Direct Expenses), *Net Margin (₹)*, and *Margin %* badges.
-- **Net Operating Cashflow**: Real-time summary of receivables minus payouts and operating overhead.
-
----
-
-### 3. Operational Settings & Security
-- **My Account & Security**: Allows users to manage credentials and update their login password directly from the UI.
-- **Configurable Payment Grace Period**: Customize the payment grace period (default: 7 days) before unpaid client invoices are automatically flagged as overdue across the system.
-- **Dynamic WhatsApp Message Templates**: Editable templates for client payment reminders and crew schedule dispatch notifications with placeholder injection (`{clientName}`, `{amount}`, `{date}`, `{location}`, `{cameramanName}`, `{callTime}`).
-- **Founder-Only Legal Profile**: Gated inputs (`🔒 Founder Only`) protecting business name, legal email, phone, and Bank/UPI payment details.
-- **Customizable Option Lists**: Editable categories for client status, shoot status, deliverable types, and expense categories.
-
----
-
-### 4. Financial & Administrative Desks
-- **Payments Desk (`/payments`)**: Tracks incoming client receivables and outgoing crew payouts, featuring overdue calculations and 1-click WhatsApp reminders.
-- **Invoices & Vouchers (`/invoices`)**: On-demand generation and preview of branded PDF client invoices (`INV-YYYYMMDD-XXXX`) and cameraman payout vouchers (`RCP-YYYYMMDD-XXXX`) via `jsPDF`.
-- **Operating Expenses (`/expenses`)**: Tracks non-crew operating costs (travel, gear rental, studio bookings, software) categorized and linked to specific shoots or general overhead.
-- **Recycle Bin (`/trash`)**: Admin-only soft-delete recovery desk supporting soft-delete, restore, and permanent purge.
-
----
-
-## Tech Stack
-
-- **Frontend Framework**: React 19, TypeScript, Vite
-- **Styling**: Tailwind CSS v4, Vanilla CSS Design System (`index.css`)
-- **Backend & Database**: Supabase (PostgreSQL, Realtime Subscriptions, Row Level Security, Auth)
-- **Document Generation**: jsPDF & jsPDF-AutoTable
-- **Icons**: Lucide React
-
----
-
-## Getting Started
-
-### Prerequisites
 - Node.js 20 or later
-- npm (or bun / yarn)
-- A Supabase Project
+- npm
+- A Supabase project configured with this application's schema and migrations
 
-### Installation & Local Setup
+## Local setup
 
-1. **Clone the Repository**
+1. Clone the repository and enter the project directory:
+
    ```bash
    git clone https://github.com/Dheerajnaik259/Data-Management.git
    cd Data-Management
    ```
 
-2. **Install Dependencies**
+2. Install dependencies:
+
    ```bash
    npm install
    ```
 
-3. **Configure Environment Variables**
-   Create a `.env.local` file in the root directory:
+3. Create `.env.local` in the project root:
+
    ```env
    VITE_SUPABASE_URL="https://your-supabase-project.supabase.co"
    VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
    ```
 
-4. **Initialize Supabase**
-   For a new project, apply `supabase/schema.sql` using the Supabase SQL Editor. For an existing project, preserve its data and apply unapplied files from `supabase/migrations/` in chronological order; do not rerun the full schema over a live database. Test migrations against a staging project and verify the deployed RPCs and RLS policies before releasing the matching client code.
+4. Configure the database:
+   - For a **new** Supabase project, apply `supabase/schema.sql`.
+   - For an **existing** project, back up and test first, then apply only the unapplied files in `supabase/migrations/` in filename order. Do not rerun the bootstrap schema against a live database.
+   - Create and verify the required Supabase Auth profiles and policies before using the application.
 
-5. **Start Development Server**
+5. Start the development server:
+
    ```bash
    npm run dev
    ```
-   Open `http://localhost:3000` in your browser.
 
-### Development checks
+   Open `http://localhost:3000`.
+
+## Development checks
 
 ```bash
-npm run lint       # TypeScript check (no emit)
-npm test           # Focused unit/component tests
+npm run lint       # TypeScript check (tsc --noEmit)
+npm test           # Vitest suite
 npm run build      # Production Vite build
-npm audit          # Dependency advisory check
 ```
 
-`npm run clean` is also available on Windows, macOS, and Linux. Run these checks before opening a pull request.
+`npm run preview` serves a production build locally. `npm run clean` removes generated `dist` output and a root `server.js` file if present.
 
-### Architecture map
+## Application routes
 
-- `src/routes/` contains route-level pages.
-- `src/components/` contains reusable UI and feature forms.
-- `src/context/` owns authenticated application state and shared data workflows.
-- `src/supabase/` contains Supabase client, auth, and data-access code.
-- `src/utils/` contains shared business and formatting helpers.
-- `supabase/schema.sql` defines a fresh database; `supabase/migrations/` evolves existing databases.
-- Route modules are lazy-loaded so less-used and PDF-heavy screens do not all load with the first page.
+| Route | Purpose |
+|---|---|
+| `/login` | Sign in |
+| `/` | Role-specific dashboard |
+| `/shoots`, `/shoots/:id` | Shoot schedule and details |
+| `/clients`, `/clients/:id` | Client list and profile |
+| `/cameramen`, `/cameramen/:id` | Crew roster and profile |
+| `/payments` | Receivables and crew payouts |
+| `/invoices` | PDF invoices and payout vouchers |
+| `/expenses` | Operating expenses |
+| `/settings` | Operational and account settings |
+| `/approvals` | Change-request review and status |
+| `/recycle-bin` | Deleted-record recovery and purge |
 
-The browser uses the Supabase anon/publishable key; this key is not a server secret. Never put a Supabase service-role key or other privileged credential in a `VITE_*` variable. Authorization must be enforced by database RLS and guarded RPCs, not by hiding buttons in the UI.
+Unknown routes redirect to `/`.
 
-## Production security checklist
+## Project layout
 
-- Apply and review database migrations in staging before deploying client changes that call new RPCs.
-- Test RLS and RPC permissions as each supported role, including direct API requests; client-side role checks are only a UX layer.
-- Use HTTPS and configure the hosting platform to send a restrictive Content-Security-Policy and other appropriate security headers. These headers depend on the hosting provider and are not configured by Vite itself.
-- Configure Supabase Auth redirect URLs, allowed origins, and session policies for the deployed domain.
-- Keep secrets out of source control and browser environment variables. Rotate credentials if they are exposed.
-- Define retention and backup policies for operational and financial records; confirm audit requirements with the business owner.
-- Check `npm audit` and review dependency changes as part of routine maintenance.
+- `src/routes/` — route-level screens
+- `src/components/` — shared layout, forms, dashboard, and interface components
+- `src/context/` — authentication, data, theme, and toast state
+- `src/supabase/` — Supabase configuration, auth, data access, and file operations
+- `src/utils/` — permissions, dates, currency, WhatsApp, PDFs, CSV, and business helpers
+- `supabase/schema.sql` — fresh-database schema and bootstrap policies
+- `supabase/migrations/` — ordered updates for existing databases
 
----
+## Security notes
 
-## Project Documentation
+The browser uses the Supabase anon/publishable key. Never put a service-role key or other privileged credential in a `VITE_*` variable. UI role checks are not a security boundary: retain and test the database Row Level Security policies and guarded RPCs for each role. Review migrations in staging before deploying matching client code, configure Supabase Auth URLs for the deployed domain, and keep `.env.local` out of source control.
 
-- [Project Plan](PROJECT_PLAN.md) — Feature roadmap and implementation milestones.
-- [Data Model](DATA_MODEL.md) — Complete database schema, relationships, and role permission rules.
-- [Design System](DESIGN_SYSTEM.md) — Visual styling, color tokens, typography, and component specs.
-- [Future Scope](FUTURE_SCOPE.md) — Architecture matrix and roadmap for future expansions.
+## Documentation
 
----
+- [Project plan](PROJECT_PLAN.md) — implemented scope and delivery status
+- [Data model](DATA_MODEL.md) — database tables, fields, roles, and authorization
+- [Design system](DESIGN_SYSTEM.md) — current visual tokens and UI conventions
+- [Future scope](FUTURE_SCOPE.md) — proposed features not present in the current build
+- [Workspace rules](rules.md) — implementation and documentation ground rules
 
 ## License
 
-Private and proprietary software. Intended exclusively for internal agency operations.
+Private and proprietary software for internal agency operations.

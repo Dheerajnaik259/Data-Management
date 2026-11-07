@@ -142,8 +142,10 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
     <section className="liquid-content-panel overflow-hidden">
       <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-base font-semibold text-[var(--color-text)]">Cashflow & Net Position Growth</h2>
-          <p className="text-xs text-[var(--color-text-secondary)]">3-Line visual trend tracking Income, Outgoing, and Net Profit Position</p>
+          <h2 className="font-serif text-base font-semibold text-[var(--color-text)]">Cashflow & Net Position</h2>
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            Paid client receipts compared with paid crew payouts and logged expenses
+          </p>
         </div>
 
         {/* Range Selector */}
@@ -153,6 +155,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               key={option}
               type="button"
               onClick={() => setRange(option)}
+              aria-pressed={range === option}
               className={`liquid-glass-button px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors ${
                 range === option
                   ? 'liquid-glass-button-active'
@@ -187,7 +190,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
           <div className="liquid-glass-inner rounded-xl p-3 space-y-0.5">
             <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)] font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span>Net Cash Position (Profit)</span>
+              <span>Net Position</span>
             </span>
             <div className={`text-xl font-bold font-mono ${netPosition >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
               {formatCurrency(netPosition)}
@@ -195,9 +198,9 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
           </div>
         </div>
 
-        {/* Graph Area with 3 Clean Lines (Income, Outgoing, Net Position) */}
+        {/* Graph Area with paid income, payouts, and logged expenses. */}
         <div className="relative w-full overflow-x-auto">
-          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-64" role="img" aria-label="Income, outgoing, and net position cashflow chart">
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-64" role="img" aria-label="Cashflow chart comparing paid client receipts, paid crew payouts and logged expenses, and net position">
             {/* Horizontal Gridlines & Dynamic Clean Y-Axis Numerical Labels */}
             {yTicks.map((numericalVal, idx) => {
               const yVal = getY(numericalVal);
@@ -227,7 +230,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               );
             })}
 
-            {/* Line 1: Income (Terracotta Accent Solid Line) */}
+            {/* Paid client receipts */}
             <polyline
               points={incomePointsStr}
               fill="none"
@@ -237,7 +240,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               strokeLinejoin="round"
             />
 
-            {/* Line 2: Outgoing (Red Dashed Line) */}
+            {/* Paid crew payouts and logged expenses */}
             <polyline
               points={outgoingPointsStr}
               fill="none"
@@ -248,7 +251,7 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ shoots, expenses }) =>
               strokeLinejoin="round"
             />
 
-            {/* Line 3: Net Cash Position (Emerald Green Solid Line) */}
+            {/* Net position */}
             <polyline
               points={netPointsStr}
               fill="none"

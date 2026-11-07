@@ -199,7 +199,7 @@ export const Dashboard: React.FC = () => {
         }
       />
 
-      <main className="p-6 max-w-7xl mx-auto w-full space-y-6">
+      <main className="w-full max-w-7xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
         
         {/* ════════════════════════════════════════════════════════════ */}
         {/* ── ADMIN DASHBOARD VIEW ── */}

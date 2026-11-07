@@ -1,41 +1,42 @@
-# Antigravity Rules — ERP Mpixel Media
+# Workspace Rules — ERP Mpixel Media
 
-These rules apply to every task in this workspace. Follow them exactly.
-When something isn't covered, ask a clarifying question instead of guessing.
+These rules keep implementation, security, and documentation aligned with the current source.
 
-## 1. Grounding & Single Sources of Truth
-- `PROJECT_PLAN.md` is the source of truth for scope, screens, and features.
-- `DATA_MODEL.md` is the source of truth for every Supabase table, field name, data type, and permission logic. Never invent, rename, or guess a field name.
-- `DESIGN_SYSTEM.md` is the source of truth for visual styling. Match color tokens, fonts, spacing, hover transitions, and component patterns.
+## Sources of truth
 
----
+- `PROJECT_PLAN.md` describes current product scope and distinguishes shipped features from proposals.
+- `DATA_MODEL.md` describes the database model. Confirm exact table, column, and permission details in `supabase/schema.sql`, its migrations, and `src/types.ts` before changing them.
+- `DESIGN_SYSTEM.md` describes current visual conventions. Shared CSS tokens in `src/index.css` take precedence over prose examples.
+- Do not describe a proposed roadmap item as implemented.
 
-## 2. Dynamic Option Lists & Settings
-- Dropdown options (`clientStatus`, `shootStatus`, `deliverableTypes`, `expenseCategories`) must be read dynamically from `settings_docs`, never hardcoded in component code.
-- Operational Settings (`paymentGraceDays`, `clientReminderTemplate`, `crewScheduleTemplate`) are stored in `settings_docs.key = 'operationalSettings'` and parsed via `parseOperationalSettings()`.
-- Company Profile (`businessName`, `businessEmail`, `businessPhone`, `paymentDetails`) is gated to Founder edits (`🔒 Founder Only`).
+## Settings and configurable options
 
----
+- Client statuses, shoot statuses, deliverable types, and expense categories are loaded from rows in the Supabase `settings` table; do not hardcode the selectable option lists in feature forms.
+- Operational defaults live in the `operationalSettings` row, including payment grace days and WhatsApp message templates. Use the existing `parseOperationalSettings()` helper.
+- Company and invoice identity data live in the `businessProfile` settings row. Only the Founder may edit that profile.
 
-## 3. Database Architecture & Realtime Sync
-- Backend data lives in **Supabase PostgreSQL**. Access is authenticated via Supabase Auth and governed by Row Level Security (RLS) policies in `supabase/schema.sql`.
-- State synchronization uses `DataContext` backed by Supabase Realtime subscriptions.
+## Data access and approvals
 
----
+- Supabase PostgreSQL is the source of persisted application data. `DataContext` and the Supabase data helpers provide application state and Realtime synchronization.
+- Admin additions and edits to managed operational records use the change-request workflow. Founder review determines whether the proposed data is applied.
+- Admin recycle-bin operations are direct operational actions. Payment status and crew check-in updates use the guarded operational-update path.
+- Founder direct writes, Admin restrictions, and role-specific access must remain enforced by RLS and restricted database functions. Frontend checks are not a security boundary.
+- Apply existing database changes through ordered migrations. Do not rerun `schema.sql` over a live database.
 
-## 4. Role Permissions & Approval Queue
-- **Admin (`admin`)**: Day-to-day data entry (clients, cameramen, shoots, expenses) submits to `change_requests` with `status: pending`. Direct soft-delete, restore, permanent hard-delete, routine payment status toggles (`clientPaid`, `cameramanPaid`), and crew call-sheet check-ins apply immediately.
-- **Founder (`founder`)**: Holds exclusive authority to edit `businessProfile`. Reviews and approves/rejects Admin change requests with review notes. Owns high-level cashflow and client profitability rankings.
-- **Direct Action Exceptions**: Toggling payment statuses (`clientPaid`, `cameramanPaid`) and logging check-in times (`checkedInAt`) apply immediately without approval.
+## Existing helpers
 
----
+- Build WhatsApp messages with helpers in `src/utils/whatsapp.ts`.
+- Generate invoices and payout vouchers with `src/utils/pdfGenerator.ts` and the existing invoice-number RPC.
+- Reuse shared currency/date formatters, permission helpers, dialogs, slide-overs, empty states, loading indicators, and keyboard-shortcut components.
 
-## 5. WhatsApp & Document Generation
-- **WhatsApp Call Sheets & Reminders**: Built dynamically using `buildCameramanScheduleWhatsAppUrl()` and `buildClientPaymentReminderWhatsAppUrl()` from `src/utils/whatsapp.ts`.
-- **PDF Generation**: Invoices (`INV-YYYYMMDD-XXXX`) and Crew Vouchers (`RCP-YYYYMMDD-XXXX`) are rendered on-demand using `jsPDF` (`src/utils/pdfGenerator.ts`).
+## Development verification
 
----
+Use the package scripts for validation:
 
-## 6. Development & Verification
-- After UI modifications, run `npx tsc --noEmit` to verify 0 TypeScript compilation errors.
-- Ensure all commits are pushed to the main remote branch (`git push origin main`).
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+For authorization or schema changes, also test the complete migration chain and RLS/RPC behavior in a staging Supabase project for both roles.
