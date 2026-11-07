@@ -3,7 +3,7 @@ import { SlideOver } from '../common/SlideOver';
 import { ChangeRequest, Client } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { canSubmitForApproval } from '../../utils/permissions';
+import { canSubmitCollectionForApproval } from '../../utils/permissions';
 
 interface ClientFormProps {
   isOpen: boolean;
@@ -84,7 +84,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
     } finally { setIsSaving(false); }
   };
 
-  const isAdmin = Boolean(user && canSubmitForApproval(user.role));
+  const isAdmin = Boolean(user && canSubmitCollectionForApproval(user.role, 'clients'));
   const submitLabel = isSaving ? 'Saving...' : resubmission ? 'Resubmit for Approval' : initialClient
     ? (isAdmin ? 'Submit Update for Approval' : 'Update Client')
     : (isAdmin ? 'Submit for Approval' : 'Add Client');

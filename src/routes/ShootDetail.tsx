@@ -11,7 +11,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, Clock, ExternalLink, Edit2, Trash2, FileText, Copy, Check, Video, Phone, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
-import { buildCameramanScheduleWhatsAppUrl, buildClientPaymentReminderWhatsAppUrl } from '../utils/whatsapp';
+import { buildCameramanScheduleWhatsAppUrl, buildClientPaymentReminderWhatsAppUrl, buildClientShootScheduleWhatsAppUrl } from '../utils/whatsapp';
 import { formatTime12h } from '../utils/formatTime';
 import { parseOperationalSettings } from '../config/business';
 
@@ -25,11 +25,10 @@ export const ShootDetail: React.FC = () => {
   const shoot = shoots.find(s => s.id === id);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [paymentConfirmation, setPaymentConfirmation] = useState<{ index?: number; paid: boolean; label: string } | null>(null);
   const [copiedLinkIndex, setCopiedLinkIndex] = useState<number | null>(null);
 
   const [isClientInvoiceModalOpen, setIsClientInvoiceModalOpen] = useState(false);
-  const [cameramanReceiptModal, setCameramanReceiptModal] = useState<{ cameramanId: string; amount: number; paid: boolean; paidAt?: string | null; } | null>(null);
+  const [cameramanReceiptModal, setCameramanReceiptModal] = useState<{ cameramanId: string; amount: number; paid: boolean; paidAt?: string | null; assignmentIndex: number; } | null>(null);
 
   if (!shoot) {
     return (
@@ -62,13 +61,6 @@ export const ShootDetail: React.FC = () => {
     if (shoot) { await handleSoftDelete('shoots', shoot.id); navigate('/shoots'); }
   };
 
-  const handleConfirmPayment = async () => {
-    if (!paymentConfirmation) return;
-    if (paymentConfirmation.index === undefined) await handleToggleClientPayment(shoot.id, paymentConfirmation.paid);
-    else await handleToggleCameramanPayment(shoot.id, paymentConfirmation.index, paymentConfirmation.paid);
-    setPaymentConfirmation(null);
-  };
-
   const handleStatusToggle = async () => {
     await handleUpdateOrSubmit('shoots', shoot.id, { status: shoot.status === 'scheduled' ? 'done' : 'scheduled' });
   };
@@ -82,6 +74,16 @@ export const ShootDetail: React.FC = () => {
       date: shoot.date,
       location: shoot.location,
       template: operationalSettings.clientReminderTemplate,
+    }) || '';
+  };
+  const getWhatsAppScheduleUrl = () => {
+    if (!client?.phone) return '';
+    return buildClientShootScheduleWhatsAppUrl({
+      phone: client.phone,
+      clientName: client.name,
+      date: shoot.date,
+      callTime: shoot.callTime,
+      location: shoot.location,
     }) || '';
   };
 
@@ -117,16 +119,23 @@ export const ShootDetail: React.FC = () => {
             <button type="button" onClick={handleStatusToggle} className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider border transition-all ${shoot.status === 'done' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300'}`} title="Click to toggle status">
               Status: {shoot.status}
             </button>
-            <button type="button" onClick={() => setPaymentConfirmation({ paid: !shoot.clientPaid, label: 'client payment' })} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${shoot.clientPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
+            <button type="button" disabled={shoot.clientPaid} title={shoot.clientPaid ? 'Paid status is final and cannot be changed.' : 'Mark client payment paid'} onClick={() => { void handleToggleClientPayment(shoot.id, true).catch(() => {}); }} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-all disabled:cursor-not-allowed disabled:opacity-70 ${shoot.clientPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
               {shoot.clientPaid ? <><CheckCircle2 className="w-4 h-4" /><span>Client Paid ({formatCurrency(shoot.clientAmount)})</span></> : <><Clock className="w-4 h-4 text-[var(--color-text-muted)]" /><span>Pending Payment ({formatCurrency(shoot.clientAmount)})</span></>}
             </button>
             <OverdueBadge isPaid={shoot.clientPaid} overdueInfo={overdueInfo} size="md" />
           </div>
-          {!shoot.clientPaid && client?.phone && (
-            <a href={getWhatsAppReminderUrl()} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-md hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition-colors">
-              <MessageSquare className="w-3.5 h-3.5" /> <span>Send WhatsApp Payment Reminder</span>
-            </a>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {client?.phone && (
+              <a href={getWhatsAppScheduleUrl()} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-md hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition-colors">
+                <MessageSquare className="w-3.5 h-3.5" /> <span>Send Shoot Details</span>
+              </a>
+            )}
+            {!shoot.clientPaid && client?.phone && (
+              <a href={getWhatsAppReminderUrl()} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-md hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition-colors">
+                <MessageSquare className="w-3.5 h-3.5" /> <span>Send WhatsApp Payment Reminder</span>
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -241,10 +250,10 @@ export const ShootDetail: React.FC = () => {
                           ) : cam ? (
                             <span className="text-[11px] text-[var(--color-text-muted)]" title="Add the cameraman's phone number to enable WhatsApp messages">No WhatsApp number</span>
                           ) : null}
-                          <button type="button" disabled={assignment.amount === null} onClick={() => setPaymentConfirmation({ index: idx, paid: !assignment.paid, label: 'cameraman payout' })} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors ${assignment.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
+                          <button type="button" disabled={assignment.amount === null || assignment.paid} title={assignment.paid ? 'Paid status is final and cannot be changed.' : undefined} onClick={() => { void handleToggleCameramanPayment(shoot.id, idx, true).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${assignment.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
                             {assignment.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>Mark Paid</span></>}
                           </button>
-                          <button type="button" disabled={assignment.amount === null} onClick={() => assignment.amount !== null && setCameramanReceiptModal({ cameramanId: assignment.cameramanId, amount: assignment.amount, paid: assignment.paid, paidAt: assignment.paidAt })} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50" title="Generate payout receipt">
+                          <button type="button" disabled={assignment.amount === null} onClick={() => assignment.amount !== null && setCameramanReceiptModal({ cameramanId: assignment.cameramanId, amount: assignment.amount, paid: assignment.paid, paidAt: assignment.paidAt, assignmentIndex: idx })} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50" title="Generate payout receipt">
                             <FileText className="w-3.5 h-3.5" /><span>Voucher PDF</span>
                           </button>
                         </div>
@@ -313,11 +322,9 @@ export const ShootDetail: React.FC = () => {
       </main>
 
       <ShootForm isOpen={isEditFormOpen} onClose={() => setIsEditFormOpen(false)} initialShoot={shoot} />
-      {isClientInvoiceModalOpen && client && <InvoicePreviewModal isOpen={isClientInvoiceModalOpen} onClose={() => setIsClientInvoiceModalOpen(false)} type="client_invoice" client={client} shoot={shoot} />}
-      {cameramanReceiptModal && <InvoicePreviewModal isOpen={Boolean(cameramanReceiptModal)} onClose={() => setCameramanReceiptModal(null)} type="cameraman_receipt" cameraman={cameramanMap.get(cameramanReceiptModal.cameramanId)} shoot={shoot} assignmentAmount={cameramanReceiptModal.amount} assignmentPaid={cameramanReceiptModal.paid} assignmentPaidAt={cameramanReceiptModal.paidAt} />}
+      {isClientInvoiceModalOpen && client && <InvoicePreviewModal isOpen={isClientInvoiceModalOpen} onClose={() => setIsClientInvoiceModalOpen(false)} type="client_invoice" client={client} shoot={shoot} assignmentPaid={shoot.clientPaid} documentNumber={shoot.clientInvoiceNumber || undefined} />}
+      {cameramanReceiptModal && <InvoicePreviewModal isOpen={Boolean(cameramanReceiptModal)} onClose={() => setCameramanReceiptModal(null)} type="cameraman_receipt" cameraman={cameramanMap.get(cameramanReceiptModal.cameramanId)} shoot={shoot} assignmentAmount={cameramanReceiptModal.amount} assignmentPaid={cameramanReceiptModal.paid} assignmentPaidAt={cameramanReceiptModal.paidAt} assignmentIndex={cameramanReceiptModal.assignmentIndex} />}
       <ConfirmDialog isOpen={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)} onConfirm={handleConfirmDelete} title="Delete Shoot Record" message="Are you sure you want to delete this shoot? It will be moved to the recycle bin." confirmLabel="Delete Shoot" isDestructive />
-      <ConfirmDialog isOpen={Boolean(paymentConfirmation)} onClose={() => setPaymentConfirmation(null)} onConfirm={handleConfirmPayment}
-        title="Update Payment Status" message={`Confirm this ${paymentConfirmation?.label || 'payment'} as ${paymentConfirmation?.paid ? 'paid' : 'pending'}?`} confirmLabel={paymentConfirmation?.paid ? 'Mark Paid' : 'Mark Pending'} isDestructive={false} />
     </div>
   );
 };

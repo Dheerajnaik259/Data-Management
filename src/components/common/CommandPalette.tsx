@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
-import { Search, User, Film, Camera, Receipt, Settings, ArrowRight } from 'lucide-react';
+import { Search, User, Film, Camera, Receipt, Settings, ArrowRight, CalendarDays } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 export const CommandPalette: React.FC = () => {
@@ -50,6 +50,7 @@ export const CommandPalette: React.FC = () => {
   const items = [
     { id: 'nav-dashboard', title: 'Go to Dashboard', subtitle: 'Home', icon: Film, onSelect: () => navigate('/'), type: 'action' },
     { id: 'nav-shoots', title: 'Go to Shoots', subtitle: 'Scheduling and shoot operations', icon: Film, onSelect: () => navigate('/shoots'), type: 'action' },
+    { id: 'nav-schedule', title: 'Go to Schedule', subtitle: 'Calendar and upcoming deadlines', icon: CalendarDays, onSelect: () => navigate('/schedule'), type: 'action' },
     { id: 'nav-clients', title: 'Go to Clients', subtitle: 'Client accounts', icon: User, onSelect: () => navigate('/clients'), type: 'action' },
     { id: 'nav-cameramen', title: 'Go to Cameramen', subtitle: 'Crew directory', icon: Camera, onSelect: () => navigate('/cameramen'), type: 'action' },
     { id: 'nav-payments', title: 'Go to Payments', subtitle: 'Receivables and payouts', icon: Receipt, onSelect: () => navigate('/payments'), type: 'action' },

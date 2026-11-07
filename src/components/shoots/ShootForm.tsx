@@ -7,7 +7,10 @@ import { useAuth } from '../../context/AuthContext';
 import { AssignmentEditor } from './AssignmentEditor';
 import { DeliverablesEditor } from './DeliverablesEditor';
 import { parseCurrencyInput } from '../../utils/formatCurrency';
-import { canSubmitForApproval } from '../../utils/permissions';
+import { canCreateDirect, canSubmitCollectionForApproval } from '../../utils/permissions';
+import { parseOperationalSettings } from '../../config/business';
+import { buildShootScheduleWhatsAppDrafts, cancelWhatsAppDraftTabs, completeWhatsAppDraftTabs, prepareWhatsAppDraftTabs } from '../../utils/whatsapp';
+import { useToast } from '../../context/ToastContext';
 
 interface ShootFormProps {
   isOpen: boolean;
@@ -17,8 +20,9 @@ interface ShootFormProps {
 }
 
 export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialShoot, resubmission }) => {
-  const { shoots, clients, cameramen, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions, changeRequests } = useData();
+  const { shoots, clients, cameramen, settings, handleCreateOrSubmit, handleUpdateOrSubmit, handleEditAndResubmit, getSettingsOptions, changeRequests } = useData();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [clientId, setClientId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -94,6 +98,17 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
     // Actually the picker shouldn't show them if they are excluded, but let's assume they are valid if selected.
 
     setIsSaving(true);
+    const shouldOpenWhatsApp = !initialShoot && !resubmission && status.toLowerCase() === 'scheduled' && Boolean(user && canCreateDirect(user.role));
+    const operationalSettings = parseOperationalSettings(settings.find(setting => setting.key === 'operationalSettings'));
+    const whatsappDrafts = shouldOpenWhatsApp
+      ? buildShootScheduleWhatsAppDrafts(
+        { clientId, date, callTime: callTime.trim(), location: location.trim(), assignments },
+        clients.find(client => client.id === clientId),
+        cameramen,
+        operationalSettings.crewScheduleTemplate,
+      )
+      : [];
+    const whatsappTabs = prepareWhatsAppDraftTabs(whatsappDrafts);
     try {
       const data = { clientId, date, callTime: callTime.trim(), location: location.trim(), status, clientAmount, assignments, deliverables };
       if (resubmission) {
@@ -103,12 +118,25 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
       } else {
         await handleCreateOrSubmit('shoots', { ...data, clientPaid: false, clientInvoiceNumber: null });
       }
-      onClose();
-    } catch { setErrorMessage('Failed to save shoot details. Try again.'); }
-    finally { setIsSaving(false); }
+    } catch {
+      cancelWhatsAppDraftTabs(whatsappTabs);
+      setErrorMessage('Failed to save shoot details. Try again.');
+      setIsSaving(false);
+      return;
+    }
+
+    const blockedRecipients = completeWhatsAppDraftTabs(whatsappTabs);
+    if (blockedRecipients.length > 0) {
+      toast({
+        type: 'warning',
+        message: `Shoot scheduled, but your browser blocked WhatsApp for: ${blockedRecipients.join(', ')}. Open the shoot details to launch each message draft.`,
+      });
+    }
+    onClose();
+    setIsSaving(false);
   };
 
-  const isAdmin = Boolean(user && canSubmitForApproval(user.role));
+  const isAdmin = Boolean(user && canSubmitCollectionForApproval(user.role, 'shoots'));
   const submitLabel = isSaving ? 'Saving...' : resubmission ? 'Resubmit for Approval' : initialShoot
     ? (isAdmin ? 'Submit Update for Approval' : 'Update Shoot')
     : (isAdmin ? 'Submit for Approval' : 'Create Shoot');

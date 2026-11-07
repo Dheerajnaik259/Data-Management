@@ -15,9 +15,9 @@
     --color-text-primary: #F5F5F7;
     --color-text-secondary: #A1A1A6;
     --color-text-muted: #737378;
-    --color-glass: rgba(20, 20, 22, 0.48);
-    --color-glass-elevated: rgba(28, 28, 30, 0.68);
-    --color-glass-border: rgba(255, 255, 255, 0.13);
+    --color-glass: rgba(27, 29, 34, 0.42);
+    --color-glass-elevated: rgba(34, 36, 42, 0.62);
+    --color-glass-border: rgba(255, 255, 255, 0.16);
 
     --color-bg: var(--color-background);
     --color-sidebar: rgba(20, 20, 22, 0.62);
@@ -37,17 +37,24 @@
     --glass-blur: 24px;
     --glass-radius: 20px;
     --glass-border: var(--color-glass-border);
-    --glass-shadow: 0 16px 40px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.10), inset 0 -1px 0 rgba(255, 255, 255, 0.025);
-    --glass-highlight: rgba(255, 255, 255, 0.11);
+    --glass-shadow: 0 18px 48px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+    --glass-highlight: rgba(255, 255, 255, 0.16);
     --glass-tint: var(--color-glass);
-    --transition-fast: 160ms;
-    --transition-normal: 240ms;
+    --transition-fast: 220ms;
+    --transition-normal: 360ms;
+    --motion-glass: cubic-bezier(0.2, 0.75, 0.25, 1);
   }
 
   html {
     min-height: 100%;
     background: var(--color-background);
     scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
   }
 
   body {
@@ -55,7 +62,12 @@
     isolation: isolate;
     min-height: 100vh;
     overflow-x: hidden;
-    background-color: var(--color-background);
+    scrollbar-width: none;
+    background:
+      radial-gradient(ellipse at 16% 12%, rgba(35, 183, 183, 0.085), transparent 34rem),
+      radial-gradient(ellipse at 88% 42%, rgba(89, 105, 190, 0.075), transparent 38rem),
+      radial-gradient(ellipse at 45% 100%, rgba(94, 195, 164, 0.055), transparent 34rem),
+      var(--color-background);
     color: var(--color-text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -115,32 +127,38 @@ select:focus {
 .liquid-glass {
   position: relative;
   isolation: isolate;
-  background: rgba(20, 20, 22, 0.48);
-  -webkit-backdrop-filter: blur(28px) saturate(140%);
-  backdrop-filter: blur(28px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.11), transparent 42%),
+    rgba(27, 29, 34, 0.42);
+  -webkit-backdrop-filter: blur(32px) saturate(165%);
+  backdrop-filter: blur(32px) saturate(165%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(255, 255, 255, 0.025);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .liquid-glass-elevated {
-  background: rgba(28, 28, 30, 0.68);
-  -webkit-backdrop-filter: blur(30px) saturate(140%);
-  backdrop-filter: blur(30px) saturate(140%);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.13), transparent 44%),
+    rgba(34, 36, 42, 0.62);
+  -webkit-backdrop-filter: blur(36px) saturate(170%);
+  backdrop-filter: blur(36px) saturate(170%);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 22px 56px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .liquid-glass-floating {
-  background: rgba(20, 20, 22, 0.58);
-  -webkit-backdrop-filter: blur(26px) saturate(140%);
-  backdrop-filter: blur(26px) saturate(140%);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent 48%),
+    rgba(27, 29, 34, 0.56);
+  -webkit-backdrop-filter: blur(30px) saturate(165%);
+  backdrop-filter: blur(30px) saturate(165%);
   border-color: rgba(255, 255, 255, 0.14);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 16px 40px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .liquid-glass-interactive {
-  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  transition: transform 320ms var(--motion-glass), border-color 260ms ease, box-shadow 320ms var(--motion-glass), background-color 260ms ease;
 }
 
 .liquid-glass-interactive:hover {
@@ -153,7 +171,7 @@ select:focus {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.085), 0 3px 10px rgba(0, 0, 0, 0.2);
-  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  transition: transform 260ms var(--motion-glass), border-color 220ms ease, background-color 220ms ease, box-shadow 260ms var(--motion-glass);
 }
 
 .liquid-glass-button:hover:not(:disabled) {
@@ -175,7 +193,7 @@ select:focus {
 }
 
 .liquid-glass-input {
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(5, 5, 5, 0.82);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.025);
   transition: border-color 160ms ease, box-shadow 160ms ease;
@@ -206,7 +224,11 @@ select:focus {
 .liquid-table-container {
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 18px;
-  background: rgba(10, 10, 10, 0.96);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 46%),
+    rgba(20, 21, 24, 0.66);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
@@ -236,7 +258,11 @@ select:focus {
 .liquid-control-tray {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 15px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent), rgba(14, 14, 15, 0.88);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.085), transparent 54%),
+    rgba(25, 26, 30, 0.58);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+  backdrop-filter: blur(26px) saturate(155%);
   box-shadow: 0 5px 16px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
@@ -274,12 +300,13 @@ select:focus {
   overflow-y: auto;
   width: 240px;
   border: 1px solid rgba(255, 255, 255, 0.11);
+  border-right-color: transparent;
   border-radius: 22px;
   background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.055), transparent 38%),
-    rgba(20, 20, 22, 0.54) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(140%);
-  backdrop-filter: blur(28px) saturate(140%);
+    linear-gradient(155deg, rgba(255, 255, 255, 0.11), transparent 42%),
+    rgba(25, 27, 31, 0.48) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(165%);
+  backdrop-filter: blur(32px) saturate(165%);
   box-shadow:
     0 22px 64px rgba(0, 0, 0, 0.36),
     inset 0 1px 0 rgba(255, 255, 255, 0.085),
@@ -297,9 +324,11 @@ select:focus {
 
 .liquid-sidebar-navigation {
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.13) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+
+.liquid-sidebar-navigation::-webkit-scrollbar { display: none; }
 
 .liquid-nav-link {
   border: 1px solid transparent;
@@ -354,13 +383,13 @@ select:focus {
   gap: 14px 20px;
   margin: 14px 20px 0;
   padding: 13px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.105);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 19px;
   background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.06), transparent 48%),
-    rgba(20, 20, 22, 0.52);
-  -webkit-backdrop-filter: blur(26px) saturate(140%);
-  backdrop-filter: blur(26px) saturate(140%);
+    linear-gradient(115deg, rgba(255, 255, 255, 0.12), transparent 50%),
+    rgba(25, 27, 31, 0.48);
+  -webkit-backdrop-filter: blur(32px) saturate(165%);
+  backdrop-filter: blur(32px) saturate(165%);
   box-shadow:
     0 14px 44px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
@@ -403,11 +432,13 @@ select:focus {
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 17px;
   background:
-    radial-gradient(240px circle at var(--pointer-x, 50%) var(--pointer-y, 0%), rgba(255, 255, 255, 0.075), transparent 72%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 52%),
-    rgba(20, 20, 22, 0.7);
+    radial-gradient(280px circle at var(--pointer-x, 50%) var(--pointer-y, 0%), rgba(255, 255, 255, 0.105), transparent 72%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.085), transparent 54%),
+    rgba(26, 28, 32, 0.56);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+  backdrop-filter: blur(26px) saturate(155%);
   box-shadow: 0 11px 30px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.055);
-  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  transition: transform 320ms var(--motion-glass), border-color 260ms ease, box-shadow 320ms var(--motion-glass);
 }
 
 .liquid-metric-card:hover {
@@ -420,10 +451,27 @@ select:focus {
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 18px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 46%),
-    rgba(10, 10, 10, 0.93);
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.045);
-  transition: border-color 180ms ease;
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), transparent 48%),
+    rgba(22, 23, 27, 0.62);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+  backdrop-filter: blur(26px) saturate(155%);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: border-color 260ms ease, box-shadow 320ms var(--motion-glass);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled),
+a {
+  transition-timing-function: var(--motion-glass);
+}
+
+button:not(:disabled):active,
+a:active {
+  transform: scale(0.98);
 }
 
 .liquid-content-panel.liquid-dispatch-panel {
@@ -493,11 +541,11 @@ select:focus {
   .liquid-sidebar { background: rgba(14, 14, 15, 0.97) !important; }
   .liquid-header { background: rgba(18, 18, 20, 0.97); }
   .liquid-popover, .liquid-form-panel, .liquid-dialog, .liquid-glass-elevated { background: rgba(28, 28, 30, 0.98); }
-  .liquid-glass, .liquid-glass-floating, .liquid-dispatch-panel { background: rgba(18, 18, 20, 0.98); }
+  .liquid-glass, .liquid-glass-floating, .liquid-dispatch-panel, .liquid-content-panel, .liquid-metric-card, .liquid-control-tray, .liquid-table-container { background: rgba(24, 25, 29, 0.97); }
 }
 
 @media (hover: none), (prefers-reduced-motion: reduce) {
-  .liquid-metric-card { background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 52%), rgba(20, 20, 22, 0.78); }
+  .liquid-metric-card { background: linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 52%), rgba(26, 28, 32, 0.72); }
   .liquid-metric-card:hover, .liquid-floating-control:hover { transform: none; }
 }
 
@@ -518,10 +566,16 @@ select:focus {
   }
 }
 
-::-webkit-scrollbar { width: 7px; height: 7px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.26); }
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,

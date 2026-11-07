@@ -121,16 +121,22 @@ Stores approval workflow notifications: UUID `id`, required `recipient_id` profi
 
 ### `counters`
 
-One row per `year`, with independent `client_invoice_next` and `payout_voucher_next` counters. Generated numbers use `INV-YYYY-NNNN` and `RCP-YYYY-NNNN` formats. The database procedure assigns a number only after the relevant client payment or crew payout is marked paid.
+One row per `year`, with independent `client_invoice_next` and `payout_voucher_next` counters. Generated numbers use `INV-YYYY-NNNN` and `RCP-YYYY-NNNN` formats. The database procedure locks the shoot record, assigns a number only after the relevant client payment or crew payout is marked paid, and returns an existing number on repeat calls. Paid PDF previews, printing, and downloads use this persisted number; unpaid previews are marked as drafts.
 
 ## Authorization and database operations
 
 - `is_operator()`, `is_admin()`, and `is_founder()` are role-check helpers used by policies and procedures.
 - Admin operational-record additions/edits are stored as change requests; a Founder reviews and approves or rejects them. Rejected requests can be resubmitted with an updated revision.
 - `update_shoot_operational` restricts direct shoot updates to payment and crew check-in fields; it does not permit changing assignment membership or payout details.
+- `202611070001_lock_paid_payments.sql` installs that RPC when missing and prevents confirmed client payments and crew payouts from reverting to pending.
+- `delete_change_request(p_cr_id uuid)` deletes an authorized change request; `202611070002_delete_change_request_rpc.sql` installs or replaces the guarded RPC and asks PostgREST to reload its schema cache.
 - `set_record_deleted` and `hard_delete_record` are Admin-only procedures. Soft deletion uses `deleted_at` and `deleted_by` on each operational record; there is no separate `deleted_records` table.
 - `assign_invoice_number` assigns stable, sequential invoice/voucher identifiers.
 - Realtime publication is configured for operational data and workflow tables in the bootstrap schema when the Supabase publication is available.
 - The private Storage bucket is named `smm-ops-files`.
 
 The bootstrap schema and later migrations together define the current database behavior. Test the complete migration chain and policies in staging; do not treat UI role checks as database protection.
+
+## Retired Projects and Content Production schema
+
+Projects and Content Production are not part of the active application. The database cleanup SQL is available at `supabase/migrations/proposed/202611070002_remove_projects_production.sql`; it deletes operational records, related approval requests, and the feature-specific tables and database objects. Back up any data that must be retained before running it. The cleanup script has not been run by the application code or against Supabase.

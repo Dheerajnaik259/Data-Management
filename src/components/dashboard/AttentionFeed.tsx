@@ -7,6 +7,7 @@ import { formatSingularCollection } from '../../utils/formatCollection';
 import { OverdueBadge } from '../common/OverdueBadge';
 import { AlertCircle, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { ChangeRequest, Shoot } from '../../types';
+import { canApprove, canSubmitForApproval } from '../../utils/permissions';
 
 interface AttentionItem {
   id: string;
@@ -25,8 +26,8 @@ export const AttentionFeed: React.FC = () => {
   const { user } = useAuth();
   const { paymentRecords, changeRequests, shoots, clients, cameramen, handleToggleClientPayment, handleToggleCameramanPayment } = useData();
 
-  const isAdmin = user?.role === 'admin';
-  const isFounder = user?.role === 'founder';
+  const isAdmin = Boolean(user && canSubmitForApproval(user.role));
+  const isFounder = Boolean(user && canApprove(user.role));
 
   const items: AttentionItem[] = [];
 
@@ -44,7 +45,7 @@ export const AttentionFeed: React.FC = () => {
         link: `/clients/${r.targetId}`,
         overdueInfo: r.overdueInfo,
         actionLabel: 'Mark Paid',
-        onAction: () => handleToggleClientPayment(r.shootId, true)
+        onAction: () => { void handleToggleClientPayment(r.shootId, true).catch(() => {}); }
       });
     });
 
@@ -62,7 +63,7 @@ export const AttentionFeed: React.FC = () => {
         link: `/cameramen/${r.targetId}`,
         overdueInfo: r.overdueInfo,
         actionLabel: 'Mark Paid',
-        onAction: () => handleToggleCameramanPayment(r.shootId, r.assignmentIndex ?? 0, true)
+        onAction: () => { void handleToggleCameramanPayment(r.shootId, r.assignmentIndex ?? 0, true).catch(() => {}); }
       });
     });
 

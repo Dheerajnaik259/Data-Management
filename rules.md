@@ -8,6 +8,7 @@ These rules keep implementation, security, and documentation aligned with the cu
 - `DATA_MODEL.md` describes the database model. Confirm exact table, column, and permission details in `supabase/schema.sql`, its migrations, and `src/types.ts` before changing them.
 - `DESIGN_SYSTEM.md` describes current visual conventions. Shared CSS tokens in `src/index.css` take precedence over prose examples.
 - Do not describe a proposed roadmap item as implemented.
+- `README.md`, `PROJECT_PLAN.md`, `FUNCTIONALITY_AUDIT.md`, and `FUTURE_SCOPE.md` must reflect the current routes and interactions, including the shoot calendar and app-level trackpad history gestures.
 
 ## Settings and configurable options
 
@@ -28,6 +29,7 @@ These rules keep implementation, security, and documentation aligned with the cu
 - Build WhatsApp messages with helpers in `src/utils/whatsapp.ts`.
 - Generate invoices and payout vouchers with `src/utils/pdfGenerator.ts` and the existing invoice-number RPC.
 - Reuse shared currency/date formatters, permission helpers, dialogs, slide-overs, empty states, loading indicators, and keyboard-shortcut components.
+- Keep horizontal trackpad history handling centralized at the app shell; do not attach route navigation gestures to the calendar or other individual pages.
 
 ## Development verification
 

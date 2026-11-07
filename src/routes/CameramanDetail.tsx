@@ -15,7 +15,7 @@ export const CameramanDetail: React.FC = () => {
 
   const cameraman = cameramen.find(c => c.id === id);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
-  const [receiptModalShoot, setReceiptModalShoot] = useState<{ shoot: Shoot; amount: number; paid: boolean; paidAt?: string | null; } | null>(null);
+  const [receiptModalShoot, setReceiptModalShoot] = useState<{ shoot: Shoot; amount: number; paid: boolean; paidAt?: string | null; assignmentIndex: number; } | null>(null);
   const [rateDrafts, setRateDrafts] = useState<Record<string, string>>({});
   const [editingRowKey, setEditingRowKey] = useState<string | null>(null);
   const [editingAmount, setEditingAmount] = useState<number>(0);
@@ -226,7 +226,7 @@ export const CameramanDetail: React.FC = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <button type="button" disabled={item.amount === null} onClick={() => handleToggleCameramanPayment(item.shoot.id, item.assignmentIndex, !item.paid)} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors ${item.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
+                          <button type="button" disabled={item.amount === null || item.paid} title={item.paid ? 'Paid status is final and cannot be changed.' : undefined} onClick={() => { void handleToggleCameramanPayment(item.shoot.id, item.assignmentIndex, true).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${item.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
                             {item.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>{item.amount === null ? 'Rate not set' : `Disburse ${formatCurrency(item.amount)}`}</span></>}
                           </button>
                           <button type="button" onClick={() => handleToggleCameramanCheckIn(item.shoot.id, item.assignmentIndex, !item.shoot.assignments[item.assignmentIndex].checkedInAt)} className="ml-2 px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] border border-[var(--color-border)] rounded-md">
@@ -234,7 +234,7 @@ export const CameramanDetail: React.FC = () => {
                           </button>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button type="button" disabled={item.amount === null} onClick={() => item.amount !== null && setReceiptModalShoot({ shoot: item.shoot, amount: item.amount, paid: item.paid, paidAt: item.paidAt })} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50">
+                          <button type="button" disabled={item.amount === null} onClick={() => item.amount !== null && setReceiptModalShoot({ shoot: item.shoot, amount: item.amount, paid: item.paid, paidAt: item.paidAt, assignmentIndex: item.assignmentIndex })} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50">
                             <FileText className="w-3.5 h-3.5" /> <span>Voucher PDF</span>
                           </button>
                         </td>
@@ -278,7 +278,7 @@ export const CameramanDetail: React.FC = () => {
       </main>
 
       <CameramanForm isOpen={isEditFormOpen} onClose={() => setIsEditFormOpen(false)} initialCameraman={cameraman} />
-      {receiptModalShoot && <InvoicePreviewModal isOpen={Boolean(receiptModalShoot)} onClose={() => setReceiptModalShoot(null)} type="cameraman_receipt" cameraman={cameraman} shoot={receiptModalShoot.shoot} assignmentAmount={receiptModalShoot.amount} assignmentPaid={receiptModalShoot.paid} assignmentPaidAt={receiptModalShoot.paidAt} />}
+      {receiptModalShoot && <InvoicePreviewModal isOpen={Boolean(receiptModalShoot)} onClose={() => setReceiptModalShoot(null)} type="cameraman_receipt" cameraman={cameraman} shoot={receiptModalShoot.shoot} assignmentAmount={receiptModalShoot.amount} assignmentPaid={receiptModalShoot.paid} assignmentPaidAt={receiptModalShoot.paidAt} assignmentIndex={receiptModalShoot.assignmentIndex} />}
     </div>
   );
 };

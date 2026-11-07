@@ -4,12 +4,16 @@ import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { SettingsDoc, SettingsOption } from '../types';
-import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown, Building2, Save, Lock, User, KeyRound, MessageSquare, Sliders } from 'lucide-react';
+import { Plus, GripVertical, Archive, RotateCcw, Pencil, Check, X, ChevronUp, ChevronDown, Building2, Save, Lock, User, KeyRound, MessageSquare, Sliders, Users, Mail } from 'lucide-react';
 import { parseBusinessProfileFromSettings, BusinessProfileData, parseOperationalSettings, OperationalSettingsData } from '../config/business';
+import { ASSIGNABLE_ROLES, canEditBusinessProfile, canManageTeam, getRoleLabel } from '../utils/permissions';
+import { AssignableRole, inviteTeamMember, listTeamMembers, TeamMember, updateTeamMemberRole } from '../supabase/team';
+import { useToast } from '../context/ToastContext';
 
 export const Settings: React.FC = () => {
   const ctx = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { settings, handleUpdateSettings } = useData();
+  const { user } = useAuth();
   const [editingKey, setEditingKey] = useState<string | null>(null);
 
   const businessDoc = settings.find(s => s.key === 'businessProfile');
@@ -21,10 +25,11 @@ export const Settings: React.FC = () => {
       <Header title="Settings" subtitle="Manage account, operational defaults, company profile, and dropdown lists" onOpenMobile={ctx?.onOpenMobileNav} />
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
         <MyAccountCard />
-        <OperationalDefaultsCard setting={operationalDoc} onSave={handleUpdateSettings} />
-        <BusinessProfileCard setting={businessDoc} onSave={handleUpdateSettings} />
+        {user && canManageTeam(user.role) && <TeamManagementCard />}
+        {user && (canManageTeam(user.role) || canEditBusinessProfile(user.role)) && <OperationalDefaultsCard setting={operationalDoc} onSave={handleUpdateSettings} />}
+        {user && canEditBusinessProfile(user.role) && <BusinessProfileCard setting={businessDoc} onSave={handleUpdateSettings} />}
 
-        {optionListSettings.map(setting => (
+        {user && (canManageTeam(user.role) || canEditBusinessProfile(user.role)) && optionListSettings.map(setting => (
           <SettingsCard key={setting.id} setting={setting}
             isEditing={editingKey === setting.key}
             onEdit={() => setEditingKey(setting.key)}
@@ -32,11 +37,151 @@ export const Settings: React.FC = () => {
             onSave={handleUpdateSettings} />
         ))}
 
-        {optionListSettings.length === 0 && !businessDoc && !operationalDoc && (
+        {user && canManageTeam(user.role) && optionListSettings.length === 0 && !businessDoc && !operationalDoc && (
           <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No configurable option lists are available yet. Confirm that the database setup SQL has been applied.</p>
         )}
       </div>
     </div>
+  );
+};
+
+const TeamManagementCard: React.FC = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState<AssignableRole>('social_media_manager');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInviting, setIsInviting] = useState(false);
+  const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const reloadMembers = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setMembers(await listTeamMembers());
+    } catch (loadError) {
+      const message = loadError instanceof Error ? loadError.message : 'Unable to load team members.';
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { void reloadMembers(); }, []);
+
+  const handleInvite = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isInviting) return;
+    setIsInviting(true);
+    setError(null);
+    try {
+      await inviteTeamMember({ name, email, role });
+      toast({ type: 'success', message: `Invitation sent to ${email.trim()}.` });
+      setName('');
+      setEmail('');
+      await reloadMembers();
+    } catch (inviteError) {
+      const message = inviteError instanceof Error ? inviteError.message : 'Unable to invite this team member.';
+      setError(message);
+      toast({ type: 'error', message });
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleRoleChange = async (memberId: string, nextRole: AssignableRole) => {
+    if (updatingMemberId) return;
+    const previousMembers = members;
+    setUpdatingMemberId(memberId);
+    setMembers(current => current.map(member => member.id === memberId ? { ...member, role: nextRole } : member));
+    try {
+      await updateTeamMemberRole(memberId, nextRole);
+      toast({ type: 'success', message: 'Team member role updated.' });
+    } catch (updateError) {
+      setMembers(previousMembers);
+      const message = updateError instanceof Error ? updateError.message : 'Unable to update team role.';
+      setError(message);
+      toast({ type: 'error', message });
+    } finally {
+      setUpdatingMemberId(null);
+    }
+  };
+
+  return (
+    <section className="liquid-content-panel overflow-hidden">
+      <header className="liquid-panel-header flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-accent)]/10 text-[var(--color-accent)]"><Users className="h-4 w-4" /></div>
+          <div>
+            <h2 className="text-base font-bold text-[var(--color-text)]">Team & Roles</h2>
+            <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">Invite employees and assign their ERP access.</p>
+          </div>
+        </div>
+        <span className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[10px] text-[var(--color-text-secondary)]">{members.length} members</span>
+      </header>
+
+      <div className="space-y-5 p-5">
+        {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{error}</div>}
+
+        <form onSubmit={handleInvite} className="grid gap-3 rounded-xl border border-[var(--color-border)] bg-white/[0.02] p-4 md:grid-cols-2">
+          <div>
+            <label htmlFor="team-member-name" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Full name</label>
+            <input id="team-member-name" value={name} onChange={event => setName(event.target.value)} required maxLength={100} autoComplete="name" className="w-full rounded-lg px-3 py-2 text-sm" placeholder="Employee name" />
+          </div>
+          <div>
+            <label htmlFor="team-member-email" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Email address</label>
+            <input id="team-member-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required maxLength={254} autoComplete="email" className="w-full rounded-lg px-3 py-2 text-sm" placeholder="name@company.com" />
+          </div>
+          <div>
+            <label htmlFor="team-member-role" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Role</label>
+            <select id="team-member-role" value={role} onChange={event => setRole(event.target.value as AssignableRole)} className="w-full rounded-lg px-3 py-2 text-sm">
+              {ASSIGNABLE_ROLES.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button type="submit" disabled={isInviting} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-xs font-semibold text-[var(--color-text-on-accent)] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60">
+              <Mail className="h-3.5 w-3.5" />{isInviting ? 'Sending invite…' : 'Invite team member'}
+            </button>
+          </div>
+        </form>
+
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-border)]">
+          <table className="w-full min-w-[560px] text-left text-xs">
+            <thead className="bg-white/[0.035] text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">
+              <tr><th className="px-4 py-3 font-semibold">Member</th><th className="px-4 py-3 font-semibold">Email</th><th className="px-4 py-3 font-semibold">Role</th></tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-border)]">
+              {isLoading ? (
+                <tr><td colSpan={3} className="px-4 py-6 text-center text-[var(--color-text-muted)]">Loading team…</td></tr>
+              ) : members.length === 0 ? (
+                <tr><td colSpan={3} className="px-4 py-6 text-center text-[var(--color-text-muted)]">No team profiles found.</td></tr>
+              ) : members.map(member => (
+                <tr key={member.id}>
+                  <td className="px-4 py-3 font-medium text-[var(--color-text-primary)]">{member.name}{member.id === user?.uid && <span className="ml-2 text-[9px] text-[var(--color-text-muted)]">You</span>}</td>
+                  <td className="px-4 py-3 text-[var(--color-text-secondary)]">{member.email}</td>
+                  <td className="px-4 py-3">
+                    <select aria-label={`Role for ${member.name}`} value={ASSIGNABLE_ROLES.some(option => option.value === member.role) ? member.role : 'founder_ceo'}
+                      disabled={member.id === user?.uid || updatingMemberId === member.id}
+                      onChange={event => { void handleRoleChange(member.id, event.target.value as AssignableRole); }}
+                      className="max-w-52 rounded-lg px-2.5 py-1.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-65">
+                      {ASSIGNABLE_ROLES.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      {!ASSIGNABLE_ROLES.some(option => option.value === member.role) && <option value="founder_ceo">{getRoleLabel(member.role)} (legacy)</option>}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+          Admins can assign any role, including Founder roles. Social Media Managers can submit client and shoot changes for Founder approval, but cannot access finance screens, manage team members, or delete records. Invitees receive an email and must accept it before signing in.
+        </p>
+      </div>
+    </section>
   );
 };
 
@@ -269,7 +414,7 @@ interface BusinessProfileCardProps {
 
 const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSave }) => {
   const { user } = useAuth();
-  const isFounder = user?.role === 'founder';
+  const isFounder = Boolean(user && canEditBusinessProfile(user.role));
   const initial = parseBusinessProfileFromSettings(setting);
   const [formData, setFormData] = useState<BusinessProfileData>(initial);
   const [isSaving, setIsSaving] = useState(false);

@@ -22,7 +22,8 @@ import { checkOverdue } from '../utils/overdueCheck';
 import { formatSingularCollection } from '../utils/formatCollection';
 import { parseOperationalSettings } from '../config/business';
 import { toLocalDateString } from '../utils/localDate';
-import { canCreateDirect, canApprove, canDelete as canDeletePerm, canHardDelete as canHardDeletePerm, canSubmitForApproval } from '../utils/permissions';
+import { canCreateDirect, canApprove, canDelete as canDeletePerm, canHardDelete as canHardDeletePerm, canSubmitCollectionForApproval, canSubmitForApproval, isFounderRole, canEditBusinessProfile } from '../utils/permissions';
+import { buildShootScheduleWhatsAppDrafts, cancelWhatsAppDraftTabs, completeWhatsAppDraftTabs, prepareWhatsAppDraftTabs } from '../utils/whatsapp';
 
 interface DashboardStats {
   pendingClientAmount: number;
@@ -124,15 +125,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setLoadCount(0);
     const loaded = () => setLoadCount(c => c + 1);
+    const canAccessFinance = user.role === 'admin' || canCreateDirect(user.role);
     const unsubs = [
       subscribeToClients(d => { setClients(d); loaded(); }),
       subscribeToCameramen(d => { setCameramen(d); loaded(); }),
       subscribeToShoots(d => { setShoots(d); loaded(); }),
-      subscribeToExpenses(d => { setExpenses(d); loaded(); }),
       subscribeToSettings(d => { setSettings(d); loaded(); }),
       subscribeToChangeRequests(setChangeRequests),
-      subscribeToDeletedRecords(setDeletedRecords),
     ];
+    if (canAccessFinance) {
+      unsubs.push(subscribeToExpenses(d => { setExpenses(d); loaded(); }));
+      unsubs.push(subscribeToDeletedRecords(setDeletedRecords));
+    } else {
+      setExpenses([]);
+      setDeletedRecords([]);
+      loaded();
+    }
     return () => unsubs.forEach(u => u());
   }, [toast, user?.uid]);
 
@@ -297,7 +305,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (canCreateDirect(user.role)) {
         return await directCreate(col, data);
       }
-      if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
+      if (!canSubmitCollectionForApproval(user.role, col)) throw new Error('Your role cannot submit this type of change.');
       const pendingDup = changeRequests.some(cr =>
         cr.targetCollection === col &&
         cr.action === 'create' &&
@@ -348,7 +356,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await directUpdate(col, docId, data);
         return;
       }
-      if (!canSubmitForApproval(user.role)) throw new Error('You do not have permission to submit this change.');
+      if (!canSubmitCollectionForApproval(user.role, col)) throw new Error('Your role cannot submit this type of change.');
       const crId = await submitChangeRequestWithNotification({
         targetCollection: col, targetDocId: docId, action: 'edit',
         proposedData: data, requestedBy: user.uid,
@@ -439,7 +447,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Shoot payment toggles (direct — these aren't data-entry, they're status updates)
   const handleToggleClientPayment = async (shootId: string, isPaid: boolean) => {
     try {
+      const shoot = shoots.find(item => item.id === shootId);
+      if (!shoot) throw new Error('Shoot not found.');
+      if (shoot.clientPaid && !isPaid) {
+        throw new Error('A confirmed client payment cannot be changed back to pending.');
+      }
+      if (!shoot.clientPaid && isPaid && !window.confirm('Mark this client payment as paid? This is final and cannot be changed back to pending.')) return;
       await updateShootOperationalData(shootId, { clientPaid: isPaid, clientPaidAt: isPaid ? new Date().toISOString() : null });
+      toast({ type: 'success', message: isPaid ? 'Client payment marked paid. This status is final.' : 'Client payment marked pending.' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to update client payment status';
       toast({ type: 'error', message: msg });
@@ -451,10 +466,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const shoot = shoots.find(s => s.id === shootId);
       if (!shoot?.assignments?.[idx]) return;
+      if (shoot.assignments[idx].paid && !isPaid) {
+        throw new Error('A confirmed crew payout cannot be changed back to pending.');
+      }
+      if (!shoot.assignments[idx].paid && isPaid && !window.confirm('Mark this crew payout as paid? This is final and cannot be changed back to pending.')) return;
       const updated = [...shoot.assignments];
       if (updated[idx].amount === null && isPaid) throw new Error('Set the cameraman payout before marking it paid.');
       updated[idx] = { ...updated[idx], paid: isPaid, paidAt: isPaid ? new Date().toISOString() : null };
       await updateShootOperationalData(shootId, { assignments: updated });
+      toast({ type: 'success', message: isPaid ? 'Crew payout marked paid. This status is final.' : 'Crew payout marked pending.' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to update crew payout status';
       toast({ type: 'error', message: msg });
@@ -496,18 +516,55 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ── Approval ──
   const handleApprove = async (crId: string, reviewNote = '') => {
+    let whatsappTabs: ReturnType<typeof prepareWhatsAppDraftTabs> = [];
     try {
       if (!user) throw new Error('Not authenticated.');
       const cr = changeRequests.find(c => c.id === crId);
       if (!cr || cr.status !== 'pending') return;
 
+      if (cr.targetCollection === 'shoots' && cr.action === 'create') {
+        const proposed = cr.proposedData;
+        const assignments = Array.isArray(proposed.assignments)
+          ? proposed.assignments.flatMap(assignmentValue => {
+            if (!assignmentValue || typeof assignmentValue !== 'object') return [];
+            const assignment = assignmentValue as Record<string, unknown>;
+            if (typeof assignment.cameramanId !== 'string') return [];
+            return [{
+              cameramanId: assignment.cameramanId,
+              callTime: typeof assignment.callTime === 'string' ? assignment.callTime : null,
+            }];
+          })
+          : [];
+        const clientId = typeof proposed.clientId === 'string' ? proposed.clientId : '';
+        const date = typeof proposed.date === 'string' ? proposed.date : '';
+        const callTime = typeof proposed.callTime === 'string' ? proposed.callTime : '';
+        const location = typeof proposed.location === 'string' ? proposed.location : '';
+        const status = typeof proposed.status === 'string' ? proposed.status : '';
+        if (status.toLowerCase() === 'scheduled' && clientId && date && location) {
+          const operationalSettings = parseOperationalSettings(settings.find(setting => setting.key === 'operationalSettings'));
+          const drafts = buildShootScheduleWhatsAppDrafts(
+            { clientId, date, callTime, location, assignments },
+            clients.find(client => client.id === clientId),
+            cameramen,
+            operationalSettings.crewScheduleTemplate,
+          );
+          whatsappTabs = prepareWhatsAppDraftTabs(drafts);
+        }
+      }
+
       const now = new Date().toISOString();
+      await reviewChangeRequestWithNotification(cr, user.uid, 'approved', reviewNote);
       setChangeRequests(prev => prev.map(item =>
         item.id === crId ? { ...item, status: 'approved', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
       ));
-
-      await reviewChangeRequestWithNotification(cr, user.uid, 'approved', reviewNote);
       toast({ type: 'success', message: `${formatSingularCollection(cr.targetCollection)} ${cr.action} approved.` });
+      const blockedRecipients = completeWhatsAppDraftTabs(whatsappTabs);
+      if (blockedRecipients.length > 0) {
+        toast({
+          type: 'warning',
+          message: `Shoot approved, but your browser blocked WhatsApp for: ${blockedRecipients.join(', ')}. Open the shoot details to launch each message draft.`,
+        });
+      }
 
       void fetchChangeRequests().then(setChangeRequests);
       void fetchClients().then(setClients);
@@ -515,6 +572,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       void fetchShoots().then(setShoots);
       void fetchExpenses().then(setExpenses);
     } catch (err) {
+      cancelWhatsAppDraftTabs(whatsappTabs);
       const msg = err instanceof Error ? err.message : 'Failed to approve request';
       toast({ type: 'error', message: msg });
       throw err;
@@ -528,11 +586,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!cr || cr.status !== 'pending') return;
 
       const now = new Date().toISOString();
+      await reviewChangeRequestWithNotification(cr, user.uid, 'rejected', reviewNote);
       setChangeRequests(prev => prev.map(item =>
         item.id === crId ? { ...item, status: 'rejected', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
       ));
-
-      await reviewChangeRequestWithNotification(cr, user.uid, 'rejected', reviewNote);
       toast({ type: 'success', message: 'Approval request rejected.' });
       void fetchChangeRequests().then(setChangeRequests);
     } catch (err) {
@@ -547,6 +604,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user || !canSubmitForApproval(user.role)) throw new Error('Not authorized to resubmit.');
       const cr = changeRequests.find(c => c.id === crId);
       if (!cr || (cr.status !== 'pending' && cr.status !== 'rejected')) return;
+      if (!canSubmitCollectionForApproval(user.role, cr.targetCollection)) throw new Error('Your role cannot resubmit this type of change.');
 
       const now = new Date().toISOString();
       const updatedCR: ChangeRequest = {
@@ -561,8 +619,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         revisionCount: cr.revisionCount + 1,
       };
 
-      setChangeRequests(prev => prev.map(item => item.id === crId ? updatedCR : item));
-
       const recipientId = await getApprovalRecipientId().catch(() => 'system');
 
       await resubmitChangeRequestWithNotification(crId, {
@@ -576,6 +632,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestedAt: now,
       }, recipientId, `${formatSingularCollection(cr.targetCollection)} resubmitted for review`);
 
+      setChangeRequests(prev => prev.map(item => item.id === crId ? updatedCR : item));
       toast({ type: 'success', message: 'Resubmitted for Founder approval.' });
       const freshCRs = await fetchChangeRequests();
       setChangeRequests(freshCRs);
@@ -589,11 +646,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleDeleteChangeRequest = async (crId: string) => {
     try {
       if (!user) throw new Error('Not authenticated.');
+      if (!canDeletePerm(user.role) && !canApprove(user.role)) {
+        throw new Error('Your role cannot delete approval requests.');
+      }
       const cr = changeRequests.find(c => c.id === crId);
       if (!cr) return;
 
-      setChangeRequests(prev => prev.filter(item => item.id !== crId));
       await deleteChangeRequest(crId);
+      setChangeRequests(prev => prev.filter(item => item.id !== crId));
       toast({ type: 'success', message: 'Change request deleted.' });
       void fetchChangeRequests().then(setChangeRequests);
     } catch (err) {
@@ -605,7 +665,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleUpdateSettings = async (id: string, data: Partial<SettingsDoc>) => {
     try {
-      if (id === 'businessProfile' && user?.role !== 'founder') {
+      if (id === 'businessProfile' && (!user || !canEditBusinessProfile(user.role))) {
         throw new Error('Only the Founder has permission to edit company invoice profile settings.');
       }
       await updateSettingsDoc(id, data);

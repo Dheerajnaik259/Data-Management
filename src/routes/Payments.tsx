@@ -22,7 +22,7 @@ export const Payments: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'incoming' | 'outgoing'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
 
-  const [previewData, setPreviewData] = useState<{ type: 'client_invoice' | 'cameraman_receipt'; shoot: Shoot; targetId: string; amount: number; paid: boolean; paidAt?: string | null; } | null>(null);
+  const [previewData, setPreviewData] = useState<{ type: 'client_invoice' | 'cameraman_receipt'; shoot: Shoot; targetId: string; amount: number; paid: boolean; paidAt?: string | null; assignmentIndex?: number; } | null>(null);
 
   const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
   const cameramanMap = useMemo(() => new Map(cameramen.map(c => [c.id, c])), [cameramen]);
@@ -75,7 +75,7 @@ export const Payments: React.FC = () => {
   const handleOpenPdf = (record: PaymentRecord) => {
     const shoot = shootMap.get(record.shootId);
     if (!shoot) return;
-    setPreviewData({ type: record.type === 'incoming' ? 'client_invoice' : 'cameraman_receipt', shoot, targetId: record.targetId, amount: record.amount, paid: record.isPaid, paidAt: record.paidAt });
+    setPreviewData({ type: record.type === 'incoming' ? 'client_invoice' : 'cameraman_receipt', shoot, targetId: record.targetId, amount: record.amount, paid: record.isPaid, paidAt: record.paidAt, assignmentIndex: record.assignmentIndex });
   };
 
   return (
@@ -167,7 +167,7 @@ export const Payments: React.FC = () => {
                         <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(item.amount)}</td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <button type="button" disabled={paymentActionDisabled} title={paymentActionDisabled ? 'Set the cameraman payout before marking it paid.' : undefined} onClick={() => { void handleTogglePayment(item).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${item.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
+                            <button type="button" disabled={paymentActionDisabled || item.isPaid} title={item.isPaid ? 'Paid status is final and cannot be changed.' : paymentActionDisabled ? 'Set the cameraman payout before marking it paid.' : undefined} onClick={() => { void handleTogglePayment(item).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${item.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
                               {item.isPaid ? <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" /><span>Mark Paid</span></>}
                             </button>
                             <OverdueBadge isPaid={item.isPaid} overdueInfo={item.overdueInfo} size="sm" />
@@ -193,7 +193,7 @@ export const Payments: React.FC = () => {
         )}
       </main>
 
-      {previewData && <InvoicePreviewModal isOpen={Boolean(previewData)} onClose={() => setPreviewData(null)} type={previewData.type} client={previewData.type === 'client_invoice' ? clientMap.get(previewData.targetId) : undefined} cameraman={previewData.type === 'cameraman_receipt' ? cameramanMap.get(previewData.targetId) : undefined} shoot={previewData.shoot} assignmentAmount={previewData.amount} assignmentPaid={previewData.paid} assignmentPaidAt={previewData.paidAt} />}
+      {previewData && <InvoicePreviewModal isOpen={Boolean(previewData)} onClose={() => setPreviewData(null)} type={previewData.type} client={previewData.type === 'client_invoice' ? clientMap.get(previewData.targetId) : undefined} cameraman={previewData.type === 'cameraman_receipt' ? cameramanMap.get(previewData.targetId) : undefined} shoot={previewData.shoot} assignmentAmount={previewData.amount} assignmentPaid={previewData.paid} assignmentPaidAt={previewData.paidAt} assignmentIndex={previewData.assignmentIndex} />}
     </div>
   );
 };

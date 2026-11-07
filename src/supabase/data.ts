@@ -18,6 +18,10 @@ type DeletedRecord = { collection: ManagedCollection; record: Client | Cameraman
 
 const managedCollections: ManagedCollection[] = ['clients', 'cameramen', 'shoots', 'expenses'];
 
+function isManagedCollection(collection: string): collection is ManagedCollection {
+  return managedCollections.includes(collection as ManagedCollection);
+}
+
 function clientOrThrow() {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before using operational data.');
@@ -239,7 +243,9 @@ export async function fetchExpenses(): Promise<Expense[]> {
 export async function fetchChangeRequests(): Promise<ChangeRequest[]> {
   const { data, error } = await clientOrThrow().from('change_requests').select('*').order('requested_at', { ascending: false });
   throwOnError(error, 'Unable to load approval requests');
-  return (data || []).map(row => asChangeRequest(row as DataRow));
+  return (data || [])
+    .map(row => asChangeRequest(row as DataRow))
+    .filter(changeRequest => isManagedCollection(changeRequest.targetCollection));
 }
 
 export async function fetchDeletedRecords(): Promise<DeletedRecord[]> {
@@ -441,6 +447,9 @@ export async function resubmitChangeRequestWithNotification(changeRequestId: str
 
 export async function reviewChangeRequestWithNotification(changeRequest: ChangeRequest, reviewerId: string, status: 'approved' | 'rejected', reviewNote: string): Promise<void> {
   if (status === 'approved') {
+    if (!isManagedCollection(changeRequest.targetCollection)) {
+      throw new Error('This change request requires its dedicated operational approval procedure.');
+    }
     if (changeRequest.action === 'create') await directCreate(changeRequest.targetCollection, changeRequest.proposedData);
     else if (changeRequest.action === 'edit' && changeRequest.targetDocId) await directUpdate(changeRequest.targetCollection, changeRequest.targetDocId, changeRequest.proposedData);
     else if (changeRequest.action === 'delete' && changeRequest.targetDocId) await softDelete(changeRequest.targetCollection, changeRequest.targetDocId);
@@ -469,7 +478,10 @@ export async function markAllNotificationsRead(recipientId: string): Promise<voi
 
 export async function findUserIdByRole(role: string): Promise<string> {
   try {
-    const { data, error } = await clientOrThrow().from('profiles').select('id').eq('role', role).limit(1).maybeSingle();
+    const query = clientOrThrow().from('profiles').select('id, role');
+    const { data, error } = role === 'founder'
+      ? await query.in('role', ['founder', 'founder_ceo', 'founder_coo']).limit(1).maybeSingle()
+      : await query.eq('role', role).limit(1).maybeSingle();
     if (error || !data?.id) return 'system';
     return stringValue(data.id);
   } catch {

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Video, Film, IndianRupee, FileText, Receipt,
-  LogOut, Settings, ClipboardCheck, Trash2,
+  LogOut, Settings, ClipboardCheck, Trash2, CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -40,13 +40,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   }, [shoots]);
 
   const isCompact = !onCloseMobile;
-  const navGroups = [
+  const navGroups = user?.role === 'social_media_manager' ? [
     {
       label: 'Workspace',
       items: [
         { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
         { to: '/clients', label: 'Clients', icon: Users },
         { to: '/shoots', label: 'Shoots', icon: Film },
+        { to: '/schedule', label: 'Schedule', icon: CalendarDays },
+      ],
+    },
+    {
+      label: 'Requests',
+      items: [
+        { to: '/approvals', label: 'My Requests', icon: ClipboardCheck },
+      ],
+    },
+  ] : [
+    {
+      label: 'Workspace',
+      items: [
+        { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
+        { to: '/clients', label: 'Clients', icon: Users },
+        { to: '/shoots', label: 'Shoots', icon: Film },
+        { to: '/schedule', label: 'Schedule', icon: CalendarDays },
         { to: '/cameramen', label: 'Cameramen', icon: Video, badge: pendingCameramanRates },
       ],
     },

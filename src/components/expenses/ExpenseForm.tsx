@@ -4,7 +4,7 @@ import { ChangeRequest, Expense } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { parseCurrencyInput } from '../../utils/formatCurrency';
-import { canSubmitForApproval } from '../../utils/permissions';
+import { canSubmitCollectionForApproval } from '../../utils/permissions';
 
 interface ExpenseFormProps {
   isOpen: boolean;
@@ -71,7 +71,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, initi
     finally { setIsSaving(false); }
   };
 
-  const isAdmin = Boolean(user && canSubmitForApproval(user.role));
+  const isAdmin = Boolean(user && canSubmitCollectionForApproval(user.role, 'expenses'));
   const submitLabel = isSaving ? 'Saving...' : resubmission ? 'Resubmit for Approval' : initialExpense
     ? (isAdmin ? 'Submit Update for Approval' : 'Update Expense')
     : (isAdmin ? 'Submit for Approval' : 'Add Expense');

@@ -8,6 +8,9 @@ import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal'
 import { generateClientInvoicePDF, generateCameramanPayoutReceiptPDF } from '../utils/pdfGenerator';
 import { EmptyState } from '../components/common/EmptyState';
 import { FileText, Download, Printer, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import { requestInvoiceNumber } from '../supabase/data';
+import { parseBusinessProfileFromSettings } from '../config/business';
+import { useToast } from '../context/ToastContext';
 
 interface InvoiceListItem {
   id: string;
@@ -26,23 +29,27 @@ interface InvoiceListItem {
 
 export const Invoices: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
-  const { shoots, clients, cameramen } = useData();
+  const { shoots, clients, cameramen, settings } = useData();
+  const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'client_invoice' | 'cameraman_receipt'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'pending'>('all');
 
   const [activeModalItem, setActiveModalItem] = useState<InvoiceListItem | null>(null);
+  const [issuedNumbers, setIssuedNumbers] = useState<Record<string, string>>({});
+  const [processingDocumentId, setProcessingDocumentId] = useState<string | null>(null);
 
   const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
   const cameramanMap = useMemo(() => new Map(cameramen.map(c => [c.id, c])), [cameramen]);
+  const businessProfile = parseBusinessProfileFromSettings(settings.find(setting => setting.key === 'businessProfile'));
 
   const allDocItems: InvoiceListItem[] = useMemo(() => {
     const list: InvoiceListItem[] = [];
     shoots.forEach(shoot => {
       const client = clientMap.get(shoot.clientId);
       const clientName = client ? client.name : 'Unknown Client';
-      const invNumber = `INV-${shoot.date.replace(/-/g, '')}-${shoot.id.slice(0, 4).toUpperCase()}`;
+      const invNumber = shoot.clientInvoiceNumber || 'Not issued';
 
       list.push({
         id: `inv-${shoot.id}`, type: 'client_invoice', docNumber: invNumber, recipientName: clientName, targetId: shoot.clientId, shoot, shootDate: shoot.date, shootLocation: shoot.location, amount: shoot.clientAmount, isPaid: shoot.clientPaid, paidAt: shoot.clientPaidAt,
@@ -52,7 +59,7 @@ export const Invoices: React.FC = () => {
         shoot.assignments.forEach((assignment, index) => {
           const cam = cameramanMap.get(assignment.cameramanId);
           const camName = cam ? cam.name : 'Crew Member';
-          const receiptNumber = `RCP-${shoot.date.replace(/-/g, '')}-${assignment.cameramanId.slice(0, 4).toUpperCase()}`;
+          const receiptNumber = assignment.payoutVoucherNumber || 'Not issued';
 
           list.push({
             id: `rcp-${shoot.id}-${assignment.cameramanId}-${index}`, type: 'cameraman_receipt', docNumber: receiptNumber, recipientName: camName, targetId: assignment.cameramanId, shoot, shootDate: shoot.date, shootLocation: shoot.location, amount: assignment.amount || 0, isPaid: assignment.paid, paidAt: assignment.paidAt, assignmentIndex: index,
@@ -74,37 +81,64 @@ export const Invoices: React.FC = () => {
     });
   }, [allDocItems, typeFilter, statusFilter, searchQuery]);
 
-  const handleDownload = (item: InvoiceListItem, e: React.MouseEvent) => {
+  const resolveNumber = async (item: InvoiceListItem): Promise<string> => {
+    const alreadyIssued = issuedNumbers[item.id] || (item.type === 'client_invoice'
+      ? item.shoot.clientInvoiceNumber
+      : item.shoot.assignments?.[item.assignmentIndex ?? -1]?.payoutVoucherNumber);
+    if (alreadyIssued) return alreadyIssued;
+    if (!item.isPaid) return `DRAFT-${item.id.slice(-8).toUpperCase()}`;
+    const number = await requestInvoiceNumber(
+      item.type === 'client_invoice' ? 'client' : 'payout',
+      item.shoot.id,
+      item.assignmentIndex,
+    );
+    setIssuedNumbers(current => ({ ...current, [item.id]: number }));
+    return number;
+  };
+
+  const handleDownload = async (item: InvoiceListItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (item.type === 'client_invoice') {
-      const client = clientMap.get(item.targetId);
-      if (client) {
-        const doc = generateClientInvoicePDF(client, item.shoot);
-        doc.save(`${item.docNumber}_${client.name.replace(/\s+/g, '_')}.pdf`);
+    setProcessingDocumentId(item.id);
+    try {
+      const number = await resolveNumber(item);
+      if (item.type === 'client_invoice') {
+        const client = clientMap.get(item.targetId);
+        if (!client) throw new Error('Client record is unavailable for this invoice.');
+        const doc = generateClientInvoicePDF(client, item.shoot, { ...businessProfile, invoiceNumber: number });
+        doc.save(`${number}_${client.name.replace(/\s+/g, '_')}.pdf`);
+      } else {
+        const cam = cameramanMap.get(item.targetId);
+        if (!cam) throw new Error('Cameraman record is unavailable for this payout voucher.');
+        const doc = generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt, { ...businessProfile, invoiceNumber: number });
+        doc.save(`${number}_${cam.name.replace(/\s+/g, '_')}.pdf`);
       }
-    } else {
-      const cam = cameramanMap.get(item.targetId);
-      if (cam) {
-        const doc = generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt);
-        doc.save(`${item.docNumber}_${cam.name.replace(/\s+/g, '_')}.pdf`);
-      }
+    } catch (error) {
+      toast({ type: 'error', message: error instanceof Error ? error.message : 'Unable to generate this document.' });
+    } finally {
+      setProcessingDocumentId(null);
     }
   };
 
-  const handlePrint = (item: InvoiceListItem, e: React.MouseEvent) => {
+  const handlePrint = async (item: InvoiceListItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (item.type === 'client_invoice') {
-      const client = clientMap.get(item.targetId);
-      if (client) {
-        const doc = generateClientInvoicePDF(client, item.shoot);
+    setProcessingDocumentId(item.id);
+    try {
+      const number = await resolveNumber(item);
+      if (item.type === 'client_invoice') {
+        const client = clientMap.get(item.targetId);
+        if (!client) throw new Error('Client record is unavailable for this invoice.');
+        const doc = generateClientInvoicePDF(client, item.shoot, { ...businessProfile, invoiceNumber: number });
+        doc.autoPrint(); window.open(doc.output('bloburl'), '_blank');
+      } else {
+        const cam = cameramanMap.get(item.targetId);
+        if (!cam) throw new Error('Cameraman record is unavailable for this payout voucher.');
+        const doc = generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt, { ...businessProfile, invoiceNumber: number });
         doc.autoPrint(); window.open(doc.output('bloburl'), '_blank');
       }
-    } else {
-      const cam = cameramanMap.get(item.targetId);
-      if (cam) {
-        const doc = generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt);
-        doc.autoPrint(); window.open(doc.output('bloburl'), '_blank');
-      }
+    } catch (error) {
+      toast({ type: 'error', message: error instanceof Error ? error.message : 'Unable to prepare this document for printing.' });
+    } finally {
+      setProcessingDocumentId(null);
     }
   };
 
@@ -171,8 +205,8 @@ export const Invoices: React.FC = () => {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button type="button" onClick={(e) => { e.stopPropagation(); setActiveModalItem(item); }} className="px-2.5 py-1 text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors">Preview</button>
-                            <button type="button" onClick={(e) => handlePrint(item, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors" title="Print Document"><Printer className="w-3.5 h-3.5" /></button>
-                            <button type="button" onClick={(e) => handleDownload(item, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors" title="Download PDF"><Download className="w-3.5 h-3.5" /></button>
+                            <button type="button" disabled={processingDocumentId === item.id} onClick={(e) => void handlePrint(item, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors disabled:opacity-50" title="Print Document"><Printer className="w-3.5 h-3.5" /></button>
+                            <button type="button" disabled={processingDocumentId === item.id} onClick={(e) => void handleDownload(item, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors disabled:opacity-50" title="Download PDF"><Download className="w-3.5 h-3.5" /></button>
                           </div>
                         </td>
                       </tr>
@@ -185,7 +219,7 @@ export const Invoices: React.FC = () => {
         )}
       </main>
 
-      {activeModalItem && <InvoicePreviewModal isOpen={Boolean(activeModalItem)} onClose={() => setActiveModalItem(null)} type={activeModalItem.type} client={activeModalItem.type === 'client_invoice' ? clientMap.get(activeModalItem.targetId) : undefined} cameraman={activeModalItem.type === 'cameraman_receipt' ? cameramanMap.get(activeModalItem.targetId) : undefined} shoot={activeModalItem.shoot} assignmentAmount={activeModalItem.amount} assignmentPaid={activeModalItem.isPaid} assignmentPaidAt={activeModalItem.paidAt} />}
+      {activeModalItem && <InvoicePreviewModal isOpen={Boolean(activeModalItem)} onClose={() => setActiveModalItem(null)} type={activeModalItem.type} client={activeModalItem.type === 'client_invoice' ? clientMap.get(activeModalItem.targetId) : undefined} cameraman={activeModalItem.type === 'cameraman_receipt' ? cameramanMap.get(activeModalItem.targetId) : undefined} shoot={activeModalItem.shoot} assignmentAmount={activeModalItem.amount} assignmentPaid={activeModalItem.isPaid} assignmentPaidAt={activeModalItem.paidAt} assignmentIndex={activeModalItem.assignmentIndex} documentNumber={issuedNumbers[activeModalItem.id] || (activeModalItem.docNumber !== 'Not issued' ? activeModalItem.docNumber : undefined)} />}
     </div>
   );
 };

@@ -5,9 +5,9 @@ async function toAuthUser(id: string, email: string | null, displayName: string 
   if (!supabase) throw new Error('Supabase is not configured.');
   const { data: profile, error } = await supabase.from('profiles').select('name, role').eq('id', id).maybeSingle();
   if (error) throw new Error(`Unable to verify your authorized profile: ${error.message}`);
-  if (!profile || !['admin', 'founder'].includes(profile.role)) {
+  if (!profile || !['admin', 'founder', 'founder_ceo', 'founder_coo', 'social_media_manager'].includes(profile.role)) {
     await supabase.auth.signOut();
-    throw new Error(`${email || 'This Google account'} is not authorized yet. Add its Auth user to public.profiles with role admin or founder.`);
+    throw new Error(`${email || 'This Google account'} is not authorized yet. Ask an Admin to invite you to the ERP.`);
   }
   return {
     uid: id,

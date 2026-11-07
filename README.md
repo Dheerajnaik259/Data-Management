@@ -5,8 +5,9 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
 ## Current features
 
 - **Role-gated dashboards:** Admin operations view with daily/tomorrow shoot dispatch, payment follow-ups, crew payouts, and submission status; Founder view with approvals, cashflow, and client profitability.
-- **Operations:** Client, cameraman, shoot, and expense records; shoot assignments and deliverables; client communication logs; cameraman availability.
-- **Payments and documents:** Receivables and crew payouts, overdue indicators, WhatsApp reminders/call sheets, CSV exports, and downloadable PDF invoices and payout vouchers.
+- **Operations:** Client, cameraman, shoot, and expense records; shoot assignments and deliverables; client communication logs; cameraman availability. Scheduling a shoot opens prefilled WhatsApp drafts for the client and assigned crew (after Founder approval for Admin submissions); a person must still press Send in WhatsApp.
+- **Schedule:** Monthly shoot calendar with date markers, hover/click previews, and links to shoot details. Horizontal two-finger trackpad gestures navigate backward/forward through visited app pages; horizontal scrolling inside content and form controls is left alone.
+- **Payments and documents:** Receivables and crew payouts, overdue indicators, WhatsApp reminders/call sheets, CSV exports, and downloadable PDF invoices and payout vouchers. Paid documents use persisted, concurrency-safe database numbers; unpaid previews are explicitly marked as drafts.
 - **Approvals and recovery:** Admin change requests with Founder review notes and resubmission; Admin recycle-bin restore and permanent deletion.
 - **Settings and access:** Configurable status/category lists, payment grace period and WhatsApp templates, Founder-managed company/invoice profile, and self-service password updates.
 - **Dashboard chart:** Income and outflow trends based on shoot payments and expenses.
@@ -50,6 +51,9 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
 4. Configure the database:
    - For a **new** Supabase project, apply `supabase/schema.sql`.
    - For an **existing** project, back up and test first, then apply only the unapplied files in `supabase/migrations/` in filename order. Do not rerun the bootstrap schema against a live database.
+   - The payment-status migration `202611070001_lock_paid_payments.sql` installs the shoot payment RPC and makes confirmed paid statuses irreversible. Apply it if the database reports that `update_shoot_operational` is missing.
+   - Apply `202611070002_delete_change_request_rpc.sql` if deleting approval requests reports that `delete_change_request` is missing.
+   - Refresh the app after applying a migration. If the function remains missing, confirm the SQL was run in the same Supabase project configured in `.env.local` and that the API schema cache has refreshed.
    - Create and verify the required Supabase Auth profiles and policies before using the application.
 
 5. Start the development server:
@@ -77,6 +81,7 @@ npm run build      # Production Vite build
 | `/login` | Sign in |
 | `/` | Role-specific dashboard |
 | `/shoots`, `/shoots/:id` | Shoot schedule and details |
+| `/schedule` | Monthly shoot calendar with event previews and links to shoot details |
 | `/clients`, `/clients/:id` | Client list and profile |
 | `/cameramen`, `/cameramen/:id` | Crew roster and profile |
 | `/payments` | Receivables and crew payouts |
@@ -97,6 +102,7 @@ Unknown routes redirect to `/`.
 - `src/utils/` — permissions, dates, currency, WhatsApp, PDFs, CSV, and business helpers
 - `supabase/schema.sql` — fresh-database schema and bootstrap policies
 - `supabase/migrations/` — ordered updates for existing databases
+- `supabase/migrations/proposed/` — unapproved schema proposals; never apply automatically
 
 ## Security notes
 
@@ -105,6 +111,7 @@ The browser uses the Supabase anon/publishable key. Never put a service-role key
 ## Documentation
 
 - [Project plan](PROJECT_PLAN.md) — implemented scope and delivery status
+- [Functionality audit](FUNCTIONALITY_AUDIT.md) — verified behavior, known limitations, and required rollout checks
 - [Data model](DATA_MODEL.md) — database tables, fields, roles, and authorization
 - [Design system](DESIGN_SYSTEM.md) — current visual tokens and UI conventions
 - [Future scope](FUTURE_SCOPE.md) — proposed features not present in the current build

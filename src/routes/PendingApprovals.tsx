@@ -18,7 +18,7 @@ const TAB_FILTERS = ['all', 'pending', 'approved', 'rejected'] as const;
 
 export const PendingApprovals: React.FC = () => {
   const ctx = useOutletContext<{ onOpenMobileNav: () => void }>();
-  const { changeRequests, handleApprove, handleReject, handleDeleteChangeRequest } = useData();
+  const { changeRequests, handleApprove, handleReject, handleDeleteChangeRequest, handleEditAndResubmit } = useData();
   const { user } = useAuth();
   const [tab, setTab] = useState<typeof TAB_FILTERS[number]>('all');
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -32,7 +32,11 @@ export const PendingApprovals: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [resubmission, setResubmission] = useState<ChangeRequest | null>(null);
 
-  const filtered = changeRequests.filter(cr => tab === 'all' || cr.status === tab);
+  const isSubmitter = Boolean(user && canSubmitForApproval(user.role));
+  const visibleRequests = isSubmitter && !canApprove(user!.role)
+    ? changeRequests.filter(cr => cr.requestedBy === user?.uid)
+    : changeRequests;
+  const filtered = visibleRequests.filter(cr => tab === 'all' || cr.status === tab);
   const isFounder = user ? canApprove(user.role) : false;
 
   const openRejectModal = (id: string) => {

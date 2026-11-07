@@ -4,7 +4,7 @@ This file separates the shipped functionality from ideas that are **not implemen
 
 ## Current build baseline
 
-The app already includes role-specific dashboards, client/cameraman/shoot/expense management, approval requests, payment and payout tracking, WhatsApp reminders/call sheets, invoices and vouchers, CSV exports, client communication history, settings, and recycle-bin operations. See [README.md](README.md) and [PROJECT_PLAN.md](PROJECT_PLAN.md) for the routes and implemented workflows.
+The app already includes role-specific dashboards, client/cameraman/shoot/expense management, a monthly shoot calendar with event previews and detail links, horizontal trackpad back/forward navigation, approval requests, payment and payout tracking, WhatsApp reminders and prefilled client/crew scheduling drafts, invoices and vouchers, CSV exports, client communication history, settings, Liquid Glass-inspired shared styling, and recycle-bin operations. WhatsApp drafts still require manual sending. Projects and Content Production were removed from the active application. See [README.md](README.md) and [PROJECT_PLAN.md](PROJECT_PLAN.md) for the current routes and status.
 
 ## Potential future features
 
@@ -13,11 +13,6 @@ The app already includes role-specific dashboards, client/cameraman/shoot/expens
 - Track each client's monthly contract quota (for example, a set number of reels and stories).
 - Show completed versus planned deliverables for the current period.
 - Define whether contract changes require Founder approval before adding fields or approval behavior.
-
-### Deliverable production workflow
-
-- Add per-deliverable stages such as editing, client review, revision, and published.
-- Define ownership, timestamps, client visibility, and history/audit requirements before extending the current deliverable JSON model.
 
 ### Contract expiry and renewal reminders
 

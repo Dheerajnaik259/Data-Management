@@ -224,7 +224,7 @@ export const Shoots: React.FC = () => {
                         <td className="px-6 py-4 text-right font-mono font-bold text-[var(--color-text)] whitespace-nowrap">{formatCurrency(shoot.clientAmount)}</td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <button type="button" onClick={(e) => { e.stopPropagation(); handleToggleClientPayment(shoot.id, !shoot.clientPaid); }} disabled={isPending}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); void handleToggleClientPayment(shoot.id, true).catch(() => {}); }} disabled={isPending || shoot.clientPaid} title={shoot.clientPaid ? 'Paid status is final and cannot be changed.' : 'Mark client payment paid'}
                               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:opacity-50 ${shoot.clientPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
                               {shoot.clientPaid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" /><span>Pending</span></>}
                             </button>

@@ -4,7 +4,7 @@ import { Cameraman, ChangeRequest } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { parseCurrencyInput } from '../../utils/formatCurrency';
-import { canSubmitForApproval } from '../../utils/permissions';
+import { canSubmitCollectionForApproval } from '../../utils/permissions';
 
 interface CameramanFormProps {
   isOpen: boolean;
@@ -68,7 +68,7 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
     finally { setIsSaving(false); }
   };
 
-  const isAdmin = Boolean(user && canSubmitForApproval(user.role));
+  const isAdmin = Boolean(user && canSubmitCollectionForApproval(user.role, 'cameramen'));
   const submitLabel = isSaving ? 'Saving...' : resubmission ? 'Resubmit for Approval' : initialCameraman
     ? (isAdmin ? 'Submit Update for Approval' : 'Update Cameraman')
     : (isAdmin ? 'Submit for Approval' : 'Add Cameraman');

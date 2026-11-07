@@ -210,7 +210,7 @@ export function generateCameramanPayoutReceiptPDF(
 ): jsPDF {
   const doc = new jsPDF();
   const opt = { ...DEFAULT_BIZ, ...options };
-  const receiptNumber = `RCP-${shoot.date.replace(/-/g, '')}-${cameraman.id.slice(0, 4).toUpperCase()}`;
+  const receiptNumber = opt.invoiceNumber || `RCP-${shoot.date.replace(/-/g, '')}-${cameraman.id.slice(0, 4).toUpperCase()}`;
 
   // Header banner
   doc.setFillColor(250, 248, 245);
