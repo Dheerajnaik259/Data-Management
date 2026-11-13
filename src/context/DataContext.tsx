@@ -7,23 +7,24 @@ import {
   subscribeToClients, subscribeToCameramen, subscribeToShoots, subscribeToExpenses,
   subscribeToSettings, updateSettingsDoc, subscribeToChangeRequests,
   subscribeToNotifications, subscribeToDeletedRecords,
-  fetchClients, fetchCameramen, fetchShoots, fetchExpenses, fetchChangeRequests, fetchDeletedRecords,
-  directCreate, directUpdate, softDelete, restoreRecord, hardDelete,
   markNotificationRead, markAllNotificationsRead,
   addCommunicationLog, resetToSeedData, requestInvoiceNumber, findUserIdByRole,
-  submitChangeRequestWithNotification, resubmitChangeRequestWithNotification,
-  reviewChangeRequestWithNotification, deleteChangeRequest,
-  updateShootOperationalData,
 } from '../supabase/data';
 import { isSupabaseConfigured } from '../supabase/config';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
-import { checkOverdue } from '../utils/overdueCheck';
-import { formatSingularCollection } from '../utils/formatCollection';
 import { parseOperationalSettings } from '../config/business';
-import { toLocalDateString } from '../utils/localDate';
-import { canCreateDirect, canApprove, canDelete as canDeletePerm, canHardDelete as canHardDeletePerm, canSubmitCollectionForApproval, canSubmitForApproval, isFounderRole, canEditBusinessProfile } from '../utils/permissions';
-import { buildShootScheduleWhatsAppDrafts, cancelWhatsAppDraftTabs, completeWhatsAppDraftTabs, prepareWhatsAppDraftTabs } from '../utils/whatsapp';
+import { canCreateDirect, canSubmitForApproval, canEditBusinessProfile } from '../utils/permissions';
+import {
+  buildCameramanLedgerMap,
+  buildClientLedgerMap,
+  buildDashboardStats,
+  buildPaymentRecords,
+  getSettingsOptions as selectSettingsOptions,
+} from './dataSelectors';
+import { createDataCrudActions } from './dataCrudActions';
+import { createShootActions } from './shootActions';
+import { createApprovalActions } from './approvalActions';
 
 interface DashboardStats {
   pendingClientAmount: number;
@@ -160,52 +161,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, [user?.uid]);
 
-  const DEFAULT_SETTINGS_OPTIONS: Record<string, SettingsOption[]> = useMemo(() => ({
-    clientStatus: [
-      { value: 'active', order: 1, archived: false },
-      { value: 'inactive', order: 2, archived: false },
-    ],
-    shootStatus: [
-      { value: 'scheduled', order: 1, archived: false },
-      { value: 'done', order: 2, archived: false },
-    ],
-    deliverableTypes: [
-      { value: 'reel', order: 1, archived: false },
-      { value: 'story', order: 2, archived: false },
-      { value: 'photo set', order: 3, archived: false },
-      { value: 'Social media strategy & campaign planning', order: 4, archived: false },
-      { value: 'Social media account management', order: 5, archived: false },
-      { value: 'Content calendar', order: 6, archived: false },
-      { value: 'Social media post design', order: 7, archived: false },
-      { value: 'Caption & copywriting', order: 8, archived: false },
-      { value: 'Reels & short-form video', order: 9, archived: false },
-      { value: 'Community management', order: 10, archived: false },
-      { value: 'Paid ads management (ad spend billed separately)', order: 11, archived: false },
-      { value: 'Campaign performance report', order: 12, archived: false },
-    ],
-    expenseCategories: [
-      { value: 'travel', order: 1, archived: false },
-      { value: 'equipment', order: 2, archived: false },
-      { value: 'software', order: 3, archived: false },
-      { value: 'other', order: 4, archived: false },
-    ],
-  }), []);
-
-  const getSettingsOptions = useCallback((key: string, includeArchived = false): SettingsOption[] => {
-    const doc = settings.find(s => s.key === key);
-    const defaults = DEFAULT_SETTINGS_OPTIONS[key] || [];
-    const storedOptions = doc?.options && doc.options.length > 0 ? doc.options : null;
-    const rawOptions = storedOptions && key === 'deliverableTypes'
-      ? [
-          ...storedOptions,
-          ...defaults.filter(option => !storedOptions.some(
-            stored => stored.value.toLocaleLowerCase() === option.value.toLocaleLowerCase(),
-          )),
-        ]
-      : storedOptions || defaults;
-    const opts = includeArchived ? rawOptions : rawOptions.filter(o => !o.archived);
-    return [...opts].sort((a, b) => a.order - b.order);
-  }, [settings, DEFAULT_SETTINGS_OPTIONS]);
+  const getSettingsOptions = useCallback((key: string, includeArchived = false): SettingsOption[] => (
+    selectSettingsOptions(settings, key, includeArchived)
+  ), [settings]);
 
   // Find the other user's ID for notifications
   const getApprovalRecipientId = useCallback(async (): Promise<string> => {
@@ -213,35 +171,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return findUserIdByRole(canSubmitForApproval(user.role) ? 'founder' : 'admin');
   }, [user]);
 
-  const clientLedgerMap = useMemo(() => {
-    const map = new Map<string, ClientLedger>();
-    shoots.forEach(s => {
-      if (!s.clientId) return;
-      const current = map.get(s.clientId) || { totalBilled: 0, totalPaid: 0, outstanding: 0 };
-      const amount = s.clientAmount || 0;
-      current.totalBilled += amount;
-      if (s.clientPaid) current.totalPaid += amount;
-      current.outstanding = current.totalBilled - current.totalPaid;
-      map.set(s.clientId, current);
-    });
-    return map;
-  }, [shoots]);
-
-  const cameramanLedgerMap = useMemo(() => {
-    const map = new Map<string, CameramanLedger>();
-    shoots.forEach(s => {
-      s.assignments?.forEach(a => {
-        if (!a.cameramanId) return;
-        const current = map.get(a.cameramanId) || { totalAssigned: 0, totalPaid: 0, outstanding: 0 };
-        const amount = a.amount || 0;
-        current.totalAssigned += amount;
-        if (a.paid) current.totalPaid += amount;
-        current.outstanding = current.totalAssigned - current.totalPaid;
-        map.set(a.cameramanId, current);
-      });
-    });
-    return map;
-  }, [shoots]);
+  const clientLedgerMap = useMemo(() => buildClientLedgerMap(shoots), [shoots]);
+  const cameramanLedgerMap = useMemo(() => buildCameramanLedgerMap(shoots), [shoots]);
 
   const getClientLedger = useCallback((clientId: string): ClientLedger => {
     return clientLedgerMap.get(clientId) || { totalBilled: 0, totalPaid: 0, outstanding: 0 };
@@ -255,431 +186,56 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
   }, [settings]);
 
-  const paymentRecords: PaymentRecord[] = useMemo(() => {
-    const records: PaymentRecord[] = [];
-    const clientMap = new Map<string, Client>(clients.map(c => [c.id, c]));
-    const camMap = new Map<string, Cameraman>(cameramen.map(c => [c.id, c]));
-    const graceDays = operationalSettings.paymentGraceDays;
-    shoots.forEach(shoot => {
-      const client = clientMap.get(shoot.clientId);
-      records.push({
-        id: `inc-${shoot.id}`, type: 'incoming', shootId: shoot.id,
-        targetId: shoot.clientId, targetName: client?.name || 'Unknown',
-        phone: client?.phone, shootDate: shoot.date, shootLocation: shoot.location,
-        shootStatus: shoot.status, amount: shoot.clientAmount, isPaid: shoot.clientPaid,
-        paidAt: shoot.clientPaidAt,
-        overdueInfo: checkOverdue(shoot.date, shoot.clientPaid, shoot.status, graceDays),
-      });
-      shoot.assignments?.forEach((a, idx) => {
-        const cam = camMap.get(a.cameramanId);
-        records.push({
-          id: `out-${shoot.id}-${idx}`, type: 'outgoing', shootId: shoot.id,
-          targetId: a.cameramanId, targetName: cam?.name || 'Unknown',
-          phone: cam?.phone, shootDate: shoot.date, shootLocation: shoot.location,
-          shootStatus: shoot.status, amount: a.amount || 0, hasAssignedRate: a.amount !== null, isPaid: a.paid,
-          paidAt: a.paidAt,
-          overdueInfo: checkOverdue(shoot.date, a.paid, shoot.status, graceDays),
-          assignmentIndex: idx,
-        });
-      });
-    });
-    return records.sort((a, b) => new Date(b.shootDate).getTime() - new Date(a.shootDate).getTime());
-  }, [shoots, clients, cameramen, operationalSettings.paymentGraceDays]);
+  const paymentRecords: PaymentRecord[] = useMemo(
+    () => buildPaymentRecords(shoots, clients, cameramen, operationalSettings.paymentGraceDays),
+    [shoots, clients, cameramen, operationalSettings.paymentGraceDays],
+  );
 
-  const dashboardStats: DashboardStats = useMemo(() => {
-    let pca = 0, pcc = 0, pcma = 0, pcmc = 0, oic = 0, ooc = 0;
-    let paidCamAmt = 0, paidCamCnt = 0;
-    let paidCliAmt = 0, paidCliCnt = 0;
+  const dashboardStats: DashboardStats = useMemo(
+    () => buildDashboardStats(paymentRecords, expenses, shoots, changeRequests),
+    [paymentRecords, expenses, shoots, changeRequests],
+  );
 
-    paymentRecords.forEach(r => {
-      if (r.type === 'incoming') {
-        if (!r.isPaid) { pca += r.amount; pcc++; if (r.overdueInfo.isOverdue) oic++; }
-        else { paidCliAmt += r.amount; paidCliCnt++; }
-      }
-      if (r.type === 'outgoing') {
-        if (!r.isPaid) { pcma += r.amount; pcmc++; if (r.overdueInfo.isOverdue) ooc++; }
-        else { paidCamAmt += r.amount; paidCamCnt++; }
-      }
-    });
+  const crudActions = createDataCrudActions({
+    user, toast, changeRequests, setChangeRequests, setClients, setCameramen, setShoots, setExpenses,
+    setDeletedRecords, getApprovalRecipientId,
+  });
+  const {
+    handleCreateOrSubmit,
+    handleUpdateOrSubmit,
+    handleSoftDelete,
+    handleRestore,
+    handleHardDelete,
+  } = crudActions;
 
-    const todayStr = toLocalDateString(new Date());
-    return {
-      pendingClientAmount: pca, pendingClientCount: pcc,
-      pendingCameramanAmount: pcma, pendingCameramanCount: pcmc,
-      paidCameramanAmount: paidCamAmt, paidCameramanCount: paidCamCnt,
-      paidClientAmount: paidCliAmt, paidClientCount: paidCliCnt,
-      totalExpenses: expenses.reduce((a, e) => a + (e.amount || 0), 0),
-      upcomingShootsCount: shoots.filter(s => s.date >= todayStr).length,
-      overdueIncomingCount: oic, overdueOutgoingCount: ooc,
-      pendingApprovalsCount: changeRequests.filter(cr => cr.status === 'pending').length,
-    };
-  }, [paymentRecords, expenses, shoots, changeRequests]);
+  const shootActions = createShootActions({ shoots, user, toast, handleUpdateOrSubmit });
+  const {
+    handleToggleClientPayment,
+    handleToggleCameramanPayment,
+    handleSetCameramanRate,
+    handleToggleCameramanCheckIn,
+  } = shootActions;
 
-  // ── Role-aware CRUD ──
-
-  const handleCreateOrSubmit = async (col: ManagedCollection, data: Record<string, unknown>): Promise<string> => {
-    try {
-      if (!user) throw new Error('Not authenticated');
-      if (canCreateDirect(user.role)) {
-        return await directCreate(col, data);
-      }
-      if (!canSubmitCollectionForApproval(user.role, col)) throw new Error('Your role cannot submit this type of change.');
-      const pendingDup = changeRequests.some(cr =>
-        cr.targetCollection === col &&
-        cr.action === 'create' &&
-        cr.status === 'pending' &&
-        JSON.stringify(cr.proposedData) === JSON.stringify(data)
-      );
-      if (pendingDup) {
-        toast({ type: 'warning', message: 'An approval request with this exact data is already pending.' });
-        return '';
-      }
-      const crId = await submitChangeRequestWithNotification({
-        targetCollection: col, targetDocId: null, action: 'create',
-        proposedData: data, requestedBy: user.uid,
-        requestedAt: new Date().toISOString(), status: 'pending',
-        reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
-      }, await getApprovalRecipientId(), `New ${col.slice(0, -1)} submission needs review`);
-
-      if (crId) {
-        const newCr: ChangeRequest = {
-          id: crId,
-          targetCollection: col,
-          targetDocId: null,
-          action: 'create',
-          proposedData: data,
-          requestedBy: user.uid,
-          requestedAt: new Date().toISOString(),
-          status: 'pending',
-          reviewedBy: null,
-          reviewedAt: null,
-          reviewNote: '',
-          revisionCount: 0,
-        };
-        setChangeRequests(prev => [newCr, ...prev.filter(c => c.id !== crId)]);
-        toast({ type: 'success', message: `Submitted new ${formatSingularCollection(col)} for approval.` });
-      }
-      return crId;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Operation failed';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleUpdateOrSubmit = async (col: ManagedCollection, docId: string, data: Record<string, unknown>): Promise<void> => {
-    try {
-      if (!user) throw new Error('Not authenticated');
-      if (canCreateDirect(user.role)) {
-        await directUpdate(col, docId, data);
-        return;
-      }
-      if (!canSubmitCollectionForApproval(user.role, col)) throw new Error('Your role cannot submit this type of change.');
-      const crId = await submitChangeRequestWithNotification({
-        targetCollection: col, targetDocId: docId, action: 'edit',
-        proposedData: data, requestedBy: user.uid,
-        requestedAt: new Date().toISOString(), status: 'pending',
-        reviewedBy: null, reviewedAt: null, reviewNote: '', revisionCount: 0,
-      }, await getApprovalRecipientId(), `${col.slice(0, -1)} edit needs review`);
-
-      if (crId) {
-        const newCr: ChangeRequest = {
-          id: crId,
-          targetCollection: col,
-          targetDocId: docId,
-          action: 'edit',
-          proposedData: data,
-          requestedBy: user.uid,
-          requestedAt: new Date().toISOString(),
-          status: 'pending',
-          reviewedBy: null,
-          reviewedAt: null,
-          reviewNote: '',
-          revisionCount: 0,
-        };
-        setChangeRequests(prev => [newCr, ...prev.filter(c => c.id !== crId)]);
-        toast({ type: 'success', message: `Submitted ${formatSingularCollection(col)} edits for approval.` });
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Operation failed';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleSoftDelete = async (col: ManagedCollection, docId: string) => {
-    try {
-      if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to delete records.');
-      if (docId.startsWith('pending-cr-')) {
-        const crId = docId.replace('pending-cr-', '');
-        await deleteChangeRequest(crId);
-        setChangeRequests(prev => prev.filter(cr => cr.id !== crId));
-        toast({ type: 'success', message: 'Pending request cancelled.' });
-        return;
-      }
-      await softDelete(col, docId);
-      if (col === 'clients') setClients(prev => prev.filter(c => c.id !== docId));
-      if (col === 'cameramen') setCameramen(prev => prev.filter(c => c.id !== docId));
-      if (col === 'shoots') setShoots(prev => prev.filter(s => s.id !== docId));
-      if (col === 'expenses') setExpenses(prev => prev.filter(e => e.id !== docId));
-      toast({ type: 'success', message: `${formatSingularCollection(col)} moved to Recycle Bin.` });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete record';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleRestore = async (col: ManagedCollection, docId: string) => {
-    try {
-      if (!user || !canDeletePerm(user.role)) throw new Error('You do not have permission to restore records.');
-      await restoreRecord(col, docId);
-      setDeletedRecords(prev => prev.filter(r => !(r.collection === col && r.record.id === docId)));
-      toast({ type: 'success', message: `${formatSingularCollection(col)} restored.` });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to restore record';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleHardDelete = async (col: ManagedCollection, docId: string) => {
-    try {
-      if (!user || !canHardDeletePerm(user.role)) throw new Error('Only a Founder can permanently delete records from the Recycle Bin.');
-      if (docId.startsWith('pending-cr-')) {
-        const crId = docId.replace('pending-cr-', '');
-        await deleteChangeRequest(crId);
-        setChangeRequests(prev => prev.filter(cr => cr.id !== crId));
-      } else {
-        await hardDelete(col, docId);
-      }
-      setDeletedRecords(prev => prev.filter(r => !(r.collection === col && r.record.id === docId)));
-      toast({ type: 'success', message: `${col.slice(0, -1)} permanently deleted.` });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to permanently delete record';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  // Shoot payment toggles (direct — these aren't data-entry, they're status updates)
-  const handleToggleClientPayment = async (shootId: string, isPaid: boolean) => {
-    try {
-      const shoot = shoots.find(item => item.id === shootId);
-      if (!shoot) throw new Error('Shoot not found.');
-      if (shoot.clientPaid && !isPaid) {
-        throw new Error('A confirmed client payment cannot be changed back to pending.');
-      }
-      if (!shoot.clientPaid && isPaid && !window.confirm('Mark this client payment as paid? This is final and cannot be changed back to pending.')) return;
-      await updateShootOperationalData(shootId, { clientPaid: isPaid, clientPaidAt: isPaid ? new Date().toISOString() : null });
-      toast({ type: 'success', message: isPaid ? 'Client payment marked paid. This status is final.' : 'Client payment marked pending.' });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to update client payment status';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleToggleCameramanPayment = async (shootId: string, idx: number, isPaid: boolean) => {
-    try {
-      const shoot = shoots.find(s => s.id === shootId);
-      if (!shoot?.assignments?.[idx]) return;
-      if (shoot.assignments[idx].paid && !isPaid) {
-        throw new Error('A confirmed crew payout cannot be changed back to pending.');
-      }
-      if (!shoot.assignments[idx].paid && isPaid && !window.confirm('Mark this crew payout as paid? This is final and cannot be changed back to pending.')) return;
-      const updated = [...shoot.assignments];
-      if (updated[idx].amount === null && isPaid) throw new Error('Set the cameraman payout before marking it paid.');
-      updated[idx] = { ...updated[idx], paid: isPaid, paidAt: isPaid ? new Date().toISOString() : null };
-      await updateShootOperationalData(shootId, { assignments: updated });
-      toast({ type: 'success', message: isPaid ? 'Crew payout marked paid. This status is final.' : 'Crew payout marked pending.' });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to update crew payout status';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleSetCameramanRate = async (shootId: string, idx: number, amount: number) => {
-    try {
-      const shoot = shoots.find(s => s.id === shootId);
-      if (!shoot?.assignments?.[idx]) return;
-      const updated = [...shoot.assignments];
-      updated[idx] = { ...updated[idx], amount };
-      await handleUpdateOrSubmit('shoots', shootId, { ...shoot, assignments: updated });
-      toast({
-        type: 'success',
-        message: canCreateDirect(user?.role || '') ? 'Payout rate updated.' : 'Payout rate submitted for Founder approval.',
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to save payout rate';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleToggleCameramanCheckIn = async (shootId: string, idx: number, checkedIn: boolean) => {
-    try {
-      const shoot = shoots.find(s => s.id === shootId);
-      if (!shoot?.assignments?.[idx]) return;
-      const updated = [...shoot.assignments];
-      updated[idx] = { ...updated[idx], checkedInAt: checkedIn ? new Date().toISOString() : null };
-      await updateShootOperationalData(shootId, { assignments: updated });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to update crew check-in';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  // ── Approval ──
-  const handleApprove = async (crId: string, reviewNote = '') => {
-    let whatsappTabs: ReturnType<typeof prepareWhatsAppDraftTabs> = [];
-    try {
-      if (!user) throw new Error('Not authenticated.');
-      const cr = changeRequests.find(c => c.id === crId);
-      if (!cr || cr.status !== 'pending') return;
-
-      if (cr.targetCollection === 'shoots' && cr.action === 'create') {
-        const proposed = cr.proposedData;
-        const assignments = Array.isArray(proposed.assignments)
-          ? proposed.assignments.flatMap(assignmentValue => {
-            if (!assignmentValue || typeof assignmentValue !== 'object') return [];
-            const assignment = assignmentValue as Record<string, unknown>;
-            if (typeof assignment.cameramanId !== 'string') return [];
-            return [{
-              cameramanId: assignment.cameramanId,
-              callTime: typeof assignment.callTime === 'string' ? assignment.callTime : null,
-            }];
-          })
-          : [];
-        const clientId = typeof proposed.clientId === 'string' ? proposed.clientId : '';
-        const date = typeof proposed.date === 'string' ? proposed.date : '';
-        const callTime = typeof proposed.callTime === 'string' ? proposed.callTime : '';
-        const location = typeof proposed.location === 'string' ? proposed.location : '';
-        const status = typeof proposed.status === 'string' ? proposed.status : '';
-        if (status.toLowerCase() === 'scheduled' && clientId && date && location) {
-          const operationalSettings = parseOperationalSettings(settings.find(setting => setting.key === 'operationalSettings'));
-          const drafts = buildShootScheduleWhatsAppDrafts(
-            { clientId, date, callTime, location, assignments },
-            clients.find(client => client.id === clientId),
-            cameramen,
-            operationalSettings.crewScheduleTemplate,
-          );
-          whatsappTabs = prepareWhatsAppDraftTabs(drafts);
-        }
-      }
-
-      const now = new Date().toISOString();
-      await reviewChangeRequestWithNotification(cr.id, 'approved', reviewNote);
-      setChangeRequests(prev => prev.map(item =>
-        item.id === crId ? { ...item, status: 'approved', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
-      ));
-      toast({ type: 'success', message: `${formatSingularCollection(cr.targetCollection)} ${cr.action} approved.` });
-      const blockedRecipients = completeWhatsAppDraftTabs(whatsappTabs);
-      if (blockedRecipients.length > 0) {
-        toast({
-          type: 'warning',
-          message: `Shoot approved, but your browser blocked WhatsApp for: ${blockedRecipients.join(', ')}. Open the shoot details to launch each message draft.`,
-        });
-      }
-
-      void fetchChangeRequests().then(setChangeRequests);
-      void fetchClients().then(setClients);
-      void fetchCameramen().then(setCameramen);
-      void fetchShoots().then(setShoots);
-      void fetchExpenses().then(setExpenses);
-    } catch (err) {
-      cancelWhatsAppDraftTabs(whatsappTabs);
-      const msg = err instanceof Error ? err.message : 'Failed to approve request';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleReject = async (crId: string, reviewNote: string) => {
-    try {
-      if (!user) throw new Error('Not authenticated.');
-      const cr = changeRequests.find(c => c.id === crId);
-      if (!cr || cr.status !== 'pending') return;
-
-      const now = new Date().toISOString();
-      await reviewChangeRequestWithNotification(cr.id, 'rejected', reviewNote);
-      setChangeRequests(prev => prev.map(item =>
-        item.id === crId ? { ...item, status: 'rejected', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
-      ));
-      toast({ type: 'success', message: 'Approval request rejected.' });
-      void fetchChangeRequests().then(setChangeRequests);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to reject request';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleEditAndResubmit = async (crId: string, newData: Record<string, unknown>) => {
-    try {
-      if (!user || !canSubmitForApproval(user.role)) throw new Error('Not authorized to resubmit.');
-      const cr = changeRequests.find(c => c.id === crId);
-      if (!cr || (cr.status !== 'pending' && cr.status !== 'rejected')) return;
-      if (!canSubmitCollectionForApproval(user.role, cr.targetCollection)) throw new Error('Your role cannot resubmit this type of change.');
-
-      const now = new Date().toISOString();
-      const updatedCR: ChangeRequest = {
-        ...cr,
-        proposedData: newData,
-        status: 'pending',
-        requestedBy: user.uid,
-        requestedAt: now,
-        reviewedBy: null,
-        reviewedAt: null,
-        reviewNote: '',
-        revisionCount: cr.revisionCount + 1,
-      };
-
-      const recipientId = await getApprovalRecipientId().catch(() => 'system');
-
-      await resubmitChangeRequestWithNotification(crId, {
-        proposedData: newData,
-        status: 'pending',
-        requestedBy: user.uid,
-        reviewedBy: null,
-        reviewedAt: null,
-        reviewNote: '',
-        revisionCount: (cr.revisionCount || 0) + 1,
-        requestedAt: now,
-      }, recipientId, `${formatSingularCollection(cr.targetCollection)} resubmitted for review`);
-
-      setChangeRequests(prev => prev.map(item => item.id === crId ? updatedCR : item));
-      toast({ type: 'success', message: 'Resubmitted for Founder approval.' });
-      const freshCRs = await fetchChangeRequests();
-      setChangeRequests(freshCRs);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to resubmit request';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
-
-  const handleDeleteChangeRequest = async (crId: string) => {
-    try {
-      if (!user) throw new Error('Not authenticated.');
-      if (!canDeletePerm(user.role) && !canApprove(user.role)) {
-        throw new Error('Your role cannot delete approval requests.');
-      }
-      const cr = changeRequests.find(c => c.id === crId);
-      if (!cr) return;
-
-      await deleteChangeRequest(crId);
-      setChangeRequests(prev => prev.filter(item => item.id !== crId));
-      toast({ type: 'success', message: 'Change request deleted.' });
-      void fetchChangeRequests().then(setChangeRequests);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete change request';
-      toast({ type: 'error', message: msg });
-      throw err;
-    }
-  };
+  const approvalActions = createApprovalActions({
+    user,
+    toast,
+    changeRequests,
+    clients,
+    cameramen,
+    settings,
+    setChangeRequests,
+    setClients,
+    setCameramen,
+    setShoots,
+    setExpenses,
+    getApprovalRecipientId,
+  });
+  const {
+    handleApprove,
+    handleReject,
+    handleEditAndResubmit,
+    handleDeleteChangeRequest,
+  } = approvalActions;
 
   const handleUpdateSettings = async (id: string, data: Partial<SettingsDoc>) => {
     try {
