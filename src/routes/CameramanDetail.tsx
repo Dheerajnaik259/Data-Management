@@ -166,82 +166,28 @@ export const CameramanDetail: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
-                  {assignedShoots.map((item, idx) => {
-                    const clientName = clientMap.get(item.shoot.clientId) || 'Client';
-                    return (
-                      <tr key={idx} className="hover:bg-[var(--color-bg-hover)] transition-colors">
-                        <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)]">
-                          {item.shoot.date}
-                          {(item.shoot.assignments[item.assignmentIndex]?.callTime || item.shoot.callTime) && (
-                            <span className="block text-[10px] text-[var(--color-text-muted)] font-sans">
-                              Call: {formatTime12h(item.shoot.assignments[item.assignmentIndex]?.callTime || item.shoot.callTime)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-[var(--color-text)]">{clientName}</td>
-                        <td className="px-6 py-4 text-[var(--color-text-secondary)]">{item.shoot.location}</td>
-                        <td className="px-6 py-4 font-mono font-semibold text-[var(--color-text)]">
-                          {editingRowKey === `${item.shoot.id}-${item.assignmentIndex}` ? (
-                            <div className="flex items-center justify-end gap-1.5">
-                              <input
-                                type="number"
-                                value={editingAmount || ''}
-                                onChange={e => setEditingAmount(parseCurrencyInput(e.target.value))}
-                                className="w-24 px-2 py-1 text-xs font-mono font-bold bg-[var(--color-bg)] border border-[var(--color-border)] rounded text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                              />
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await handleSetCameramanRate(item.shoot.id, item.assignmentIndex, editingAmount);
-                                  setEditingRowKey(null);
-                                }}
-                                className="p-1 text-white bg-emerald-600 rounded hover:bg-emerald-700 transition-colors"
-                                title="Save Payout Rate"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingRowKey(null)}
-                                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-                                title="Cancel"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-end gap-1.5 group/rate">
-                              <span>{formatCurrency(item.amount)}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingRowKey(`${item.shoot.id}-${item.assignmentIndex}`);
-                                  setEditingAmount(item.amount || 0);
-                                }}
-                                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] opacity-60 group-hover/rate:opacity-100 transition-opacity"
-                                title="Edit Agreed Shoot Payout"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <button type="button" disabled={item.amount === null || item.paid} title={item.paid ? 'Paid status is final and cannot be changed.' : undefined} onClick={() => { void handleToggleCameramanPayment(item.shoot.id, item.assignmentIndex, true).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${item.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
-                            {item.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>{item.amount === null ? 'Rate not set' : `Disburse ${formatCurrency(item.amount)}`}</span></>}
-                          </button>
-                          <button type="button" onClick={() => handleToggleCameramanCheckIn(item.shoot.id, item.assignmentIndex, !item.shoot.assignments[item.assignmentIndex].checkedInAt)} className="ml-2 px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] border border-[var(--color-border)] rounded-md">
-                            {item.shoot.assignments[item.assignmentIndex].checkedInAt ? 'Checked in' : 'Check in'}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button type="button" disabled={item.amount === null} onClick={() => item.amount !== null && setReceiptModalShoot({ shoot: item.shoot, amount: item.amount, paid: item.paid, paidAt: item.paidAt, assignmentIndex: item.assignmentIndex })} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50">
-                            <FileText className="w-3.5 h-3.5" /> <span>Voucher PDF</span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {assignedShoots.map(item => (
+                    <CameramanAssignmentRow
+                      key={`${item.shoot.id}-${item.assignmentIndex}`}
+                      item={item}
+                      clientName={clientMap.get(item.shoot.clientId) || 'Client'}
+                      isEditing={editingRowKey === `${item.shoot.id}-${item.assignmentIndex}`}
+                      editingAmount={editingAmount}
+                      onAmountChange={setEditingAmount}
+                      onSaveRate={async () => {
+                        await handleSetCameramanRate(item.shoot.id, item.assignmentIndex, editingAmount);
+                        setEditingRowKey(null);
+                      }}
+                      onCancelEdit={() => setEditingRowKey(null)}
+                      onStartEdit={() => {
+                        setEditingRowKey(`${item.shoot.id}-${item.assignmentIndex}`);
+                        setEditingAmount(item.amount || 0);
+                      }}
+                      onTogglePayment={() => handleToggleCameramanPayment(item.shoot.id, item.assignmentIndex, true)}
+                      onToggleCheckIn={() => handleToggleCameramanCheckIn(item.shoot.id, item.assignmentIndex, !item.shoot.assignments[item.assignmentIndex].checkedInAt)}
+                      onOpenReceipt={() => item.amount !== null && setReceiptModalShoot({ shoot: item.shoot, amount: item.amount, paid: item.paid, paidAt: item.paidAt, assignmentIndex: item.assignmentIndex })}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -283,3 +229,80 @@ export const CameramanDetail: React.FC = () => {
     </div>
   );
 };
+
+type CameramanAssignmentItem = {
+  shoot: Shoot;
+  amount: number | null;
+  paid: boolean;
+  paidAt?: string | null;
+  assignmentIndex: number;
+};
+
+interface CameramanAssignmentRowProps {
+  item: CameramanAssignmentItem;
+  clientName: string;
+  isEditing: boolean;
+  editingAmount: number;
+  onAmountChange: (amount: number) => void;
+  onSaveRate: () => Promise<void>;
+  onCancelEdit: () => void;
+  onStartEdit: () => void;
+  onTogglePayment: () => Promise<void>;
+  onToggleCheckIn: () => void;
+  onOpenReceipt: () => void;
+}
+
+const CameramanAssignmentRow: React.FC<CameramanAssignmentRowProps> = ({
+  item, clientName, isEditing, editingAmount, onAmountChange, onSaveRate, onCancelEdit, onStartEdit, onTogglePayment, onToggleCheckIn, onOpenReceipt,
+}) => (
+  <tr className="hover:bg-[var(--color-bg-hover)] transition-colors">
+    <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)]">
+      {item.shoot.date}
+      {(item.shoot.assignments[item.assignmentIndex]?.callTime || item.shoot.callTime) && (
+        <span className="block text-[10px] text-[var(--color-text-muted)] font-sans">
+          Call: {formatTime12h(item.shoot.assignments[item.assignmentIndex]?.callTime || item.shoot.callTime)}
+        </span>
+      )}
+    </td>
+    <td className="px-6 py-4 font-semibold text-[var(--color-text)]">{clientName}</td>
+    <td className="px-6 py-4 text-[var(--color-text-secondary)]">{item.shoot.location}</td>
+    <td className="px-6 py-4 font-mono font-semibold text-[var(--color-text)]">
+      {isEditing ? (
+        <div className="flex items-center justify-end gap-1.5">
+          <input
+            type="number"
+            value={editingAmount || ''}
+            onChange={e => onAmountChange(parseCurrencyInput(e.target.value))}
+            className="w-24 px-2 py-1 text-xs font-mono font-bold bg-[var(--color-bg)] border border-[var(--color-border)] rounded text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+          />
+          <button type="button" onClick={() => { void onSaveRate(); }} className="p-1 text-white bg-emerald-600 rounded hover:bg-emerald-700 transition-colors" title="Save Payout Rate">
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" onClick={onCancelEdit} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors" title="Cancel">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-end gap-1.5 group/rate">
+          <span>{formatCurrency(item.amount)}</span>
+          <button type="button" onClick={onStartEdit} className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] opacity-60 group-hover/rate:opacity-100 transition-opacity" title="Edit Agreed Shoot Payout">
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </td>
+    <td className="px-6 py-4 text-center">
+      <button type="button" disabled={item.amount === null || item.paid} title={item.paid ? 'Paid status is final and cannot be changed.' : undefined} onClick={() => { void onTogglePayment().catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${item.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
+        {item.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>{item.amount === null ? 'Rate not set' : `Disburse ${formatCurrency(item.amount)}`}</span></>}
+      </button>
+      <button type="button" onClick={onToggleCheckIn} className="ml-2 px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] border border-[var(--color-border)] rounded-md">
+        {item.shoot.assignments[item.assignmentIndex].checkedInAt ? 'Checked in' : 'Check in'}
+      </button>
+    </td>
+    <td className="px-6 py-4 text-right">
+      <button type="button" disabled={item.amount === null} onClick={onOpenReceipt} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50">
+        <FileText className="w-3.5 h-3.5" /> <span>Voucher PDF</span>
+      </button>
+    </td>
+  </tr>
+);

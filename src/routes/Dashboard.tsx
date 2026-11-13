@@ -40,48 +40,41 @@ const updateMetricHighlight = (event: React.PointerEvent<HTMLElement>) => {
   event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - bounds.top}px`);
 };
 
-export const Dashboard: React.FC = () => {
-  const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
-  const { shoots, clients, cameramen, expenses, changeRequests, dashboardStats, handleToggleCameramanCheckIn } = useData();
-  const { user } = useAuth();
+type DashboardData = ReturnType<typeof useData>;
 
-  const [isShootFormOpen, setIsShootFormOpen] = useState(false);
-  const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
-  const cameramanMap = useMemo(() => new Map(cameramen.map(c => [c.id, c])), [cameramen]);
+interface DashboardMetricsInput {
+  shoots: DashboardData['shoots'];
+  clients: DashboardData['clients'];
+  cameramen: DashboardData['cameramen'];
+  expenses: DashboardData['expenses'];
+  changeRequests: DashboardData['changeRequests'];
+  dashboardStats: DashboardData['dashboardStats'];
+  isAdmin: boolean;
+  userId: string | undefined;
+}
 
-  const isAdmin = user?.role === 'admin';
-  const isFounder = Boolean(user && canApprove(user.role));
-  const isSocialMediaManager = user?.role === 'social_media_manager';
-
+const useDashboardMetrics = ({
+  shoots, clients, cameramen, expenses, changeRequests, dashboardStats, isAdmin, userId,
+}: DashboardMetricsInput) => {
   const todayStr = toLocalDateString(new Date());
   const tomorrowObj = new Date();
   tomorrowObj.setDate(tomorrowObj.getDate() + 1);
   const tomorrowStr = toLocalDateString(tomorrowObj);
 
-  // ── ADMIN COMPUTED DATA ──
+  const dispatchShoots = useMemo(() => [...shoots]
+    .filter(s => s.date === todayStr || s.date === tomorrowStr)
+    .sort((a, b) => a.date.localeCompare(b.date)), [shoots, todayStr, tomorrowStr]);
 
-  // Shoots scheduled today or tomorrow for crew dispatch console
-  const dispatchShoots = useMemo(() => {
-    return [...shoots]
-      .filter(s => s.date === todayStr || s.date === tomorrowStr)
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [shoots, todayStr, tomorrowStr]);
+  const upcomingShoots = useMemo(() => [...shoots]
+    .filter(s => s.status === 'scheduled' || s.date >= todayStr)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 6), [shoots, todayStr]);
 
-  // Active / upcoming shoots for summary
-  const upcomingShoots = useMemo(() => {
-    return [...shoots]
-      .filter(s => s.status === 'scheduled' || s.date >= todayStr)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(0, 6);
-  }, [shoots, todayStr]);
-
-  // Admin's submitted change requests
   const myChangeRequests = useMemo(() => {
     if (!isAdmin) return [];
-    return changeRequests.filter(cr => cr.requestedBy === user?.uid).slice(0, 5);
-  }, [changeRequests, isAdmin, user?.uid]);
+    return changeRequests.filter(cr => cr.requestedBy === userId).slice(0, 5);
+  }, [changeRequests, isAdmin, userId]);
 
-  // Deliverables Statistics (from shoots.deliverables schema - cloud link is optional)
   const deliverablesStats = useMemo(() => {
     let total = 0;
     let shootsCount = 0;
@@ -92,23 +85,19 @@ export const Dashboard: React.FC = () => {
         shoot.deliverables.forEach(del => {
           const count = del.count || 1;
           total += count;
-          if (del.fileLink && del.fileLink.trim()) {
-            withCloudLink += count;
-          }
+          if (del.fileLink && del.fileLink.trim()) withCloudLink += count;
         });
       }
     });
     return { totalDeliverablesCount: total, shootsWithDeliverablesCount: shootsCount, withCloudLinkCount: withCloudLink };
   }, [shoots]);
 
-  // Shoots without assigned crew (from shoots.assignments schema)
-  const shootsWithoutCrewCount = useMemo(() => {
-    return shoots.filter(s => (s.status === 'scheduled' || s.date >= todayStr) && (!s.assignments || s.assignments.length === 0 || s.assignments.every(a => !a.cameramanId))).length;
-  }, [shoots, todayStr]);
+  const shootsWithoutCrewCount = useMemo(() => shoots.filter(s =>
+    (s.status === 'scheduled' || s.date >= todayStr) &&
+    (!s.assignments || s.assignments.length === 0 || s.assignments.every(a => !a.cameramanId)),
+  ).length, [shoots, todayStr]);
 
-  // Crew Availability Statistics (from cameramen & shoots schema)
   const crewAvailabilityStats = useMemo(() => {
-    const totalCrew = cameramen.length;
     const assignedSet = new Set<string>();
     shoots.forEach(s => {
       if (s.status === 'scheduled' || s.date >= todayStr) {
@@ -119,16 +108,14 @@ export const Dashboard: React.FC = () => {
     });
     const unavailableCount = cameramen.filter(c => (c.unavailability || []).some(u => u.date === todayStr)).length;
     return {
-      totalCrew,
+      totalCrew: cameramen.length,
       assignedCrewCount: assignedSet.size,
       unavailableCrewCount: unavailableCount,
     };
   }, [cameramen, shoots, todayStr]);
 
-  // Operational Exceptions list for Admin "Action Required"
   const operationalExceptions = useMemo(() => {
     const list: Array<{ id: string; label: string; link: string; type: 'error' | 'warning' }> = [];
-    
     if (shootsWithoutCrewCount > 0) {
       list.push({ id: 'no-crew', label: `${shootsWithoutCrewCount} shoot(s) without assigned crew`, link: '/shoots', type: 'error' });
     }
@@ -145,77 +132,74 @@ export const Dashboard: React.FC = () => {
     return list;
   }, [shootsWithoutCrewCount, dashboardStats.overdueIncomingCount, dashboardStats.pendingCameramanCount, myChangeRequests]);
 
-  // ── FOUNDER COMPUTED DATA ──
+  const pendingFounderApprovals = useMemo(
+    () => changeRequests.filter(cr => cr.status === 'pending'),
+    [changeRequests],
+  );
 
-  const pendingFounderApprovals = useMemo(() => {
-    return changeRequests.filter(cr => cr.status === 'pending');
-  }, [changeRequests]);
+  const clientProfitabilityRanking = useMemo(() => clients.map(client => {
+    const clientShoots = shoots.filter(s => s.clientId === client.id);
+    const invoicedRevenue = clientShoots.reduce((sum, s) => sum + (s.clientAmount || 0), 0);
+    const crewCosts = clientShoots.reduce((sum, s) => sum + (s.assignments || []).reduce((acc, a) => acc + (a.amount || 0), 0), 0);
+    const shootIds = new Set(clientShoots.map(s => s.id));
+    const directExpenses = expenses.filter(e => e.shootId && shootIds.has(e.shootId)).reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalCosts = crewCosts + directExpenses;
+    const netMargin = invoicedRevenue - totalCosts;
+    const marginPercent = invoicedRevenue > 0 ? Math.round((netMargin / invoicedRevenue) * 100) : 0;
+    return { client, shootsCount: clientShoots.length, invoicedRevenue, totalCosts, netMargin, marginPercent };
+  }).sort((a, b) => b.netMargin - a.netMargin), [clients, shoots, expenses]);
 
-  // Client Profitability Metrics (calculated from shoots, assignments, & expenses)
-  const clientProfitabilityRanking = useMemo(() => {
-    return clients.map(client => {
-      const clientShoots = shoots.filter(s => s.clientId === client.id);
-      const invoicedRevenue = clientShoots.reduce((sum, s) => sum + (s.clientAmount || 0), 0);
-      const crewCosts = clientShoots.reduce((sum, s) => sum + (s.assignments || []).reduce((acc, a) => acc + (a.amount || 0), 0), 0);
-      const shootIds = new Set(clientShoots.map(s => s.id));
-      const directExpenses = expenses.filter(e => e.shootId && shootIds.has(e.shootId)).reduce((sum, e) => sum + (e.amount || 0), 0);
-      
-      const totalCosts = crewCosts + directExpenses;
-      const netMargin = invoicedRevenue - totalCosts;
-      const marginPercent = invoicedRevenue > 0 ? Math.round((netMargin / invoicedRevenue) * 100) : 0;
-
-      return {
-        client,
-        shootsCount: clientShoots.length,
-        invoicedRevenue,
-        totalCosts,
-        netMargin,
-        marginPercent,
-      };
-    }).sort((a, b) => b.netMargin - a.netMargin);
-  }, [clients, shoots, expenses]);
-
-  // Financial Snapshot & Cashflow (from schema)
   const netOperatingCashflow = dashboardStats.paidClientAmount - dashboardStats.paidCameramanAmount - dashboardStats.totalExpenses;
   const totalBilled = dashboardStats.paidClientAmount + dashboardStats.pendingClientAmount;
   const collectionRate = totalBilled > 0 ? Math.round((dashboardStats.paidClientAmount / totalBilled) * 100) : 0;
 
+  return {
+    todayStr, tomorrowStr, dispatchShoots, upcomingShoots, myChangeRequests, deliverablesStats,
+    shootsWithoutCrewCount, crewAvailabilityStats, operationalExceptions, pendingFounderApprovals,
+    clientProfitabilityRanking, netOperatingCashflow, collectionRate,
+  };
+};
+
+export const Dashboard: React.FC = () => {
+  const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
+  const { shoots, clients, cameramen, expenses, changeRequests, dashboardStats, handleToggleCameramanCheckIn } = useData();
+  const { user } = useAuth();
+
+  const [isShootFormOpen, setIsShootFormOpen] = useState(false);
+  const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+  const cameramanMap = useMemo(() => new Map(cameramen.map(c => [c.id, c])), [cameramen]);
+
+  const isAdmin = user?.role === 'admin';
+  const isFounder = Boolean(user && canApprove(user.role));
+  const isSocialMediaManager = user?.role === 'social_media_manager';
+  const metrics = useDashboardMetrics({
+    shoots,
+    clients,
+    cameramen,
+    expenses,
+    changeRequests,
+    dashboardStats,
+    isAdmin,
+    userId: user?.uid,
+  });
+  const {
+    todayStr, tomorrowStr, dispatchShoots, upcomingShoots, myChangeRequests, deliverablesStats,
+    shootsWithoutCrewCount, crewAvailabilityStats, operationalExceptions, pendingFounderApprovals,
+    clientProfitabilityRanking, netOperatingCashflow, collectionRate,
+  } = metrics;
+
   if (isSocialMediaManager) {
-    const myRequests = changeRequests.filter(request => request.requestedBy === user?.uid);
-    const pendingRequests = myRequests.filter(request => request.status === 'pending').length;
     return (
-      <div className="flex-1 flex min-w-0 flex-col pb-12">
-        <Header
-          title="Social Media Workspace"
-          subtitle="Manage client and shoot updates for Founder approval"
-          onOpenMobile={onOpenMobileNav}
-          action={<button type="button" onClick={() => setIsShootFormOpen(true)} className="inline-flex items-center gap-1.5 rounded bg-[var(--color-accent)] px-3.5 py-2 text-xs font-semibold text-[var(--color-text-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)]"><Plus className="h-3.5 w-3.5" /> Schedule Shoot</button>}
-        />
-        <main className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-          <section className="grid gap-4 sm:grid-cols-3">
-            <Link to="/clients" className="liquid-metric-card block p-4">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Active Clients</span>
-              <div className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">{clients.filter(client => client.status === 'active').length}</div>
-              <span className="mt-1 block text-xs text-[var(--color-text-secondary)]">View client accounts</span>
-            </Link>
-            <Link to="/schedule" className="liquid-metric-card block p-4">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Upcoming Shoots</span>
-              <div className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">{upcomingShoots.length}</div>
-              <span className="mt-1 block text-xs text-[var(--color-text-secondary)]">Open the shoot calendar</span>
-            </Link>
-            <Link to="/approvals" className="liquid-metric-card block p-4">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">My Pending Requests</span>
-              <div className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">{pendingRequests}</div>
-              <span className="mt-1 block text-xs text-[var(--color-text-secondary)]">Track your submissions</span>
-            </Link>
-          </section>
-          <section className="liquid-content-panel p-5">
-            <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Your role</h2>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">You can manage client and shoot information by submitting changes for Founder approval. Financial records, team administration, and deletion tools are not part of this workspace.</p>
-          </section>
-        </main>
-        <ShootForm isOpen={isShootFormOpen} onClose={() => setIsShootFormOpen(false)} />
-      </div>
+      <SocialMediaDashboard
+        onOpenMobileNav={onOpenMobileNav}
+        clients={clients}
+        upcomingShootCount={upcomingShoots.length}
+        changeRequests={changeRequests}
+        userId={user?.uid}
+        isShootFormOpen={isShootFormOpen}
+        onOpenShootForm={() => setIsShootFormOpen(true)}
+        onCloseShootForm={() => setIsShootFormOpen(false)}
+      />
     );
   }
 
@@ -759,58 +743,120 @@ export const Dashboard: React.FC = () => {
         {/* ════════════════════════════════════════════════════════════ */}
         {/* ── SHARED: ACTIVE SHOOT SCHEDULE SUMMARY ── */}
         {/* ════════════════════════════════════════════════════════════ */}
-        <section className="liquid-content-panel overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-background)] flex items-center justify-between">
-            <div>
-              <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)]">Active Shoot Schedule Summary</h3>
-              <p className="text-xs text-[var(--color-text-secondary)]">Jobs scheduled for execution and immediate production</p>
-            </div>
-            <Link to="/shoots" className="text-xs font-semibold text-[var(--color-text-primary)] hover:underline inline-flex items-center gap-1">
-              <span>View All Shoots</span> <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-          {upcomingShoots.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[var(--color-text-secondary)]">No upcoming shoots scheduled.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
-                <thead className="bg-[var(--color-background)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">
-                  <tr>
-                    <th className="px-5 py-3 font-semibold">Client / Brand</th>
-                    <th className="px-5 py-3 font-semibold">Date</th>
-                    <th className="px-5 py-3 font-semibold">Location</th>
-                    <th className="px-5 py-3 font-semibold">Status</th>
-                    <th className="px-5 py-3 font-semibold text-right">Client Amount</th>
-                    <th className="px-5 py-3 font-semibold text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)]">
-                  {upcomingShoots.map(shoot => {
-                    const client = clientMap.get(shoot.clientId);
-                    return (
-                      <tr key={shoot.id} className="hover:bg-[var(--color-background)] transition-colors">
-                        <td className="px-5 py-3 font-medium text-[var(--color-text-primary)]"><Link to={`/clients/${shoot.clientId}`} className="hover:underline font-semibold">{client ? client.name : 'Unknown Client'}</Link></td>
-                        <td className="px-5 py-3 font-mono text-[var(--color-text-secondary)]"><span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />{shoot.date}</span></td>
-                        <td className="px-5 py-3 text-[var(--color-text-secondary)]"><span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />{shoot.location}</span></td>
-                        <td className="px-5 py-3">
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${shoot.status === 'done' ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${shoot.status === 'done' ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'}`} />
-                            <span className="capitalize">{shoot.status}</span>
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-right font-semibold font-mono text-[var(--color-text-primary)]">{formatCurrency(shoot.clientAmount)}</td>
-                        <td className="px-5 py-3 text-right"><Link to={`/shoots/${shoot.id}`} className="text-xs font-semibold text-[var(--color-text-primary)] hover:underline">Open Workspace &rarr;</Link></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        <UpcomingShootsSummary shoots={upcomingShoots} clientMap={clientMap} />
       </main>
 
       <ShootForm isOpen={isShootFormOpen} onClose={() => setIsShootFormOpen(false)} />
     </div>
   );
 };
+
+interface SocialMediaDashboardProps {
+  onOpenMobileNav: () => void;
+  clients: DashboardData['clients'];
+  upcomingShootCount: number;
+  changeRequests: DashboardData['changeRequests'];
+  userId: string | undefined;
+  isShootFormOpen: boolean;
+  onOpenShootForm: () => void;
+  onCloseShootForm: () => void;
+}
+
+const SocialMediaDashboard: React.FC<SocialMediaDashboardProps> = ({
+  onOpenMobileNav, clients, upcomingShootCount, changeRequests, userId,
+  isShootFormOpen, onOpenShootForm, onCloseShootForm,
+}) => {
+  const pendingRequestCount = changeRequests.filter(request =>
+    request.requestedBy === userId && request.status === 'pending',
+  ).length;
+
+  return (
+    <div className="flex-1 flex min-w-0 flex-col pb-12">
+      <Header
+        title="Social Media Workspace"
+        subtitle="Manage client and shoot updates for Founder approval"
+        onOpenMobile={onOpenMobileNav}
+        action={<button type="button" onClick={onOpenShootForm} className="inline-flex items-center gap-1.5 rounded bg-[var(--color-accent)] px-3.5 py-2 text-xs font-semibold text-[var(--color-text-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)]"><Plus className="h-3.5 w-3.5" /> Schedule Shoot</button>}
+      />
+      <main className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+        <section className="grid gap-4 sm:grid-cols-3">
+          <Link to="/clients" className="liquid-metric-card block p-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Active Clients</span>
+            <div className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">{clients.filter(client => client.status === 'active').length}</div>
+            <span className="mt-1 block text-xs text-[var(--color-text-secondary)]">View client accounts</span>
+          </Link>
+          <Link to="/schedule" className="liquid-metric-card block p-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Upcoming Shoots</span>
+            <div className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">{upcomingShootCount}</div>
+            <span className="mt-1 block text-xs text-[var(--color-text-secondary)]">Open the shoot calendar</span>
+          </Link>
+          <Link to="/approvals" className="liquid-metric-card block p-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">My Pending Requests</span>
+            <div className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">{pendingRequestCount}</div>
+            <span className="mt-1 block text-xs text-[var(--color-text-secondary)]">Track your submissions</span>
+          </Link>
+        </section>
+        <section className="liquid-content-panel p-5">
+          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Your role</h2>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">You can manage client and shoot information by submitting changes for Founder approval. Financial records, team administration, and deletion tools are not part of this workspace.</p>
+        </section>
+      </main>
+      <ShootForm isOpen={isShootFormOpen} onClose={onCloseShootForm} />
+    </div>
+  );
+};
+
+const UpcomingShootsSummary: React.FC<{
+  shoots: DashboardData['shoots'];
+  clientMap: Map<string, DashboardData['clients'][number]>;
+}> = ({ shoots, clientMap }) => (
+  <section className="liquid-content-panel overflow-hidden">
+    <div className="px-5 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-background)] flex items-center justify-between">
+      <div>
+        <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)]">Active Shoot Schedule Summary</h3>
+        <p className="text-xs text-[var(--color-text-secondary)]">Jobs scheduled for execution and immediate production</p>
+      </div>
+      <Link to="/shoots" className="text-xs font-semibold text-[var(--color-text-primary)] hover:underline inline-flex items-center gap-1">
+        <span>View All Shoots</span> <ArrowRight className="w-3.5 h-3.5" />
+      </Link>
+    </div>
+    {shoots.length === 0 ? (
+      <div className="p-6 text-center text-xs text-[var(--color-text-secondary)]">No upcoming shoots scheduled.</div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
+          <thead className="bg-[var(--color-background)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">
+            <tr>
+              <th className="px-5 py-3 font-semibold">Client / Brand</th>
+              <th className="px-5 py-3 font-semibold">Date</th>
+              <th className="px-5 py-3 font-semibold">Location</th>
+              <th className="px-5 py-3 font-semibold">Status</th>
+              <th className="px-5 py-3 font-semibold text-right">Client Amount</th>
+              <th className="px-5 py-3 font-semibold text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border)]">
+            {shoots.map(shoot => {
+              const client = clientMap.get(shoot.clientId);
+              return (
+                <tr key={shoot.id} className="hover:bg-[var(--color-background)] transition-colors">
+                  <td className="px-5 py-3 font-medium text-[var(--color-text-primary)]"><Link to={`/clients/${shoot.clientId}`} className="hover:underline font-semibold">{client ? client.name : 'Unknown Client'}</Link></td>
+                  <td className="px-5 py-3 font-mono text-[var(--color-text-secondary)]"><span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />{shoot.date}</span></td>
+                  <td className="px-5 py-3 text-[var(--color-text-secondary)]"><span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[var(--color-text-secondary)]" />{shoot.location}</span></td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${shoot.status === 'done' ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${shoot.status === 'done' ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'}`} />
+                      <span className="capitalize">{shoot.status}</span>
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-right font-semibold font-mono text-[var(--color-text-primary)]">{formatCurrency(shoot.clientAmount)}</td>
+                  <td className="px-5 py-3 text-right"><Link to={`/shoots/${shoot.id}`} className="text-xs font-semibold text-[var(--color-text-primary)] hover:underline">Open Workspace &rarr;</Link></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+);

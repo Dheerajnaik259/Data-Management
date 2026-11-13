@@ -215,41 +215,7 @@ export const PendingApprovals: React.FC = () => {
               {/* Proposed Data Grid */}
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Proposed Field Details</h4>
-                <div className="liquid-glass-inner rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-                  {Object.entries(viewModalCR.proposedData || {}).map(([key, val]) => {
-                    let displayVal = String(val);
-                    if (val === null || val === undefined) displayVal = 'None';
-                    else if (key === 'callTime') displayVal = formatTime12h(String(val)) || 'None';
-                    else if (Array.isArray(val)) {
-                      if (val.length === 0) displayVal = 'None';
-                      else if (key === 'assignments') {
-                        displayVal = val.map((v: any) => {
-                          const name = typeof v.cameramanId === 'string' ? v.cameramanId.replace('cam-', 'Cameraman ') : 'Unknown';
-                          const amt = v.amount !== null && v.amount !== undefined ? `₹${v.amount}` : 'Pending';
-                          const time = v.callTime ? ` • ${formatTime12h(v.callTime)}` : '';
-                          return `${name} (${amt}${time})`;
-                        }).join(', ');
-                      } else if (key === 'deliverables') {
-                        displayVal = val.map((v: any) => `${v.count}x ${v.type}`).join(', ');
-                      } else if (typeof val[0] === 'string') {
-                        displayVal = val.join(', ');
-                      } else {
-                        displayVal = val.map(v => JSON.stringify(v)).join(', ');
-                      }
-                    } else if (typeof val === 'object') {
-                      displayVal = JSON.stringify(val);
-                    } else if (typeof val === 'boolean') {
-                      displayVal = val ? 'Yes' : 'No';
-                    }
-
-                    return (
-                      <div key={key} className="liquid-glass-inner p-2.5 rounded-lg space-y-0.5">
-                        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] block uppercase tracking-wider">{key}</span>
-                        <span className="text-xs font-medium text-[var(--color-text)] block break-words font-mono">{displayVal}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <ProposedDataGrid proposedData={viewModalCR.proposedData} />
               </div>
 
               {/* Action Buttons */}
@@ -362,3 +328,41 @@ const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, onView, onA
     </div>
   );
 };
+
+const ProposedDataGrid: React.FC<{ proposedData: ChangeRequest['proposedData'] }> = ({ proposedData }) => (
+  <div className="liquid-glass-inner rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+    {Object.entries(proposedData || {}).map(([key, val]) => {
+      let displayVal = String(val);
+      if (val === null || val === undefined) displayVal = 'None';
+      else if (key === 'callTime') displayVal = formatTime12h(String(val)) || 'None';
+      else if (Array.isArray(val)) {
+        if (val.length === 0) displayVal = 'None';
+        else if (key === 'assignments') {
+          displayVal = val.map((v: any) => {
+            const name = typeof v.cameramanId === 'string' ? v.cameramanId.replace('cam-', 'Cameraman ') : 'Unknown';
+            const amt = v.amount !== null && v.amount !== undefined ? `₹${v.amount}` : 'Pending';
+            const time = v.callTime ? ` • ${formatTime12h(v.callTime)}` : '';
+            return `${name} (${amt}${time})`;
+          }).join(', ');
+        } else if (key === 'deliverables') {
+          displayVal = val.map((v: any) => `${v.count}x ${v.type}`).join(', ');
+        } else if (typeof val[0] === 'string') {
+          displayVal = val.join(', ');
+        } else {
+          displayVal = val.map(v => JSON.stringify(v)).join(', ');
+        }
+      } else if (typeof val === 'object') {
+        displayVal = JSON.stringify(val);
+      } else if (typeof val === 'boolean') {
+        displayVal = val ? 'Yes' : 'No';
+      }
+
+      return (
+        <div key={key} className="liquid-glass-inner p-2.5 rounded-lg space-y-0.5">
+          <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] block uppercase tracking-wider">{key}</span>
+          <span className="text-xs font-medium text-[var(--color-text)] block break-words font-mono">{displayVal}</span>
+        </div>
+      );
+    })}
+  </div>
+);

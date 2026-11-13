@@ -143,49 +143,15 @@ export const Payments: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
-                  {filteredRecords.map(item => {
-                    const isClient = item.type === 'incoming';
-                    const paymentActionDisabled = !isClient && !item.isPaid && !item.hasAssignedRate;
-                    const targetLink = isClient ? `/clients/${item.targetId}` : `/cameramen/${item.targetId}`;
-                    return (
-                      <tr key={item.id} className="hover:bg-[var(--color-bg-hover)] transition-colors">
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${isClient ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400'}`}>
-                            {isClient ? <><TrendingUp className="w-3 h-3" /><span>Money In</span></> : <><TrendingDown className="w-3 h-3" /><span>Money Out</span></>}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Link to={targetLink} className="font-semibold text-sm text-[var(--color-text)] hover:underline transition-colors flex items-center gap-1">
-                            <span>{item.targetName}</span><ArrowUpRight className="w-3 h-3 text-[var(--color-text-muted)]" />
-                          </Link>
-                          {item.phone && <span className="text-[11px] text-[var(--color-text-secondary)] block mt-0.5">{item.phone}</span>}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Link to={`/shoots/${item.shootId}`} className="font-medium text-[var(--color-text)] hover:underline block truncate max-w-xs">{item.shootLocation}</Link>
-                          <span className="text-[11px] text-[var(--color-text-secondary)] inline-flex items-center gap-1 mt-0.5"><Calendar className="w-3 h-3 text-[var(--color-text-muted)]" />{item.shootDate}</span>
-                        </td>
-                        <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(item.amount)}</td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <button type="button" disabled={paymentActionDisabled || item.isPaid} title={item.isPaid ? 'Paid status is final and cannot be changed.' : paymentActionDisabled ? 'Set the cameraman payout before marking it paid.' : undefined} onClick={() => { void handleTogglePayment(item).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${item.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
-                              {item.isPaid ? <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" /><span>Mark Paid</span></>}
-                            </button>
-                            <OverdueBadge isPaid={item.isPaid} overdueInfo={item.overdueInfo} size="sm" />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {!item.isPaid && item.phone && (
-                              <a href={getWhatsAppReminderUrl(item)} target="_blank" rel="noreferrer" className="p-1.5 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded border border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors" title="Send WhatsApp Payment Reminder"><MessageSquare className="w-3.5 h-3.5" /></a>
-                            )}
-                            <button type="button" onClick={() => handleOpenPdf(item)} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors" title={isClient ? 'View Client Invoice PDF' : 'View Payout Voucher PDF'}>
-                              <FileText className="w-3.5 h-3.5 text-[var(--color-accent)]" /><span>{isClient ? 'Invoice PDF' : 'Voucher PDF'}</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredRecords.map(item => (
+                    <PaymentRow
+                      key={item.id}
+                      item={item}
+                      reminderUrl={getWhatsAppReminderUrl(item)}
+                      onTogglePayment={handleTogglePayment}
+                      onOpenPdf={handleOpenPdf}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -195,5 +161,57 @@ export const Payments: React.FC = () => {
 
       {previewData && <InvoicePreviewModal isOpen={Boolean(previewData)} onClose={() => setPreviewData(null)} type={previewData.type} client={previewData.type === 'client_invoice' ? clientMap.get(previewData.targetId) : undefined} cameraman={previewData.type === 'cameraman_receipt' ? cameramanMap.get(previewData.targetId) : undefined} shoot={previewData.shoot} assignmentAmount={previewData.amount} assignmentPaid={previewData.paid} assignmentPaidAt={previewData.paidAt} assignmentIndex={previewData.assignmentIndex} />}
     </div>
+  );
+};
+
+interface PaymentRowProps {
+  item: PaymentRecord;
+  reminderUrl: string;
+  onTogglePayment: (record: PaymentRecord) => Promise<void>;
+  onOpenPdf: (record: PaymentRecord) => void;
+}
+
+const PaymentRow: React.FC<PaymentRowProps> = ({ item, reminderUrl, onTogglePayment, onOpenPdf }) => {
+  const isClient = item.type === 'incoming';
+  const paymentActionDisabled = !isClient && !item.isPaid && !item.hasAssignedRate;
+  const targetLink = isClient ? `/clients/${item.targetId}` : `/cameramen/${item.targetId}`;
+
+  return (
+    <tr className="hover:bg-[var(--color-bg-hover)] transition-colors">
+      <td className="px-6 py-4">
+        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${isClient ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400'}`}>
+          {isClient ? <><TrendingUp className="w-3 h-3" /><span>Money In</span></> : <><TrendingDown className="w-3 h-3" /><span>Money Out</span></>}
+        </span>
+      </td>
+      <td className="px-6 py-4">
+        <Link to={targetLink} className="font-semibold text-sm text-[var(--color-text)] hover:underline transition-colors flex items-center gap-1">
+          <span>{item.targetName}</span><ArrowUpRight className="w-3 h-3 text-[var(--color-text-muted)]" />
+        </Link>
+        {item.phone && <span className="text-[11px] text-[var(--color-text-secondary)] block mt-0.5">{item.phone}</span>}
+      </td>
+      <td className="px-6 py-4">
+        <Link to={`/shoots/${item.shootId}`} className="font-medium text-[var(--color-text)] hover:underline block truncate max-w-xs">{item.shootLocation}</Link>
+        <span className="text-[11px] text-[var(--color-text-secondary)] inline-flex items-center gap-1 mt-0.5"><Calendar className="w-3 h-3 text-[var(--color-text-muted)]" />{item.shootDate}</span>
+      </td>
+      <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(item.amount)}</td>
+      <td className="px-6 py-4 text-center">
+        <div className="flex flex-col items-center gap-1">
+          <button type="button" disabled={paymentActionDisabled || item.isPaid} title={item.isPaid ? 'Paid status is final and cannot be changed.' : paymentActionDisabled ? 'Set the cameraman payout before marking it paid.' : undefined} onClick={() => { void onTogglePayment(item).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${item.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
+            {item.isPaid ? <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" /><span>Mark Paid</span></>}
+          </button>
+          <OverdueBadge isPaid={item.isPaid} overdueInfo={item.overdueInfo} size="sm" />
+        </div>
+      </td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          {!item.isPaid && item.phone && (
+            <a href={reminderUrl} target="_blank" rel="noreferrer" className="p-1.5 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded border border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors" title="Send WhatsApp Payment Reminder"><MessageSquare className="w-3.5 h-3.5" /></a>
+          )}
+          <button type="button" onClick={() => onOpenPdf(item)} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors" title={isClient ? 'View Client Invoice PDF' : 'View Payout Voucher PDF'}>
+            <FileText className="w-3.5 h-3.5 text-[var(--color-accent)]" /><span>{isClient ? 'Invoice PDF' : 'Voucher PDF'}</span>
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 };

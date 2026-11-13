@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
+import { Cameraman, Client, Shoot } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 import { checkOverdue } from '../utils/overdueCheck';
 import { OverdueBadge } from '../components/common/OverdueBadge';
@@ -184,99 +185,21 @@ export const ShootDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="liquid-table-container overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Deliverables & Asset Links</h3>
-                  <p className="text-xs text-[var(--color-text-secondary)]">High-res videos, social cuts, and cloud storage links for client handover</p>
-                </div>
-                <button type="button" onClick={() => setIsEditFormOpen(true)} className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]">+ Manage Assets</button>
-              </div>
-              {(!shoot.deliverables || shoot.deliverables.length === 0) ? (
-                <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">No deliverables specified yet. Click &ldquo;Manage Assets&rdquo; to add video reels or photo sets.</div>
-              ) : (
-                <div className="divide-y divide-[var(--color-border)]">
-                  {shoot.deliverables.map((item, idx) => (
-                    <div key={idx} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[var(--color-bg-hover)] transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs text-[var(--color-text-secondary)]">{item.count}x</div>
-                        <div>
-                          <span className="font-semibold text-xs text-[var(--color-text)] block">{item.type}</span>
-                          <span className="text-[11px] text-[var(--color-text-secondary)]">Quantity: {item.count} asset{item.count > 1 ? 's' : ''}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        {item.fileLink ? (
-                          <>
-                            <FileLink fileRef={item.fileLink} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors truncate max-w-xs">
-                              <ExternalLink className="w-3.5 h-3.5 shrink-0" /> <span>Open Cloud Drive</span>
-                            </FileLink>
-                            <button type="button" onClick={() => handleCopyLink(item.fileLink!, idx)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors" title="Copy URL">
-                              {copiedLinkIndex === idx ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                          </>
-                        ) : <span className="text-[11px] text-[var(--color-text-muted)] italic">No cloud URL linked</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="liquid-table-container overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Freelance Crew & Payouts</h3>
-                  <p className="text-xs text-[var(--color-text-secondary)]">Videographers on set and individual payout vouchers</p>
-                </div>
-                <button type="button" onClick={() => setIsEditFormOpen(true)} className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]">+ Assign Crew</button>
-              </div>
-              {(!shoot.assignments || shoot.assignments.length === 0) ? (
-                <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">No cameramen assigned to this shoot.</div>
-              ) : (
-                <div className="divide-y divide-[var(--color-border)]">
-                  {shoot.assignments.map((assignment, idx) => {
-                    const cam = cameramanMap.get(assignment.cameramanId);
-                    const scheduleWhatsAppUrl = cam ? buildCameramanScheduleWhatsAppUrl({
-                      phone: cam.phone,
-                      cameramanName: cam.name,
-                      clientName: client?.name,
-                      date: shoot.date,
-                      callTime: assignment.callTime || shoot.callTime,
-                      location: shoot.location,
-                      template: operationalSettings.crewScheduleTemplate,
-                    }) : null;
-                    return (
-                      <div key={idx} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[var(--color-bg-hover)] transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)]"><Video className="w-4 h-4" /></div>
-                          <div>
-                            {cam ? <Link to={`/cameramen/${cam.id}`} className="font-semibold text-xs text-[var(--color-text)] hover:underline transition-colors">{cam.name}</Link> : <span className="font-semibold text-xs text-[var(--color-text)]">Unknown Operator</span>}
-                            <p className="text-[11px] text-[var(--color-text-secondary)]">Agreed shoot rate: {formatCurrency(assignment.amount)}</p>
-                            <p className="text-[11px] text-[var(--color-text-secondary)]">Call time: {formatTime12h(assignment.callTime || shoot.callTime) || 'Not set'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {scheduleWhatsAppUrl ? (
-                            <a href={scheduleWhatsAppUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-md hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition-colors" title="Open a prefilled WhatsApp schedule message">
-                              <MessageSquare className="w-3.5 h-3.5" /><span>Send schedule</span>
-                            </a>
-                          ) : cam ? (
-                            <span className="text-[11px] text-[var(--color-text-muted)]" title="Add the cameraman's phone number to enable WhatsApp messages">No WhatsApp number</span>
-                          ) : null}
-                          <button type="button" disabled={assignment.amount === null || assignment.paid} title={assignment.paid ? 'Paid status is final and cannot be changed.' : undefined} onClick={() => { void handleToggleCameramanPayment(shoot.id, idx, true).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${assignment.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
-                            {assignment.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>Mark Paid</span></>}
-                          </button>
-                          <button type="button" disabled={assignment.amount === null} onClick={() => assignment.amount !== null && setCameramanReceiptModal({ cameramanId: assignment.cameramanId, amount: assignment.amount, paid: assignment.paid, paidAt: assignment.paidAt, assignmentIndex: idx })} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50" title="Generate payout receipt">
-                            <FileText className="w-3.5 h-3.5" /><span>Voucher PDF</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <ShootDeliverables
+              shoot={shoot}
+              copiedLinkIndex={copiedLinkIndex}
+              onManageAssets={() => setIsEditFormOpen(true)}
+              onCopyLink={handleCopyLink}
+            />
+            <ShootAssignments
+              shoot={shoot}
+              client={client}
+              cameramanMap={cameramanMap}
+              crewScheduleTemplate={operationalSettings.crewScheduleTemplate}
+              onAssignCrew={() => setIsEditFormOpen(true)}
+              onTogglePayment={handleToggleCameramanPayment}
+              onOpenReceipt={setCameramanReceiptModal}
+            />
           </div>
 
           <div className="space-y-6">
@@ -342,3 +265,126 @@ export const ShootDetail: React.FC = () => {
     </div>
   );
 };
+
+interface ShootDeliverablesProps {
+  shoot: Shoot;
+  copiedLinkIndex: number | null;
+  onManageAssets: () => void;
+  onCopyLink: (link: string, index: number) => Promise<void>;
+}
+
+const ShootDeliverables: React.FC<ShootDeliverablesProps> = ({ shoot, copiedLinkIndex, onManageAssets, onCopyLink }) => (
+  <div className="liquid-table-container overflow-hidden">
+    <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
+      <div>
+        <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Deliverables & Asset Links</h3>
+        <p className="text-xs text-[var(--color-text-secondary)]">High-res videos, social cuts, and cloud storage links for client handover</p>
+      </div>
+      <button type="button" onClick={onManageAssets} className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]">+ Manage Assets</button>
+    </div>
+    {(!shoot.deliverables || shoot.deliverables.length === 0) ? (
+      <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">No deliverables specified yet. Click &ldquo;Manage Assets&rdquo; to add video reels or photo sets.</div>
+    ) : (
+      <div className="divide-y divide-[var(--color-border)]">
+        {shoot.deliverables.map((item, idx) => (
+          <div key={idx} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[var(--color-bg-hover)] transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs text-[var(--color-text-secondary)]">{item.count}x</div>
+              <div>
+                <span className="font-semibold text-xs text-[var(--color-text)] block">{item.type}</span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">Quantity: {item.count} asset{item.count > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {item.fileLink ? (
+                <>
+                  <FileLink fileRef={item.fileLink} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors truncate max-w-xs">
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" /> <span>Open Cloud Drive</span>
+                  </FileLink>
+                  <button type="button" onClick={() => onCopyLink(item.fileLink, idx)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors" title="Copy URL">
+                    {copiedLinkIndex === idx ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </>
+              ) : <span className="text-[11px] text-[var(--color-text-muted)] italic">No cloud URL linked</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+interface CameramanReceiptModalData {
+  cameramanId: string;
+  amount: number;
+  paid: boolean;
+  paidAt?: string | null;
+  assignmentIndex: number;
+}
+
+interface ShootAssignmentsProps {
+  shoot: Shoot;
+  client: Client | undefined;
+  cameramanMap: Map<string, Cameraman>;
+  crewScheduleTemplate: string;
+  onAssignCrew: () => void;
+  onTogglePayment: (shootId: string, assignmentIndex: number, paid: boolean) => Promise<void>;
+  onOpenReceipt: (receipt: CameramanReceiptModalData) => void;
+}
+
+const ShootAssignments: React.FC<ShootAssignmentsProps> = ({ shoot, client, cameramanMap, crewScheduleTemplate, onAssignCrew, onTogglePayment, onOpenReceipt }) => (
+  <div className="liquid-table-container overflow-hidden">
+    <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
+      <div>
+        <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Freelance Crew & Payouts</h3>
+        <p className="text-xs text-[var(--color-text-secondary)]">Videographers on set and individual payout vouchers</p>
+      </div>
+      <button type="button" onClick={onAssignCrew} className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]">+ Assign Crew</button>
+    </div>
+    {(!shoot.assignments || shoot.assignments.length === 0) ? (
+      <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">No cameramen assigned to this shoot.</div>
+    ) : (
+      <div className="divide-y divide-[var(--color-border)]">
+        {shoot.assignments.map((assignment, idx) => {
+          const cam = cameramanMap.get(assignment.cameramanId);
+          const scheduleWhatsAppUrl = cam ? buildCameramanScheduleWhatsAppUrl({
+            phone: cam.phone,
+            cameramanName: cam.name,
+            clientName: client?.name,
+            date: shoot.date,
+            callTime: assignment.callTime || shoot.callTime,
+            location: shoot.location,
+            template: crewScheduleTemplate,
+          }) : null;
+          return (
+            <div key={idx} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[var(--color-bg-hover)] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)]"><Video className="w-4 h-4" /></div>
+                <div>
+                  {cam ? <Link to={`/cameramen/${cam.id}`} className="font-semibold text-xs text-[var(--color-text)] hover:underline transition-colors">{cam.name}</Link> : <span className="font-semibold text-xs text-[var(--color-text)]">Unknown Operator</span>}
+                  <p className="text-[11px] text-[var(--color-text-secondary)]">Agreed shoot rate: {formatCurrency(assignment.amount)}</p>
+                  <p className="text-[11px] text-[var(--color-text-secondary)]">Call time: {formatTime12h(assignment.callTime || shoot.callTime) || 'Not set'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {scheduleWhatsAppUrl ? (
+                  <a href={scheduleWhatsAppUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-md hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 transition-colors" title="Open a prefilled WhatsApp schedule message">
+                    <MessageSquare className="w-3.5 h-3.5" /><span>Send schedule</span>
+                  </a>
+                ) : cam ? (
+                  <span className="text-[11px] text-[var(--color-text-muted)]" title="Add the cameraman's phone number to enable WhatsApp messages">No WhatsApp number</span>
+                ) : null}
+                <button type="button" disabled={assignment.amount === null || assignment.paid} title={assignment.paid ? 'Paid status is final and cannot be changed.' : undefined} onClick={() => { void onTogglePayment(shoot.id, idx, true).catch(() => {}); }} className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${assignment.paid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50'}`}>
+                  {assignment.paid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5" /><span>Mark Paid</span></>}
+                </button>
+                <button type="button" disabled={assignment.amount === null} onClick={() => assignment.amount !== null && onOpenReceipt({ cameramanId: assignment.cameramanId, amount: assignment.amount, paid: assignment.paid, paidAt: assignment.paidAt, assignmentIndex: idx })} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50" title="Generate payout receipt">
+                  <FileText className="w-3.5 h-3.5" /><span>Voucher PDF</span>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+);

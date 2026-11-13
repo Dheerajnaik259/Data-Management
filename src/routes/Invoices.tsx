@@ -179,39 +179,16 @@ export const Invoices: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
-                  {filteredItems.map(item => {
-                    const isClient = item.type === 'client_invoice';
-                    return (
-                      <tr key={item.id} className="hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer" onClick={() => setActiveModalItem(item)}>
-                        <td className="px-6 py-4 font-mono font-bold text-[var(--color-text)]">
-                          <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-[var(--color-accent)]" />{item.docNumber}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${isClient ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400'}`}>
-                            {isClient ? 'Client Invoice' : 'Crew Voucher'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-sm text-[var(--color-text)]">{item.recipientName}</td>
-                        <td className="px-6 py-4">
-                          <span className="font-medium text-[var(--color-text)] block truncate max-w-xs">{item.shootLocation}</span>
-                          <span className="text-[11px] text-[var(--color-text-secondary)] inline-flex items-center gap-1 mt-0.5"><Calendar className="w-3 h-3 text-[var(--color-text-muted)]" />{item.shootDate}</span>
-                        </td>
-                        <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(item.amount)}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold ${item.isPaid ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'}`}>
-                            {item.isPaid ? <><CheckCircle2 className="w-3 h-3" /><span>Settled</span></> : <><Clock className="w-3 h-3" /><span>Pending</span></>}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setActiveModalItem(item); }} className="px-2.5 py-1 text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors">Preview</button>
-                            <button type="button" disabled={processingDocumentId === item.id} onClick={(e) => void handlePrint(item, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors disabled:opacity-50" title="Print Document"><Printer className="w-3.5 h-3.5" /></button>
-                            <button type="button" disabled={processingDocumentId === item.id} onClick={(e) => void handleDownload(item, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors disabled:opacity-50" title="Download PDF"><Download className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredItems.map(item => (
+                    <InvoiceRow
+                      key={item.id}
+                      item={item}
+                      processing={processingDocumentId === item.id}
+                      onPreview={() => setActiveModalItem(item)}
+                      onPrint={handlePrint}
+                      onDownload={handleDownload}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -221,5 +198,47 @@ export const Invoices: React.FC = () => {
 
       {activeModalItem && <InvoicePreviewModal isOpen={Boolean(activeModalItem)} onClose={() => setActiveModalItem(null)} type={activeModalItem.type} client={activeModalItem.type === 'client_invoice' ? clientMap.get(activeModalItem.targetId) : undefined} cameraman={activeModalItem.type === 'cameraman_receipt' ? cameramanMap.get(activeModalItem.targetId) : undefined} shoot={activeModalItem.shoot} assignmentAmount={activeModalItem.amount} assignmentPaid={activeModalItem.isPaid} assignmentPaidAt={activeModalItem.paidAt} assignmentIndex={activeModalItem.assignmentIndex} documentNumber={issuedNumbers[activeModalItem.id] || (activeModalItem.docNumber !== 'Not issued' ? activeModalItem.docNumber : undefined)} />}
     </div>
+  );
+};
+
+interface InvoiceRowProps {
+  item: InvoiceListItem;
+  processing: boolean;
+  onPreview: () => void;
+  onPrint: (item: InvoiceListItem, event: React.MouseEvent) => Promise<void>;
+  onDownload: (item: InvoiceListItem, event: React.MouseEvent) => Promise<void>;
+}
+
+const InvoiceRow: React.FC<InvoiceRowProps> = ({ item, processing, onPreview, onPrint, onDownload }) => {
+  const isClient = item.type === 'client_invoice';
+  return (
+    <tr className="hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer" onClick={onPreview}>
+      <td className="px-6 py-4 font-mono font-bold text-[var(--color-text)]">
+        <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-[var(--color-accent)]" />{item.docNumber}</span>
+      </td>
+      <td className="px-6 py-4">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${isClient ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400'}`}>
+          {isClient ? 'Client Invoice' : 'Crew Voucher'}
+        </span>
+      </td>
+      <td className="px-6 py-4 font-semibold text-sm text-[var(--color-text)]">{item.recipientName}</td>
+      <td className="px-6 py-4">
+        <span className="font-medium text-[var(--color-text)] block truncate max-w-xs">{item.shootLocation}</span>
+        <span className="text-[11px] text-[var(--color-text-secondary)] inline-flex items-center gap-1 mt-0.5"><Calendar className="w-3 h-3 text-[var(--color-text-muted)]" />{item.shootDate}</span>
+      </td>
+      <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(item.amount)}</td>
+      <td className="px-6 py-4 text-center">
+        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold ${item.isPaid ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+          {item.isPaid ? <><CheckCircle2 className="w-3 h-3" /><span>Settled</span></> : <><Clock className="w-3 h-3" /><span>Pending</span></>}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          <button type="button" onClick={e => { e.stopPropagation(); onPreview(); }} className="px-2.5 py-1 text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors">Preview</button>
+          <button type="button" disabled={processing} onClick={e => { e.stopPropagation(); void onPrint(item, e); }} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors disabled:opacity-50" title="Print Document"><Printer className="w-3.5 h-3.5" /></button>
+          <button type="button" disabled={processing} onClick={e => { e.stopPropagation(); void onDownload(item, e); }} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors disabled:opacity-50" title="Download PDF"><Download className="w-3.5 h-3.5" /></button>
+        </div>
+      </td>
+    </tr>
   );
 };

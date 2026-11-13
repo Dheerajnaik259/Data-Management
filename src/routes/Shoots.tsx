@@ -179,74 +179,22 @@ export const Shoots: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
-                  {filteredShoots.map((shoot) => {
-                    const client = clientMap.get(shoot.clientId);
-                    const overdueInfo = checkOverdue(shoot.date, shoot.clientPaid, shoot.status, operationalSettings.paymentGraceDays);
-                    const assignedCams = (shoot.assignments || []).map(a => ({ ...a, name: cameramanMap.get(a.cameramanId)?.name || 'Crew' }));
-                    const isPending = shoot._pendingStatus === 'pending_create' || shoot._pendingStatus === 'pending_edit';
-                    const isRejected = shoot._pendingStatus === 'rejected';
-
-                    return (
-                      <tr key={shoot.id} onClick={() => !isPending && !isRejected && navigate(`/shoots/${shoot.id}`)}
-                        className={`transition-colors group ${isPending || isRejected ? 'opacity-70 bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)] cursor-pointer'}`}>
-                        <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)] whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />{shoot.date}</span>
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-sm text-[var(--color-text)]">
-                          <div className="flex items-center gap-2">
-                            <Link to={`/clients/${shoot.clientId}`} onClick={e => e.stopPropagation()} className={`text-[var(--color-text-primary)] ${!isPending && !isRejected ? 'group-hover:underline' : 'pointer-events-none'} flex items-center gap-1`}>
-                              <span>{client?.name || 'Unknown Client'}</span>
-                            </Link>
-                            {isPending && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">PENDING</span>}
-                            {isRejected && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">REJECTED</span>}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-[var(--color-text-secondary)]">
-                          <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[var(--color-text-muted)] shrink-0" /><span className="truncate max-w-[160px]">{shoot.location}</span></span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {assignedCams.length === 0 ? <span className="text-[11px] text-[var(--color-text-muted)] italic">No crew assigned</span> : (
-                            <div className="flex flex-wrap gap-1 max-w-[180px]">
-                              {assignedCams.map((c, i) => (
-                                <span key={i} className="inline-flex items-center px-1.5 py-0.5 bg-[var(--color-bg)] border border-[var(--color-border)] rounded text-[10px] text-[var(--color-text-secondary)]">
-                                  {c.name} (₹{c.amount}{(c.callTime || shoot.callTime) ? ` • ${formatTime12h(c.callTime || shoot.callTime)}` : ''})
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleUpdateOrSubmit('shoots', shoot.id, { status: shoot.status === 'scheduled' ? 'done' : 'scheduled' }); }} disabled={isPending}
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 ${getStatusColor(shoot.status)}`} title="Click to toggle scheduled/done status">
-                            {shoot.status}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-right font-mono font-bold text-[var(--color-text)] whitespace-nowrap">{formatCurrency(shoot.clientAmount)}</td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <button type="button" onClick={(e) => { e.stopPropagation(); void handleToggleClientPayment(shoot.id, true).catch(() => {}); }} disabled={isPending || shoot.clientPaid} title={shoot.clientPaid ? 'Paid status is final and cannot be changed.' : 'Mark client payment paid'}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:opacity-50 ${shoot.clientPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
-                              {shoot.clientPaid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" /><span>Pending</span></>}
-                            </button>
-                            <OverdueBadge isPaid={shoot.clientPaid} overdueInfo={overdueInfo} size="sm" />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Link to={`/shoots/${shoot.id}`} onClick={e => isPending ? e.preventDefault() : e.stopPropagation()} className={`px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] bg-[var(--color-bg)] rounded border border-[var(--color-border)] ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>Open</Link>
-                            <button type="button" onClick={e => handleEdit(shoot as Shoot, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors" title="Edit Shoot">
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            {canActDelete && (
-                              <button type="button" onClick={e => handleDeleteClick(shoot.id, e)} disabled={isPending} className="p-1.5 text-[var(--color-text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50" title="Delete Shoot">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredShoots.map(shoot => (
+                    <ShootRow
+                      key={shoot.id}
+                      shoot={shoot}
+                      client={clientMap.get(shoot.clientId)}
+                      cameramanMap={cameramanMap}
+                      paymentGraceDays={operationalSettings.paymentGraceDays}
+                      canDelete={canActDelete}
+                      onOpen={id => navigate(`/shoots/${id}`)}
+                      onEdit={handleEdit}
+                      onDelete={handleDeleteClick}
+                      onToggleStatus={(id, status) => handleUpdateOrSubmit('shoots', id, { status })}
+                      onTogglePayment={id => handleToggleClientPayment(id, true)}
+                      getStatusColor={getStatusColor}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -258,5 +206,87 @@ export const Shoots: React.FC = () => {
       <ConfirmDialog isOpen={Boolean(deleteShootId)} onClose={() => setDeleteShootId(null)} onConfirm={handleConfirmDelete}
         title="Delete Shoot Record" message="Are you sure you want to delete this shoot? It will be moved to the recycle bin." confirmLabel="Delete Shoot" isDestructive />
     </div>
+  );
+};
+
+interface ShootRowProps {
+  shoot: Shoot & { _pendingStatus?: string };
+  client: ReturnType<typeof useData>['clients'][number] | undefined;
+  cameramanMap: Map<string, ReturnType<typeof useData>['cameramen'][number]>;
+  paymentGraceDays: number;
+  canDelete: boolean;
+  onOpen: (id: string) => void;
+  onEdit: (shoot: Shoot, event: React.MouseEvent) => void;
+  onDelete: (id: string, event: React.MouseEvent) => void;
+  onToggleStatus: (id: string, status: string) => void | Promise<void>;
+  onTogglePayment: (id: string) => Promise<void>;
+  getStatusColor: (status: string) => string;
+}
+
+const ShootRow: React.FC<ShootRowProps> = ({ shoot, client, cameramanMap, paymentGraceDays, canDelete, onOpen, onEdit, onDelete, onToggleStatus, onTogglePayment, getStatusColor }) => {
+  const overdueInfo = checkOverdue(shoot.date, shoot.clientPaid, shoot.status, paymentGraceDays);
+  const assignedCams = (shoot.assignments || []).map(a => ({ ...a, name: cameramanMap.get(a.cameramanId)?.name || 'Crew' }));
+  const isPending = shoot._pendingStatus === 'pending_create' || shoot._pendingStatus === 'pending_edit';
+  const isRejected = shoot._pendingStatus === 'rejected';
+
+  return (
+    <tr onClick={() => !isPending && !isRejected && onOpen(shoot.id)}
+      className={`transition-colors group ${isPending || isRejected ? 'opacity-70 bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)] cursor-pointer'}`}>
+      <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)] whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />{shoot.date}</span>
+      </td>
+      <td className="px-6 py-4 font-semibold text-sm text-[var(--color-text)]">
+        <div className="flex items-center gap-2">
+          <Link to={`/clients/${shoot.clientId}`} onClick={e => e.stopPropagation()} className={`text-[var(--color-text-primary)] ${!isPending && !isRejected ? 'group-hover:underline' : 'pointer-events-none'} flex items-center gap-1`}>
+            <span>{client?.name || 'Unknown Client'}</span>
+          </Link>
+          {isPending && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">PENDING</span>}
+          {isRejected && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">REJECTED</span>}
+        </div>
+      </td>
+      <td className="px-6 py-4 text-[var(--color-text-secondary)]">
+        <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[var(--color-text-muted)] shrink-0" /><span className="truncate max-w-[160px]">{shoot.location}</span></span>
+      </td>
+      <td className="px-6 py-4">
+        {assignedCams.length === 0 ? <span className="text-[11px] text-[var(--color-text-muted)] italic">No crew assigned</span> : (
+          <div className="flex flex-wrap gap-1 max-w-[180px]">
+            {assignedCams.map((c, i) => (
+              <span key={i} className="inline-flex items-center px-1.5 py-0.5 bg-[var(--color-bg)] border border-[var(--color-border)] rounded text-[10px] text-[var(--color-text-secondary)]">
+                {c.name} (₹{c.amount}{(c.callTime || shoot.callTime) ? ` • ${formatTime12h(c.callTime || shoot.callTime)}` : ''})
+              </span>
+            ))}
+          </div>
+        )}
+      </td>
+      <td className="px-6 py-4">
+        <button type="button" onClick={e => { e.stopPropagation(); void onToggleStatus(shoot.id, shoot.status === 'scheduled' ? 'done' : 'scheduled'); }} disabled={isPending}
+          className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 ${getStatusColor(shoot.status)}`} title="Click to toggle scheduled/done status">
+          {shoot.status}
+        </button>
+      </td>
+      <td className="px-6 py-4 text-right font-mono font-bold text-[var(--color-text)] whitespace-nowrap">{formatCurrency(shoot.clientAmount)}</td>
+      <td className="px-6 py-4 text-center">
+        <div className="flex flex-col items-center gap-1">
+          <button type="button" onClick={e => { e.stopPropagation(); void onTogglePayment(shoot.id).catch(() => {}); }} disabled={isPending || shoot.clientPaid} title={shoot.clientPaid ? 'Paid status is final and cannot be changed.' : 'Mark client payment paid'}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors disabled:opacity-50 ${shoot.clientPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800' : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]'}`}>
+            {shoot.clientPaid ? <><CheckCircle2 className="w-3.5 h-3.5" /><span>Paid</span></> : <><Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" /><span>Pending</span></>}
+          </button>
+          <OverdueBadge isPaid={shoot.clientPaid} overdueInfo={overdueInfo} size="sm" />
+        </div>
+      </td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          <Link to={`/shoots/${shoot.id}`} onClick={e => isPending ? e.preventDefault() : e.stopPropagation()} className={`px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] bg-[var(--color-bg)] rounded border border-[var(--color-border)] ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>Open</Link>
+          <button type="button" onClick={e => onEdit(shoot as Shoot, e)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors" title="Edit Shoot">
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          {canDelete && (
+            <button type="button" onClick={e => onDelete(shoot.id, e)} disabled={isPending} className="p-1.5 text-[var(--color-text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50" title="Delete Shoot">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
   );
 };

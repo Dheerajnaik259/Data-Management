@@ -73,13 +73,6 @@ export const Expenses: React.FC = () => {
   const handleDeleteConfirm = async () => { if (deleteExpenseId) { await handleSoftDelete('expenses', deleteExpenseId); setDeleteExpenseId(null); } };
   const canActDelete = user ? canDelete(user.role) : false;
 
-  const getCategoryIcon = (cat: string) => {
-    if (cat === 'travel') return <Car className="w-3.5 h-3.5 text-[var(--color-accent)]" />;
-    if (cat === 'equipment') return <Camera className="w-3.5 h-3.5 text-[var(--color-accent-peach)]" />;
-    if (cat === 'software') return <Laptop className="w-3.5 h-3.5 text-[var(--color-accent-mint)]" />;
-    return <Layers className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />;
-  };
-
   return (
     <div className="flex-1 flex flex-col min-w-0 pb-12">
       <Header
@@ -171,54 +164,17 @@ export const Expenses: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
-                  {filteredExpenses.map((exp) => {
-                    const shoot = exp.shootId ? shootMap.get(exp.shootId) : null;
-                    const clientName = shoot ? clientMap.get(shoot.clientId) : null;
-                    const isPending = exp._pendingStatus === 'pending_create' || exp._pendingStatus === 'pending_edit';
-                    const isRejected = exp._pendingStatus === 'rejected';
-
-                    return (
-                      <tr key={exp.id} className={`transition-colors group ${isPending || isRejected ? 'opacity-70 bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)]'}`}>
-                        <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)] whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />{exp.date}</span>
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-sm text-[var(--color-text)]">
-                          <div className="flex items-center gap-2">
-                            <span>{exp.description}</span>
-                            {isPending && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">PENDING</span>}
-                            {isRejected && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">REJECTED</span>}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium capitalize bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)]">
-                            {getCategoryIcon(exp.category)} <span>{exp.category}</span>
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {shoot ? (
-                            <Link to={`/shoots/${shoot.id}`} onClick={e => isPending ? e.preventDefault() : e.stopPropagation()} className={`font-medium ${isPending ? 'text-[var(--color-text-primary)] pointer-events-none' : 'text-[var(--color-text-primary)] hover:underline'} flex items-center gap-1`}>
-                              <Film className="w-3 h-3 text-[var(--color-text-muted)]" /><span>{shoot.location} ({clientName || 'Client'})</span>
-                            </Link>
-                          ) : (
-                            <span className="text-[11px] text-[var(--color-text-muted)] italic">General Business Overhead</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(exp.amount)}</td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button type="button" onClick={() => handleEdit(exp as Expense)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors" title="Edit Expense">
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            {canActDelete && (
-                              <button type="button" onClick={() => setDeleteExpenseId(exp.id)} disabled={isPending} className="p-1.5 text-[var(--color-text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50" title="Delete Expense">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredExpenses.map(exp => (
+                    <ExpenseRow
+                      key={exp.id}
+                      expense={exp}
+                      shoot={exp.shootId ? shootMap.get(exp.shootId) : undefined}
+                      clientName={exp.shootId ? clientMap.get(shootMap.get(exp.shootId)?.clientId || '') : undefined}
+                      canDelete={canActDelete}
+                      onEdit={handleEdit}
+                      onDelete={setDeleteExpenseId}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -231,4 +187,67 @@ export const Expenses: React.FC = () => {
         title="Delete Expense" message="Are you sure you want to delete this expense receipt? It will be moved to the recycle bin." confirmLabel="Delete Expense" isDestructive />
     </div>
   );
+};
+
+interface ExpenseRowProps {
+  expense: Expense & { _pendingStatus?: string };
+  shoot: ReturnType<typeof useData>['shoots'][number] | undefined;
+  clientName: string | undefined;
+  canDelete: boolean;
+  onEdit: (expense: Expense) => void;
+  onDelete: (expenseId: string) => void;
+}
+
+const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, shoot, clientName, canDelete, onEdit, onDelete }) => {
+  const isPending = expense._pendingStatus === 'pending_create' || expense._pendingStatus === 'pending_edit';
+  const isRejected = expense._pendingStatus === 'rejected';
+
+  return (
+    <tr className={`transition-colors group ${isPending || isRejected ? 'opacity-70 bg-[var(--color-bg-hover)]' : 'hover:bg-[var(--color-bg-hover)]'}`}>
+      <td className="px-6 py-4 font-mono font-medium text-[var(--color-text)] whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />{expense.date}</span>
+      </td>
+      <td className="px-6 py-4 font-semibold text-sm text-[var(--color-text)]">
+        <div className="flex items-center gap-2">
+          <span>{expense.description}</span>
+          {isPending && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">PENDING</span>}
+          {isRejected && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">REJECTED</span>}
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium capitalize bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)]">
+          <ExpenseCategoryIcon category={expense.category} /> <span>{expense.category}</span>
+        </span>
+      </td>
+      <td className="px-6 py-4">
+        {shoot ? (
+          <Link to={`/shoots/${shoot.id}`} onClick={e => isPending ? e.preventDefault() : e.stopPropagation()} className={`font-medium ${isPending ? 'text-[var(--color-text-primary)] pointer-events-none' : 'text-[var(--color-text-primary)] hover:underline'} flex items-center gap-1`}>
+            <Film className="w-3 h-3 text-[var(--color-text-muted)]" /><span>{shoot.location} ({clientName || 'Client'})</span>
+          </Link>
+        ) : (
+          <span className="text-[11px] text-[var(--color-text-muted)] italic">General Business Overhead</span>
+        )}
+      </td>
+      <td className="px-6 py-4 text-right font-mono font-bold text-sm text-[var(--color-text)] whitespace-nowrap">{formatCurrency(expense.amount)}</td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          <button type="button" onClick={() => onEdit(expense)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors" title="Edit Expense">
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          {canDelete && (
+            <button type="button" onClick={() => onDelete(expense.id)} disabled={isPending} className="p-1.5 text-[var(--color-text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50" title="Delete Expense">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+const ExpenseCategoryIcon: React.FC<{ category: string }> = ({ category }) => {
+  if (category === 'travel') return <Car className="w-3.5 h-3.5 text-[var(--color-accent)]" />;
+  if (category === 'equipment') return <Camera className="w-3.5 h-3.5 text-[var(--color-accent-peach)]" />;
+  if (category === 'software') return <Laptop className="w-3.5 h-3.5 text-[var(--color-accent-mint)]" />;
+  return <Layers className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />;
 };
