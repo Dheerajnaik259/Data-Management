@@ -109,8 +109,12 @@ function asChangeRequest(row: DataRow): ChangeRequest {
     action: stringValue(row.action) as ChangeRequest['action'],
     proposedData: (row.proposed_data || {}) as Record<string, unknown>,
     requestedBy: stringValue(row.requested_by), requestedAt: stringValue(row.requested_at),
+    requestedByName: stringValue(row.requested_by_name),
+    requestedByRole: stringValue(row.requested_by_role),
     status: stringValue(row.status) as ChangeRequest['status'],
     reviewedBy: row.reviewed_by ? stringValue(row.reviewed_by) : null,
+    reviewedByName: stringValue(row.reviewed_by_name),
+    reviewedByRole: stringValue(row.reviewed_by_role),
     reviewedAt: row.reviewed_at ? stringValue(row.reviewed_at) : null,
     reviewNote: stringValue(row.review_note), revisionCount: numberValue(row.revision_count),
   };
@@ -445,25 +449,17 @@ export async function resubmitChangeRequestWithNotification(changeRequestId: str
   }
 }
 
-export async function reviewChangeRequestWithNotification(changeRequest: ChangeRequest, reviewerId: string, status: 'approved' | 'rejected', reviewNote: string): Promise<void> {
-  if (status === 'approved') {
-    if (!isManagedCollection(changeRequest.targetCollection)) {
-      throw new Error('This change request requires its dedicated operational approval procedure.');
-    }
-    if (changeRequest.action === 'create') await directCreate(changeRequest.targetCollection, changeRequest.proposedData);
-    else if (changeRequest.action === 'edit' && changeRequest.targetDocId) await directUpdate(changeRequest.targetCollection, changeRequest.targetDocId, changeRequest.proposedData);
-    else if (changeRequest.action === 'delete' && changeRequest.targetDocId) await softDelete(changeRequest.targetCollection, changeRequest.targetDocId);
-  }
-  await updateChangeRequest(changeRequest.id, { status, reviewedBy: reviewerId, reviewedAt: new Date().toISOString(), reviewNote });
-  try {
-    await createNotification({
-      recipientId: changeRequest.requestedBy, type: status, relatedChangeRequestId: changeRequest.id,
-      message: `Your ${changeRequest.targetCollection.slice(0, -1)} ${changeRequest.action} was ${status}`,
-      read: false, createdAt: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.warn('Notification send deferred:', err);
-  }
+export async function reviewChangeRequestWithNotification(
+  changeRequestId: string,
+  status: 'approved' | 'rejected',
+  reviewNote: string,
+): Promise<void> {
+  const { error } = await clientOrThrow().rpc('review_change_request', {
+    p_cr_id: changeRequestId,
+    p_approved: status === 'approved',
+    p_review_note: reviewNote,
+  });
+  throwOnError(error, `Unable to ${status === 'approved' ? 'approve' : 'reject'} change request`);
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {

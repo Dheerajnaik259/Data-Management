@@ -78,7 +78,7 @@ export interface Shoot {
   clientPaid: boolean;
   clientPaidAt?: string | null;
   clientInvoiceNumber?: string | null; // INV-{YYYY}-{seq}, assigned on first invoice generation
-  assignedCameramanIds: string[]; // flat mirror of assignments[].cameramanId for Firestore array-contains queries
+  assignedCameramanIds: string[]; // Postgres mirror of assignments[].cameramanId for array filtering
   assignments: CameramanAssignment[];
   deliverables: Deliverable[];
   clientNotifiedAt?: string | null; // set by Cloud Function after shoot-confirmation email sent
@@ -138,9 +138,13 @@ export interface ChangeRequest {
   action: ChangeRequestAction;
   proposedData: Record<string, unknown>;
   requestedBy: string; // admin uid
+  requestedByName?: string;
+  requestedByRole?: string;
   requestedAt: string;
   status: ChangeRequestStatus;
   reviewedBy: string | null;
+  reviewedByName?: string;
+  reviewedByRole?: string;
   reviewedAt: string | null;
   reviewNote: string;
   revisionCount: number;

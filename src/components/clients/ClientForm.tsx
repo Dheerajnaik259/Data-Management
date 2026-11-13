@@ -4,6 +4,7 @@ import { ChangeRequest, Client } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { canSubmitCollectionForApproval } from '../../utils/permissions';
+import { safeHttpUrl } from '../../utils/safeHttpUrl';
 
 interface ClientFormProps {
   isOpen: boolean;
@@ -58,6 +59,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
     if (!name.trim()) { setErrorMessage('Client name is required.'); return; }
     if (!phone.trim()) { setErrorMessage('Phone number is required.'); return; }
     if (!email.trim()) { setErrorMessage('Email address is required.'); return; }
+    const safeContractLink = contractLink.trim() ? safeHttpUrl(contractLink.trim()) : '';
+    if (contractLink.trim() && !safeContractLink) {
+      setErrorMessage('Contract links must use HTTPS.');
+      return;
+    }
 
     if (!initialClient && !resubmission) {
       const duplicate = clients.some(c => c.name.trim().toLowerCase() === name.trim().toLowerCase());
@@ -69,7 +75,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, initial
 
     setIsSaving(true);
     try {
-      const data = { name: name.trim(), phone: phone.trim(), email: email.trim(), notes: notes.trim(), status, contractLink: contractLink.trim() };
+      const data = { name: name.trim(), phone: phone.trim(), email: email.trim(), notes: notes.trim(), status, contractLink: safeContractLink || '' };
       if (resubmission) {
         await handleEditAndResubmit(resubmission.id, data);
       } else if (initialClient) {

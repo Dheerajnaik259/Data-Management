@@ -1,6 +1,6 @@
 -- DESTRUCTIVE CLEANUP: permanently removes Projects and Content Production data,
 -- related approval requests/notifications, and feature-specific database objects.
--- Back up any data that must be retained, then set confirmed := true below.
+-- Back up any data that must be retained before reviewing the confirmation guard below.
 
 begin;
 

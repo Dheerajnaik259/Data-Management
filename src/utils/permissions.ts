@@ -19,7 +19,7 @@ const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     canApprove: true,
     canDelete: false,
     canRestore: false,
-    canHardDelete: false,
+    canHardDelete: true,
     canEditSettings: true,
     canSubmitForApproval: false,
     canManageTeam: false,
@@ -29,7 +29,7 @@ const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     canApprove: true,
     canDelete: false,
     canRestore: false,
-    canHardDelete: false,
+    canHardDelete: true,
     canEditSettings: true,
     canSubmitForApproval: false,
     canManageTeam: false,
@@ -39,7 +39,7 @@ const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     canApprove: true,
     canDelete: false,
     canRestore: false,
-    canHardDelete: false,
+    canHardDelete: true,
     canEditSettings: true,
     canSubmitForApproval: false,
     canManageTeam: false,
@@ -49,7 +49,7 @@ const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     canApprove: false,
     canDelete: true,
     canRestore: true,
-    canHardDelete: true,
+    canHardDelete: false,
     canEditSettings: true,
     canSubmitForApproval: true,
     canManageTeam: true,
@@ -140,8 +140,6 @@ export function canAccessRoute(role: string, route: string): boolean {
 
 export const ASSIGNABLE_ROLES = [
   { value: 'admin', label: 'Admin / Manager' },
-  { value: 'founder_ceo', label: 'Founder / CEO' },
-  { value: 'founder_coo', label: 'Founder / COO' },
   { value: 'social_media_manager', label: 'Social Media Manager' },
 ] as const;
 

@@ -12,6 +12,7 @@ import { Plus, Edit2, Trash2, Phone, Video, ExternalLink, ArrowUpRight } from 'l
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
 import { mergePendingItems } from '../utils/pendingMerge';
+import { FileLink } from '../components/common/FileLink';
 
 export const Cameramen: React.FC = () => {
   const navigate = useNavigate();
@@ -153,10 +154,10 @@ export const Cameramen: React.FC = () => {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {cam.contractLink && (
-                              <a href={cam.contractLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                              <FileLink fileRef={cam.contractLink} onClick={(e) => e.stopPropagation()}
                                 className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors" title="View Contract">
                                 <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
+                              </FileLink>
                             )}
                             <button type="button" onClick={(e) => handleEdit(cam as Cameraman, e)}
                               className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] rounded-md transition-colors" title="Edit Cameraman">

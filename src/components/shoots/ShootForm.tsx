@@ -11,6 +11,7 @@ import { canCreateDirect, canSubmitCollectionForApproval } from '../../utils/per
 import { parseOperationalSettings } from '../../config/business';
 import { buildShootScheduleWhatsAppDrafts, cancelWhatsAppDraftTabs, completeWhatsAppDraftTabs, prepareWhatsAppDraftTabs } from '../../utils/whatsapp';
 import { useToast } from '../../context/ToastContext';
+import { safeHttpUrl } from '../../utils/safeHttpUrl';
 
 interface ShootFormProps {
   isOpen: boolean;
@@ -90,6 +91,10 @@ export const ShootForm: React.FC<ShootFormProps> = ({ isOpen, onClose, initialSh
     if (!location.trim()) { setErrorMessage('Location is required.'); return; }
     if (!date) { setErrorMessage('Date is required.'); return; }
     if (clientAmount < 0) { setErrorMessage('Client amount must be non-negative.'); return; }
+    if (deliverables.some(item => item.fileLink.trim() && !safeHttpUrl(item.fileLink.trim()))) {
+      setErrorMessage('Deliverable links must use HTTPS.');
+      return;
+    }
     if (assignments.length > 0 && !callTime.trim() && assignments.some(assignment => !assignment.callTime)) {
       setErrorMessage('Enter a general call time or a call-time override for every assigned cameraman.'); return;
     }

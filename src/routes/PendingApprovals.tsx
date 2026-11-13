@@ -13,6 +13,7 @@ import { ExpenseForm } from '../components/expenses/ExpenseForm';
 import { ShootForm } from '../components/shoots/ShootForm';
 import { formatSingularCollection } from '../utils/formatCollection';
 import { formatTime12h } from '../utils/formatTime';
+import { formatPerson } from '../utils/formatPerson';
 
 const TAB_FILTERS = ['all', 'pending', 'approved', 'rejected'] as const;
 
@@ -186,8 +187,14 @@ export const PendingApprovals: React.FC = () => {
                     {(viewModalCR.proposedData?.name as string) || (viewModalCR.proposedData?.description as string) || `${viewModalCR.targetCollection} ${viewModalCR.action}`}
                   </h3>
                   <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Requested by <span className="font-mono text-[var(--color-text-secondary)]">{viewModalCR.requestedBy}</span> on {new Date(viewModalCR.requestedAt).toLocaleString('en-IN')}
+                    Requested by <span className="font-medium text-[var(--color-text-secondary)]">{formatPerson(viewModalCR.requestedByName, viewModalCR.requestedByRole)}</span> on {new Date(viewModalCR.requestedAt).toLocaleString('en-IN')}
                   </p>
+                  {viewModalCR.reviewedBy && (
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                      Reviewed by <span className="font-medium text-[var(--color-text-secondary)]">{formatPerson(viewModalCR.reviewedByName, viewModalCR.reviewedByRole)}</span>
+                      {viewModalCR.reviewedAt && ` on ${new Date(viewModalCR.reviewedAt).toLocaleString('en-IN')}`}
+                    </p>
+                  )}
                 </div>
                 <button type="button" onClick={() => setViewModalCR(null)} className="p-1 rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]">
                   <X className="w-5 h-5" />
@@ -318,7 +325,7 @@ const CRCard: React.FC<CRCardProps> = ({ cr, isFounder, canResubmit, onView, onA
           </div>
           <p className="text-sm font-semibold text-[var(--color-text)] mt-1 truncate">{proposedName || `${cr.targetCollection} ${cr.action}`}</p>
           <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
-            by {cr.requestedBy} · {new Date(cr.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            by {formatPerson(cr.requestedByName, cr.requestedByRole)} · {new Date(cr.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
 

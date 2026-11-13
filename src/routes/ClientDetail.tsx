@@ -11,6 +11,7 @@ import { subscribeToCommunicationLogs } from '../supabase/data';
 import { ArrowLeft, Phone, ExternalLink, Edit2, Calendar, MapPin, CheckCircle2, Clock, Plus, FileText, DollarSign, Briefcase } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
+import { FileLink } from '../components/common/FileLink';
 
 export const ClientDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -81,7 +82,7 @@ export const ClientDetail: React.FC = () => {
                 {client.contractLink ? (
                   <div className="flex items-center gap-2">
                     <ExternalLink className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-                    <a href={client.contractLink} target="_blank" rel="noreferrer" className="text-[var(--color-accent)] hover:underline font-medium truncate">Master Services Agreement / Contract &rarr;</a>
+                    <FileLink fileRef={client.contractLink} className="text-[var(--color-accent)] hover:underline font-medium truncate">Master Services Agreement / Contract &rarr;</FileLink>
                   </div>
                 ) : (
                   <p className="text-[11px] text-[var(--color-text-muted)] italic">No contract document linked yet.</p>

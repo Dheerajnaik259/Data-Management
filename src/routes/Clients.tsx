@@ -12,6 +12,7 @@ import { Plus, Edit2, Trash2, Phone, ExternalLink, Users, ArrowUpRight } from 'l
 import { useAuth } from '../context/AuthContext';
 import { canDelete } from '../utils/permissions';
 import { mergePendingItems } from '../utils/pendingMerge';
+import { FileLink } from '../components/common/FileLink';
 
 export const Clients: React.FC = () => {
   const navigate = useNavigate();
@@ -172,10 +173,10 @@ export const Clients: React.FC = () => {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {client.contractLink && (
-                              <a href={client.contractLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                              <FileLink fileRef={client.contractLink} onClick={(e) => e.stopPropagation()}
                                 className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors" title="View Contract">
                                 <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
+                              </FileLink>
                             )}
                             <button type="button" onClick={(e) => handleEdit(client as Client, e)}
                               className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg)] rounded-md transition-colors" title="Edit Client">

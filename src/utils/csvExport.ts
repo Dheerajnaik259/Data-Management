@@ -1,6 +1,17 @@
 /**
  * Utility to convert array of objects into CSV format and trigger download
  */
+export function csvCell(value: unknown): string {
+  let text = value == null
+    ? ''
+    : typeof value === 'object'
+      ? JSON.stringify(value)
+      : String(value);
+
+  if (/^[\s\uFEFF]*[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 export function exportToCsv<T extends Record<string, unknown>>(
   filename: string,
   rows: T[],
@@ -22,27 +33,10 @@ export function exportToCsv<T extends Record<string, unknown>>(
   }
 
   const csvContent = [
-    // Header row
-    headerLabels.map((label) => `"${String(label).replace(/"/g, '""')}"`).join(','),
-    // Data rows
+    headerLabels.map(csvCell).join(','),
     ...rows.map((row) =>
       columnKeys
-        .map((key) => {
-          const rawVal = row[key];
-          let formatted = '';
-          if (rawVal !== null && rawVal !== undefined) {
-            if (typeof rawVal === 'object') {
-              formatted = JSON.stringify(rawVal);
-            } else {
-              formatted = String(rawVal);
-            }
-          }
-          if (typeof rawVal === 'string' && /^[\u0000-\u0020]*[=+\-@]/.test(formatted)) {
-            formatted = `'${formatted}`;
-          }
-          const str = formatted.replace(/"/g, '""');
-          return `"${str}"`;
-        })
+        .map((key) => csvCell(row[key]))
         .join(',')
     ),
   ].join('\r\n');

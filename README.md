@@ -8,13 +8,13 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
 - **Operations:** Client, cameraman, shoot, and expense records; shoot assignments and deliverables; client communication logs; cameraman availability. Scheduling a shoot opens prefilled WhatsApp drafts for the client and assigned crew (after Founder approval for Admin submissions); a person must still press Send in WhatsApp.
 - **Schedule:** Monthly shoot calendar with date markers, hover/click previews, and links to shoot details. Horizontal two-finger trackpad gestures navigate backward/forward through visited app pages; horizontal scrolling inside content and form controls is left alone.
 - **Payments and documents:** Receivables and crew payouts, overdue indicators, WhatsApp reminders/call sheets, CSV exports, and downloadable PDF invoices and payout vouchers. Paid documents use persisted, concurrency-safe database numbers; unpaid previews are explicitly marked as drafts.
-- **Approvals and recovery:** Admin change requests with Founder review notes and resubmission; Admin recycle-bin restore and permanent deletion.
+- **Approvals and recovery:** Admin change requests with Founder review notes and resubmission; Admin recycle-bin restore and Founder-only permanent deletion.
 - **Settings and access:** Configurable status/category lists, payment grace period and WhatsApp templates, Founder-managed company/invoice profile, and self-service password updates.
 - **Dashboard chart:** Income and outflow trends based on shoot payments and expenses.
 
 ## Technology
 
-- React 19, TypeScript, Vite 6, React Router 7
+- React 19, TypeScript, Vite 8, React Router 7
 - Tailwind CSS 4 and the shared CSS design system in `src/index.css`
 - Supabase Auth, PostgreSQL, Realtime, Row Level Security, and Storage
 - jsPDF and jsPDF-AutoTable for PDFs; Lucide React for icons
@@ -22,7 +22,7 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
 
 ## Requirements
 
-- Node.js 20 or later
+- Node.js 20.19 or later (or 22.12 or later)
 - npm
 - A Supabase project configured with this application's schema and migrations
 
@@ -38,7 +38,7 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
 2. Install dependencies:
 
    ```bash
-   npm install
+   npm ci
    ```
 
 3. Create `.env.local` in the project root:
@@ -48,12 +48,12 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
    VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
    ```
 
-4. Configure the database:
-   - For a **new** Supabase project, apply `supabase/schema.sql`.
-   - For an **existing** project, back up and test first, then apply only the unapplied files in `supabase/migrations/` in filename order. Do not rerun the bootstrap schema against a live database.
-   - The payment-status migration `202611070001_lock_paid_payments.sql` installs the shoot payment RPC and makes confirmed paid statuses irreversible. Apply it if the database reports that `update_shoot_operational` is missing.
-   - Apply `202611070002_delete_change_request_rpc.sql` if deleting approval requests reports that `delete_change_request` is missing.
-   - Refresh the app after applying a migration. If the function remains missing, confirm the SQL was run in the same Supabase project configured in `.env.local` and that the API schema cache has refreshed.
+4. Configure the database in a disposable or staging project first:
+   - For a **new** project, apply `supabase/schema.sql`, then every migration in `supabase/migrations/` in filename order. The bootstrap schema defines only the original Admin and Founder roles; later migrations add the current role set and security fixes.
+   - For an **existing** project, back up and test first, then apply only unapplied migration files in filename order. Never rerun the bootstrap schema against a live database.
+   - Do not apply files under `supabase/migrations/proposed/`; they are not production migrations.
+   - The production-hardening migration requires Founder accounts to use Supabase MFA (AAL2) before they can approve or reject requests. Enable and verify MFA before applying it to production.
+   - Refresh the app after applying migrations. If a function remains missing, confirm the SQL was run in the same Supabase project configured in `.env.local` and that the API schema cache has refreshed.
    - Create and verify the required Supabase Auth profiles and policies before using the application.
 
 5. Start the development server:
@@ -72,7 +72,7 @@ npm test           # Vitest suite
 npm run build      # Production Vite build
 ```
 
-`npm run preview` serves a production build locally. `npm run clean` removes generated `dist` output and a root `server.js` file if present.
+`npm run preview` serves a production build locally. `npm run clean` removes generated `dist` output. The development server binds to localhost by default; only use `npm run dev -- --host` on a trusted network when testing from another device.
 
 ## Application routes
 
@@ -108,6 +108,8 @@ Unknown routes redirect to `/`.
 
 The browser uses the Supabase anon/publishable key. Never put a service-role key or other privileged credential in a `VITE_*` variable. UI role checks are not a security boundary: retain and test the database Row Level Security policies and guarded RPCs for each role. Review migrations in staging before deploying matching client code, configure Supabase Auth URLs for the deployed domain, and keep `.env.local` out of source control.
 
+Before production, disable public signups and invite only approved operators. Enable MFA for every operator and verify Founder MFA before applying migrations that require AAL2 for approvals, permanent deletion, or business-profile changes. Configure leaked-password protection, email confirmation, password rules, rate limits, short session lifetimes, and production-only redirect URLs in Supabase Auth. Keep staging and production in separate Supabase projects and configure the deployment host to send security headers and a CSP appropriate to its asset and API origins.
+
 ## Documentation
 
 - [Project plan](PROJECT_PLAN.md) — implemented scope and delivery status
@@ -116,6 +118,7 @@ The browser uses the Supabase anon/publishable key. Never put a service-role key
 - [Design system](DESIGN_SYSTEM.md) — current visual tokens and UI conventions
 - [Future scope](FUTURE_SCOPE.md) — proposed features not present in the current build
 - [Workspace rules](rules.md) — implementation and documentation ground rules
+- [Operations runbook](OPERATIONS_RUNBOOK.md) — deployment, recovery, access, and key-rotation procedures
 
 ## License
 

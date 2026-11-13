@@ -5,6 +5,7 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { parseCurrencyInput } from '../../utils/formatCurrency';
 import { canSubmitCollectionForApproval } from '../../utils/permissions';
+import { safeHttpUrl } from '../../utils/safeHttpUrl';
 
 interface CameramanFormProps {
   isOpen: boolean;
@@ -49,6 +50,11 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
     setErrorMessage(null);
     if (!name.trim()) { setErrorMessage('Name is required.'); return; }
     if (!phone.trim()) { setErrorMessage('Phone is required.'); return; }
+    const safeContractLink = contractLink.trim() ? safeHttpUrl(contractLink.trim()) : '';
+    if (contractLink.trim() && !safeContractLink) {
+      setErrorMessage('Contract links must use HTTPS.');
+      return;
+    }
 
     if (!initialCameraman && !resubmission) {
       const duplicate = cameramen.some(c => c.name.trim().toLowerCase() === name.trim().toLowerCase() || c.phone.trim() === phone.trim());
@@ -59,7 +65,7 @@ export const CameramanForm: React.FC<CameramanFormProps> = ({ isOpen, onClose, i
     }
     setIsSaving(true);
     try {
-      const data = { name: name.trim(), phone: phone.trim(), rate, notes: notes.trim(), contractLink: contractLink.trim() };
+      const data = { name: name.trim(), phone: phone.trim(), rate, notes: notes.trim(), contractLink: safeContractLink || '' };
       if (resubmission) { await handleEditAndResubmit(resubmission.id, data); }
       else if (initialCameraman) { await handleUpdateOrSubmit('cameramen', initialCameraman.id, data); }
       else { await handleCreateOrSubmit('cameramen', data); }

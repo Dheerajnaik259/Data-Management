@@ -73,40 +73,41 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   useEffect(() => {
     if (!isOpen || !shoot || !resolvedDocumentNumber) return;
-    try {
-      if (type === 'client_invoice' && client) {
-        const doc = generateClientInvoicePDF(client, shoot, { ...businessProfile, invoiceNumber: resolvedDocumentNumber });
-        const dataUri = doc.output('datauristring');
-        setPdfDataUri(dataUri);
-      } else if (type === 'cameraman_receipt' && cameraman) {
-        const doc = generateCameramanPayoutReceiptPDF(
-          cameraman,
-          shoot,
-          assignmentAmount,
-          assignmentPaid,
-          assignmentPaidAt,
-          { ...businessProfile, invoiceNumber: resolvedDocumentNumber },
-        );
-        const dataUri = doc.output('datauristring');
-        setPdfDataUri(dataUri);
-      } else {
-        throw new Error('Recipient data is unavailable for this document.');
+    let active = true;
+    const generatePreview = async () => {
+      try {
+        const doc = type === 'client_invoice' && client
+          ? await generateClientInvoicePDF(client, shoot, { ...businessProfile, invoiceNumber: resolvedDocumentNumber })
+          : type === 'cameraman_receipt' && cameraman
+            ? await generateCameramanPayoutReceiptPDF(
+              cameraman,
+              shoot,
+              assignmentAmount,
+              assignmentPaid,
+              assignmentPaidAt,
+              { ...businessProfile, invoiceNumber: resolvedDocumentNumber },
+            )
+            : null;
+        if (!doc) throw new Error('Recipient data is unavailable for this document.');
+        if (active) setPdfDataUri(doc.output('datauristring'));
+      } catch (err) {
+        if (active) setDocumentError(err instanceof Error ? err.message : 'Unable to generate the PDF preview.');
       }
-    } catch (err) {
-      setDocumentError(err instanceof Error ? err.message : 'Unable to generate the PDF preview.');
-    }
+    };
+    void generatePreview();
+    return () => { active = false; };
   }, [isOpen, type, client, cameraman, shoot, assignmentAmount, assignmentPaid, assignmentPaidAt, businessProfile, resolvedDocumentNumber]);
 
   if (!isOpen) return null;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (type === 'client_invoice' && client) {
       if (!resolvedDocumentNumber) return;
-      const doc = generateClientInvoicePDF(client, shoot, { ...businessProfile, invoiceNumber: resolvedDocumentNumber });
+      const doc = await generateClientInvoicePDF(client, shoot, { ...businessProfile, invoiceNumber: resolvedDocumentNumber });
       doc.save(`Invoice_${client.name.replace(/\s+/g, '_')}_${shoot.date}.pdf`);
     } else if (type === 'cameraman_receipt' && cameraman) {
       if (!resolvedDocumentNumber) return;
-      const doc = generateCameramanPayoutReceiptPDF(
+      const doc = await generateCameramanPayoutReceiptPDF(
         cameraman,
         shoot,
         assignmentAmount,
@@ -118,15 +119,15 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (type === 'client_invoice' && client) {
       if (!resolvedDocumentNumber) return;
-      const doc = generateClientInvoicePDF(client, shoot, { ...businessProfile, invoiceNumber: resolvedDocumentNumber });
+      const doc = await generateClientInvoicePDF(client, shoot, { ...businessProfile, invoiceNumber: resolvedDocumentNumber });
       doc.autoPrint();
       window.open(doc.output('bloburl'), '_blank');
     } else if (type === 'cameraman_receipt' && cameraman) {
       if (!resolvedDocumentNumber) return;
-      const doc = generateCameramanPayoutReceiptPDF(
+      const doc = await generateCameramanPayoutReceiptPDF(
         cameraman,
         shoot,
         assignmentAmount,

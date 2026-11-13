@@ -18,7 +18,7 @@ The following features are present in the current source:
 | Dashboards | Admin dispatch and follow-up views; Founder approval summary, cashflow, client margin ranking, and growth chart |
 | Financial tools | Payment ledger, overdue indicators, configurable grace period, PDF invoices and payout vouchers with persisted, lock-safe document numbering for paid records, CSV exports |
 | Communication and files | Prefilled WhatsApp client confirmations and crew call sheets open after a shoot is scheduled (or approved for Admin submissions); the user sends each message in WhatsApp. Also includes payment reminders, client communication log, and Supabase Storage integration for file links |
-| Administration | Settings and password update; soft-delete, restore, and permanent deletion for Admin |
+| Administration | Settings and password update; Admin soft-delete and restore; Founder-only permanent deletion |
 | UI support | Responsive route layout with compact desktop icon rail and grouped full-label mobile navigation; keyboard-accessible drawer; command palette, keyboard shortcut help, loading and empty states, confirmations, and notifications |
 
 The shared UI uses the black Liquid Glass system documented in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). The Founder growth chart is a cashflow/net-position view based on paid client receipts, paid crew payouts, and logged expenses; it should not be described as profit.
@@ -44,7 +44,7 @@ Payment statuses and crew check-in information are operational changes, not full
 
 ### Record recovery
 
-Admin soft deletion sets `deleted_at` and `deleted_by` on the record. Admin can restore it or permanently delete it from the Recycle Bin. The current model does not use a separate deleted-record snapshot table.
+Admin soft deletion sets `deleted_at` and `deleted_by` on the record. Admin can restore records from the Recycle Bin; only a Founder with MFA can permanently delete a recycled record. The current model does not use a separate deleted-record snapshot table.
 
 ### Shoot scheduling messages
 
@@ -54,12 +54,12 @@ Admin soft deletion sets `deleted_at` and `deleted_by` on the record. Admin can 
 
 ### Retired projects and content production
 
-These modules are no longer part of the application. A destructive database cleanup script is available at `supabase/migrations/proposed/202611070002_remove_projects_production.sql`. Back up any data that must be retained and review the script before running it manually.
+These modules are no longer part of the application. A destructive database cleanup script is available at `supabase/migrations/proposed/202611130002_remove_projects_production.sql`. Back up any data that must be retained and review the script before running it manually.
 
 
 ## Technology and data
 
-- React 19, TypeScript 5.8, Vite 6, React Router 7
+- React 19, TypeScript 5.8, Vite 8, React Router 7
 - Tailwind CSS 4 and the shared CSS system in `src/index.css`
 - Supabase Auth, PostgreSQL, Realtime, Row Level Security, and Storage
 - jsPDF/jsPDF-AutoTable; Vitest and Testing Library

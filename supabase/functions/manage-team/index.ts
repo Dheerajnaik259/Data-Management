@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const roles = ['admin', 'founder_ceo', 'founder_coo', 'social_media_manager'];
+const founderRoles = ['founder', 'founder_ceo', 'founder_coo'];
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -48,6 +49,9 @@ Deno.serve(async request => {
   }
 
   if (!roles.includes(String(input.role))) return json({ error: 'Choose a valid team role.' }, 400);
+  if (founderRoles.includes(String(input.role))) {
+    return json({ error: 'Only a Founder can assign a Founder role.' }, 403);
+  }
 
   if (input.action === 'invite') {
     const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';

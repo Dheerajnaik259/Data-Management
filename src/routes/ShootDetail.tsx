@@ -14,12 +14,16 @@ import { canDelete } from '../utils/permissions';
 import { buildCameramanScheduleWhatsAppUrl, buildClientPaymentReminderWhatsAppUrl, buildClientShootScheduleWhatsAppUrl } from '../utils/whatsapp';
 import { formatTime12h } from '../utils/formatTime';
 import { parseOperationalSettings } from '../config/business';
+import { FileLink } from '../components/common/FileLink';
+import { useToast } from '../context/ToastContext';
+import { resolveFileUrl } from '../supabase/storage';
 
 export const ShootDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { shoots, clients, cameramen, expenses, settings, handleUpdateOrSubmit, handleSoftDelete, handleToggleClientPayment, handleToggleCameramanPayment } = useData();
   const { user } = useAuth();
+  const { toast } = useToast();
   const operationalSettings = parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
 
   const shoot = shoots.find(s => s.id === id);
@@ -52,9 +56,19 @@ export const ShootDetail: React.FC = () => {
   const netMargin = shoot.clientAmount - totalProductionCost;
   const marginPercentage = shoot.clientAmount > 0 ? Math.round((netMargin / shoot.clientAmount) * 100) : 0;
 
-  const handleCopyLink = (link: string, idx: number) => {
-    navigator.clipboard.writeText(link); setCopiedLinkIndex(idx);
-    setTimeout(() => setCopiedLinkIndex(null), 2000);
+  const handleCopyLink = async (link: string, idx: number) => {
+    try {
+      const url = await resolveFileUrl(link);
+      if (!url) throw new Error('The file link is invalid.');
+      await navigator.clipboard.writeText(url);
+      setCopiedLinkIndex(idx);
+      setTimeout(() => setCopiedLinkIndex(null), 2000);
+    } catch (error) {
+      toast({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to copy the file link.',
+      });
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -194,9 +208,9 @@ export const ShootDetail: React.FC = () => {
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         {item.fileLink ? (
                           <>
-                            <a href={item.fileLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors truncate max-w-xs">
+                            <FileLink fileRef={item.fileLink} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors truncate max-w-xs">
                               <ExternalLink className="w-3.5 h-3.5 shrink-0" /> <span>Open Cloud Drive</span>
-                            </a>
+                            </FileLink>
                             <button type="button" onClick={() => handleCopyLink(item.fileLink!, idx)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-bg)] border border-[var(--color-border)] rounded transition-colors" title="Copy URL">
                               {copiedLinkIndex === idx ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>

@@ -104,12 +104,12 @@ export const Invoices: React.FC = () => {
       if (item.type === 'client_invoice') {
         const client = clientMap.get(item.targetId);
         if (!client) throw new Error('Client record is unavailable for this invoice.');
-        const doc = generateClientInvoicePDF(client, item.shoot, { ...businessProfile, invoiceNumber: number });
+        const doc = await generateClientInvoicePDF(client, item.shoot, { ...businessProfile, invoiceNumber: number });
         doc.save(`${number}_${client.name.replace(/\s+/g, '_')}.pdf`);
       } else {
         const cam = cameramanMap.get(item.targetId);
         if (!cam) throw new Error('Cameraman record is unavailable for this payout voucher.');
-        const doc = generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt, { ...businessProfile, invoiceNumber: number });
+        const doc = await generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt, { ...businessProfile, invoiceNumber: number });
         doc.save(`${number}_${cam.name.replace(/\s+/g, '_')}.pdf`);
       }
     } catch (error) {
@@ -127,12 +127,12 @@ export const Invoices: React.FC = () => {
       if (item.type === 'client_invoice') {
         const client = clientMap.get(item.targetId);
         if (!client) throw new Error('Client record is unavailable for this invoice.');
-        const doc = generateClientInvoicePDF(client, item.shoot, { ...businessProfile, invoiceNumber: number });
+        const doc = await generateClientInvoicePDF(client, item.shoot, { ...businessProfile, invoiceNumber: number });
         doc.autoPrint(); window.open(doc.output('bloburl'), '_blank');
       } else {
         const cam = cameramanMap.get(item.targetId);
         if (!cam) throw new Error('Cameraman record is unavailable for this payout voucher.');
-        const doc = generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt, { ...businessProfile, invoiceNumber: number });
+        const doc = await generateCameramanPayoutReceiptPDF(cam, item.shoot, item.amount, item.isPaid, item.paidAt, { ...businessProfile, invoiceNumber: number });
         doc.autoPrint(); window.open(doc.output('bloburl'), '_blank');
       }
     } catch (error) {

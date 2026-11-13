@@ -1,5 +1,4 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type jsPDF from 'jspdf';
 import { Client, Cameraman, Shoot } from '../types';
 import { formatCurrency } from './formatCurrency';
 
@@ -22,12 +21,16 @@ const DEFAULT_BIZ: Required<InvoiceOptions> = {
 /**
  * Generates a clean, professional Client Invoice PDF
  */
-export function generateClientInvoicePDF(
+export async function generateClientInvoicePDF(
   client: Client,
   shoot: Shoot,
   options: Partial<InvoiceOptions> = {}
-): jsPDF {
-  const doc = new jsPDF();
+): Promise<jsPDF> {
+  const [{ default: JsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+  const doc = new JsPDF();
   const opt = { ...DEFAULT_BIZ, ...options };
   const invNumber = opt.invoiceNumber || `INV-${shoot.date.replace(/-/g, '')}-${shoot.id.slice(0, 4).toUpperCase()}`;
 
@@ -200,15 +203,19 @@ export function generateClientInvoicePDF(
 /**
  * Generates a clean Cameraman Payout Receipt PDF
  */
-export function generateCameramanPayoutReceiptPDF(
+export async function generateCameramanPayoutReceiptPDF(
   cameraman: Cameraman,
   shoot: Shoot,
   assignmentAmount: number,
   isPaid: boolean,
   paidAt?: string | null,
   options: Partial<InvoiceOptions> = {}
-): jsPDF {
-  const doc = new jsPDF();
+): Promise<jsPDF> {
+  const [{ default: JsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+  const doc = new JsPDF();
   const opt = { ...DEFAULT_BIZ, ...options };
   const receiptNumber = opt.invoiceNumber || `RCP-${shoot.date.replace(/-/g, '')}-${cameraman.id.slice(0, 4).toUpperCase()}`;
 

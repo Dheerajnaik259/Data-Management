@@ -427,7 +427,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleHardDelete = async (col: ManagedCollection, docId: string) => {
     try {
-      if (!user || !canHardDeletePerm(user.role)) throw new Error('Only Admin can permanently delete records from the Recycle Bin.');
+      if (!user || !canHardDeletePerm(user.role)) throw new Error('Only a Founder can permanently delete records from the Recycle Bin.');
       if (docId.startsWith('pending-cr-')) {
         const crId = docId.replace('pending-cr-', '');
         await deleteChangeRequest(crId);
@@ -553,7 +553,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const now = new Date().toISOString();
-      await reviewChangeRequestWithNotification(cr, user.uid, 'approved', reviewNote);
+      await reviewChangeRequestWithNotification(cr.id, 'approved', reviewNote);
       setChangeRequests(prev => prev.map(item =>
         item.id === crId ? { ...item, status: 'approved', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
       ));
@@ -586,7 +586,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!cr || cr.status !== 'pending') return;
 
       const now = new Date().toISOString();
-      await reviewChangeRequestWithNotification(cr, user.uid, 'rejected', reviewNote);
+      await reviewChangeRequestWithNotification(cr.id, 'rejected', reviewNote);
       setChangeRequests(prev => prev.map(item =>
         item.id === crId ? { ...item, status: 'rejected', reviewedBy: user.uid, reviewedAt: now, reviewNote } : item
       ));

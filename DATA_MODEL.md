@@ -139,4 +139,4 @@ The bootstrap schema and later migrations together define the current database b
 
 ## Retired Projects and Content Production schema
 
-Projects and Content Production are not part of the active application. The database cleanup SQL is available at `supabase/migrations/proposed/202611070002_remove_projects_production.sql`; it deletes operational records, related approval requests, and the feature-specific tables and database objects. Back up any data that must be retained before running it. The cleanup script has not been run by the application code or against Supabase.
+Projects and Content Production are not part of the active application. The database cleanup SQL is available at `supabase/migrations/proposed/202611130002_remove_projects_production.sql`; it deletes operational records, related approval requests, and the feature-specific tables and database objects. Back up any data that must be retained before running it. The cleanup script has not been run by the application code or against Supabase.

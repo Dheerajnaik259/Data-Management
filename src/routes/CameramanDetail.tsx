@@ -8,6 +8,7 @@ import { CameramanForm } from '../components/cameramen/CameramanForm';
 import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal';
 import { Shoot } from '../types';
 import { ArrowLeft, Phone, ExternalLink, Edit2, Edit3, Calendar, MapPin, CheckCircle2, Clock, FileText, Video, Check, X } from 'lucide-react';
+import { FileLink } from '../components/common/FileLink';
 
 export const CameramanDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -92,7 +93,7 @@ export const CameramanDetail: React.FC = () => {
                 {cameraman.contractLink ? (
                   <div className="flex items-center gap-2">
                     <ExternalLink className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-                    <a href={cameraman.contractLink} target="_blank" rel="noreferrer" className="text-[var(--color-accent)] hover:underline font-medium truncate">Freelancer NDA / Agreement &rarr;</a>
+                    <FileLink fileRef={cameraman.contractLink} className="text-[var(--color-accent)] hover:underline font-medium truncate">Freelancer NDA / Agreement &rarr;</FileLink>
                   </div>
                 ) : (
                   <p className="text-[11px] text-[var(--color-text-muted)] italic">No contract/NDA document linked.</p>
