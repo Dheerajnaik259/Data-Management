@@ -1,52 +1,51 @@
 # MPixel Media ERP — Design System
 
-This document records the current styling direction and shared UI conventions. CSS custom properties in `src/index.css` are the source of truth for shared visual tokens.
+This document describes the styling conventions currently present in the app. CSS custom properties and reusable styles in `src/index.css` are the source of truth.
 
 ## Visual direction
 
-The application uses a dark, restrained, iPhone-inspired Liquid Glass treatment implemented with web CSS. Shared floating surfaces and selected panels use layered translucent fills, backdrop blur and saturation, soft edge highlights, and subtle ambient color. Keep dense financial information readable, preserve semantic colors, and avoid effects that compete with content.
+The interface uses a dark, restrained Liquid Glass-inspired treatment: translucent surfaces, blur/saturation, fine highlights, and restrained color. Keep financial data legible and avoid decorative effects that compete with content.
 
-## Color and typography
+## Tokens
 
-Use the CSS variables rather than introducing unrelated literal palette values.
+Use the existing CSS variables instead of introducing unrelated hard-coded palette values.
 
 | Token | Current purpose |
 |---|---|
-| `--color-background` (`#000000`) / `--color-background-secondary` (`#050505`) | Page and secondary background layers |
-| `--color-surface` (`#0A0A0A`) / `--color-surface-elevated` (`#111111`) | Opaque cards and form surfaces |
-| `--color-glass`, `--color-glass-elevated`, `--color-glass-border` | Translucent surfaces and glass edges |
-| `--color-sidebar` | Sidebar surface |
-| `--color-text-primary` (`#F5F5F7`), `--color-text-secondary`, `--color-text-muted` | Text hierarchy |
-| `--color-text-on-accent` (`#061211`) | Text on accent controls |
-| `--color-border` | Surface and control boundaries |
-| `--color-accent` (`#42DED5`) / `--color-accent-hover` (`#2BC6BE`) | Primary actions, focus, and selected navigation |
-| `--color-success`, `--color-warning`, `--color-error` | Semantic states |
-| `--glass-blur`, `--glass-radius`, `--glass-border`, `--glass-shadow`, `--motion-glass` | Shared material, elevation, and easing |
+| `--color-background`, `--color-background-secondary` | Page backgrounds |
+| `--color-surface`, `--color-surface-elevated` | Opaque surfaces |
+| `--color-glass`, `--color-glass-elevated`, `--color-glass-border` | Translucent surfaces and edges |
+| `--color-sidebar` | Navigation background |
+| `--color-text-primary`, `--color-text-secondary`, `--color-text-muted` | Text hierarchy |
+| `--color-text-on-accent` | Text on accent controls |
+| `--color-border` | Control and surface boundaries |
+| `--color-accent`, `--color-accent-hover` | Primary actions and selected states |
+| `--color-success`, `--color-warning`, `--color-error` | Semantic outcomes |
+| `--glass-blur`, `--glass-radius`, `--glass-border`, `--glass-shadow` | Shared glass material |
+| `--transition-fast`, `--transition-normal`, `--motion-glass` | Motion timing and easing |
 
-Inter is the shared typeface through `--font-sans` and `--font-serif`. Use the shared currency formatter for INR values and local-date utilities for user-facing dates where applicable.
+Both `--font-sans` and `--font-serif` currently resolve to Inter with system fallbacks. Dates and currency should use shared utilities; currency is displayed in INR.
 
-## Surface and component conventions
+## Components and layout
 
-- Prefer existing CSS tokens and classes in `src/index.css` before adding new styles.
-- Existing surface classes include `.glass-panel`, `.liquid-glass`, `.liquid-glass-floating`, and `.liquid-glass-elevated`.
-- The desktop application shell uses a compact glass icon rail; the mobile drawer expands the same grouped navigation with labels and route links.
-- Use `.liquid-sidebar`, `.liquid-nav-link`, and `.liquid-nav-group` for navigation surfaces and states. Compact links must retain accessible names and tooltips.
-- Use `.liquid-table-container` for dense tables and financial data; avoid applying strong blur to table rows.
-- The monthly schedule displays shoots on their dates, previews event details on hover/click, and links to the shoot detail route. Keep its markers and preview usable by touch and keyboard as well as a pointer.
-- Horizontal trackpad gestures navigate in-app history globally. Do not add a competing gesture handler to individual pages; horizontally scrollable containers and editable controls are excluded.
-- Use `.liquid-glass-button`, `.liquid-glass-input`, and `.liquid-dialog` for matching controls and overlays where appropriate.
-- Use the existing shared slide-over, confirmation dialog, loading skeleton, empty state, toast, notification, and keyboard-shortcut components rather than creating duplicate patterns.
-- Keep primary and secondary actions visually distinct. Apply semantic colors only when they convey status or outcome.
-- Retain visible keyboard focus and clear labels for controls. The mobile navigation drawer supports Escape, focus trapping, and focus restoration; respect reduced-motion preferences and avoid relying on motion alone to communicate state.
-- Keep page content fluid at narrow widths, with dashboard spacing scaling from compact mobile padding to wider desktop gutters.
+- Check `src/index.css` and existing components before adding a token, class, or parallel UI pattern.
+- Existing surfaces include `.glass-panel`, `.liquid-glass`, `.liquid-glass-floating`, and `.liquid-glass-elevated`.
+- Use `.liquid-sidebar`, `.liquid-nav-link`, and `.liquid-nav-group` for navigation.
+- Use `.liquid-table-container` for dense tables; prioritize legibility over strong blur.
+- Reuse the shared dialogs, slide-overs, loading/empty states, toast and notification UI, and keyboard-shortcut components.
+- The desktop shell uses compact navigation; mobile navigation expands to labeled grouped links. Retain accessible names and tooltips for icon-only controls.
+- The calendar must remain usable with touch and keyboard as well as a pointer.
+- Horizontal trackpad history navigation is centralized in the app shell. Avoid page-specific handlers that compete with it; horizontally scrollable regions and editable controls are excluded.
+- Preserve visible keyboard focus, clear labels, adequate contrast, and semantic colors that communicate a meaningful state.
+- Respect reduced-motion preferences. Do not rely on animation alone to communicate state.
 
-## Charts
+## Charts and financial information
 
-The dashboard's `GrowthChart` compares paid client receipts with paid crew payouts and logged expenses, and displays the resulting net position. This is a cashflow view, not a profit calculation. Preserve its existing data selection and calculations when styling; keep series visually distinct and provide an accessible chart label and text summaries.
+The dashboard chart compares paid client receipts with paid crew payouts and logged expenses, and presents net position. This is a cashflow view, not profit. Keep series distinct and retain an accessible label and text summaries when changing chart presentation.
 
-## Changing styles
+## Updating the design
 
-1. Check `src/index.css` and existing components for an established token or class.
+1. Inspect the existing token/class and the target component.
 2. Add a token only for a distinct, reusable semantic role.
-3. Preserve contrast for approval, financial, and destructive states.
-4. Check the affected view at narrow and wide sizes and with keyboard navigation.
+3. Keep responsive behavior and role-based content intact.
+4. Verify the affected view at narrow and wide sizes and with keyboard navigation.

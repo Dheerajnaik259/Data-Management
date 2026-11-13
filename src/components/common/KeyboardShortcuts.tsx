@@ -28,10 +28,6 @@ export const KeyboardShortcuts: React.FC = () => {
     let waitingForNavigationKey = false;
     let navigationTimeout: ReturnType<typeof setTimeout> | undefined;
 
-    const dispatchPalette = (action: 'toggle' | 'close') => {
-      window.dispatchEvent(new CustomEvent('app:command-palette', { detail: action }));
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.isComposing || !document.hasFocus()) return;
 
@@ -39,8 +35,6 @@ export const KeyboardShortcuts: React.FC = () => {
         if (isHelpOpen) {
           event.preventDefault();
           setIsHelpOpen(false);
-        } else {
-          dispatchPalette('close');
         }
         return;
       }
@@ -57,12 +51,6 @@ export const KeyboardShortcuts: React.FC = () => {
       }
 
       if (isEditableTarget(event.target)) return;
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        dispatchPalette('toggle');
-        return;
-      }
 
       if ((event.metaKey || event.ctrlKey) && (event.key === '/' || event.code === 'Slash')) {
         event.preventDefault();
@@ -120,9 +108,8 @@ export const KeyboardShortcuts: React.FC = () => {
           </button>
         </div>
         <div className="space-y-2 text-sm">
-          <ShortcutRow keys="Ctrl / Cmd + K" description="Open or close command palette" />
           <ShortcutRow keys="Ctrl / Cmd + / or ?" description="Show this shortcut reference" />
-          <ShortcutRow keys="Escape" description="Close the topmost open overlay" />
+          <ShortcutRow keys="Escape" description="Close this shortcut reference" />
           <ShortcutRow keys="Ctrl / Cmd + Enter" description="Submit a valid form" />
           {navigationShortcuts.map(item => <ShortcutRow key={item.destination} keys={item.sequence} description={item.description} />)}
         </div>

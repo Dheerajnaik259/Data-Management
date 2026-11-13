@@ -1,30 +1,47 @@
-# Functionality Audit
+# Functionality and Release Audit
 
-## Scope and limitations
+## Scope
 
-Reviewed the current application routes, approval flow, invoice/voucher generation paths, shoot calendar, app-level trackpad navigation, and related documentation. Projects and Content Production are not part of the current frontend. This audit does not claim live Supabase or role-based verification; the destructive database cleanup remains a separate manual step.
+This is a source and local-check review of the current application. It is not a live penetration test, database integration test, or production-readiness certification. Supabase project settings and production data were not independently inspected.
 
-## Implemented and checked
+## Implemented behavior reviewed
 
-| Area | Result |
+| Area | Current behavior |
 |---|---|
-| Schedule | Monthly calendar marks shoot dates. Hover or click a shoot marker to preview client, location, and call time; use the preview action or day agenda to open shoot details. |
-| Trackpad navigation | Horizontal two-finger wheel gestures navigate backward/forward through visited in-app routes. Predominantly vertical gestures, form controls, and horizontally scrollable elements are excluded. |
-| Shoot WhatsApp drafts | Direct scheduling opens prefilled WhatsApp drafts for the selected client and assigned crew; an Admin's pending request opens drafts only when a Founder approves it. Messages are not sent automatically and require a manual Send action in WhatsApp. |
-| Liquid Glass styling | Shared surfaces use layered translucent fills, backdrop blur/saturation, edge highlights, restrained ambient color, and eased motion; reduced-motion preferences are respected. |
-| Change-request deletion | UI calls `delete_change_request(p_cr_id uuid)`. The idempotent migration `202611070002_delete_change_request_rpc.sql` installs the guarded function when it is missing; confirm it is applied to the configured Supabase project if deletion still reports a schema-cache error. |
-| Document numbers | Paid invoice and payout document paths now use the existing row-locked, idempotent `assign_invoice_number` RPC. Unpaid previews are explicitly marked as drafts. |
-| Retired modules | Projects and Content Production were removed from the frontend. A manual Supabase cleanup script is available; it has not been executed. |
-| Verification | Latest `npm run lint`, `npm test` (10 tests), and `npm run build` passed after the UI and navigation changes. A browser-generated horizontal wheel event moved between in-app history entries; physical trackpad hardware behavior is not independently verified. |
+| Roles and routes | Founder, Admin, and Social Media Manager roles have different capabilities; database RLS/RPCs are required in addition to UI checks. |
+| Managed records | Admin and Social Media Manager submissions are restricted by role/collection; Founder writes directly and reviews change requests. |
+| Approval transaction | The `review_change_request` RPC locks the pending request and applies the record change, request status, and outcome notification in one database transaction. It requires a Founder AAL2 session. |
+| Request notifications | Creation and resubmission persist first, then attempt notification insertion separately. Failures are logged and do not roll back the request. |
+| Recycle bin | Admin can soft-delete/restore; only a Founder with AAL2 can permanently delete a recycled record. Related live records may block deletion. |
+| Payment documents | Invoice and payout numbers are assigned through the persisted database counter RPC after payment, and retries reuse existing numbers. Unpaid previews are drafts. |
+| Links and exports | HTTPS URL handling and CSV formula-prefix escaping are implemented in shared utilities. |
+| Storage | The hardening migration configures a private bucket, MIME/size limits, role-based object policies, and the app uses signed URLs for access. Live policy behavior still needs role-based verification. |
+| Scheduling | The monthly calendar previews shoots and links to details. Horizontal trackpad history navigation is implemented at app level; physical-device behavior has not been independently tested. |
+| WhatsApp | The app opens prefilled drafts; a person must review and send each message. |
+| Retired modules | Projects and Content Production are absent from current app routes. A separate destructive SQL proposal remains under `supabase/migrations/proposed/`; it is not an active migration and has not been executed. |
 
-## Open verification and follow-up
+## Local verification recorded
 
-1. **Projects and Content Production database cleanup is pending.** Back up records that need to be retained, inspect the SQL, and run it manually only if deleting these feature records and related approval requests is intended.
-2. **Legacy notifications are best-effort.** Existing helpers create or update a legacy change request, then attempt notification delivery separately and log a warning on failure. A request can therefore persist without the intended notification. Consider moving those legacy operations into atomic database procedures or adding a durable retry/outbox.
-3. **Legacy approval application is not atomic.** The existing client/cameraman/shoot/expense approval path applies the target record and updates the request in separate operations. A failure between those operations can leave a changed record with a still-pending request. Validate and address this in a separately reviewed migration before treating legacy approval as transactionally guaranteed.
-4. **Database behavior needs role-based integration tests.** Test Admin direct-write denial, Admin submission, Founder approval/rejection/resubmission, and notification delivery against a disposable Supabase database.
-5. **Calendar and invoice behavior need acceptance checks.** Automated tests do not cover calendar viewport interactions or concurrent invoice-number requests. Calendar events rely on shoot data loading successfully from Supabase.
+On 2026-11-13, the following commands passed locally:
 
-## Safety status
+- `npm run lint` — TypeScript check
+- `npm test` — 6 test files, 26 tests passed
+- `npm run build` — production bundle built
+- `npm audit --omit=dev --audit-level=high` — zero production vulnerabilities reported
 
-No Supabase cleanup SQL was executed and no database data was changed during this removal. Database cleanup remains a manual, destructive step.
+The operator reported that the production-hardening SQL returned “Success. No rows returned” in Supabase on 2026-11-13. The Supabase project, migration history, and resulting policies were not independently inspected, so confirm the intended project and resulting state before relying on it.
+
+## Remaining release checks
+
+1. **Database integration and permissions:** In a disposable/staging project, test direct-write denials and allowed workflows using real Founder, Admin, and Social Media Manager sessions. Include MFA/AAL2-required actions, failed approvals, role changes, storage access, and constraints.
+2. **Migration/data review:** Check legacy data against new constraints, verify applied migration history, and review the full approval and deletion behavior before production. Do not run the proposed cleanup SQL as part of normal migration deployment.
+3. **Storage acceptance:** Verify signed URLs expire as expected and that each role can access only its intended paths and file types.
+4. **Notifications:** Pending and resubmission notifications are best-effort; consider a durable transactional outbox/retry if delivery must be guaranteed.
+5. **Scale:** Data subscriptions currently reload records and include a 30-second polling fallback. Evaluate server-side pagination and narrower Realtime subscriptions as record volume grows.
+6. **Audit/retention:** Audit rows retain full old/new row snapshots for several tables, potentially including personal and business data. Define access, retention, and purge policy before production use.
+7. **Product QA:** Complete responsive/mobile, keyboard/screen-reader, calendar, invoice concurrency, and role-based end-to-end acceptance checks.
+8. **Deployment operations:** Choose a host, configure security headers/CSP, Auth URL allowlists, backups, and a tested restore procedure.
+
+## Safety notes
+
+Do not treat a successful local build or SQL Editor message as proof of production readiness. Use separate staging and production projects, back up before database changes, and never expose service-role credentials in browser variables or source control.

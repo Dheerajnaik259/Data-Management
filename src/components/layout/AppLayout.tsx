@@ -3,7 +3,6 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { CommandPalette } from '../common/CommandPalette';
 import { KeyboardShortcuts } from '../common/KeyboardShortcuts';
 
 export const AppLayout: React.FC = () => {
@@ -116,7 +115,6 @@ export const AppLayout: React.FC = () => {
         <Outlet context={{ onOpenMobileNav: openMobileNav }} />
       </div>
 
-      <CommandPalette />
       <KeyboardShortcuts />
     </div>
   );

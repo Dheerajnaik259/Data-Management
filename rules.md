@@ -1,39 +1,41 @@
 # Workspace Rules — ERP Mpixel Media
 
-These rules keep implementation, security, and documentation aligned with the current source.
+These conventions keep source, database behavior, and documentation aligned.
 
-## Sources of truth
+## Documentation and sources of truth
 
-- `PROJECT_PLAN.md` describes current product scope and distinguishes shipped features from proposals.
-- `DATA_MODEL.md` describes the database model. Confirm exact table, column, and permission details in `supabase/schema.sql`, its migrations, and `src/types.ts` before changing them.
-- `DESIGN_SYSTEM.md` describes current visual conventions. Shared CSS tokens in `src/index.css` take precedence over prose examples.
-- Do not describe a proposed roadmap item as implemented.
-- `README.md`, `PROJECT_PLAN.md`, `FUNCTIONALITY_AUDIT.md`, and `FUTURE_SCOPE.md` must reflect the current routes and interactions, including the shoot calendar and app-level trackpad history gestures.
+- `README.md` is the setup and operator-facing project overview.
+- `PROJECT_PLAN.md` describes current product scope and distinguishes it from proposals.
+- `DATA_MODEL.md` describes current data and authorization; verify exact behavior against `supabase/schema.sql`, ordered migrations, and `src/types.ts`.
+- `FUNCTIONALITY_AUDIT.md` records verification and unresolved release checks; date test claims and do not claim live verification without evidence.
+- `DESIGN_SYSTEM.md` describes conventions; tokens/classes in `src/index.css` take precedence over prose.
+- `FUTURE_SCOPE.md` is proposals only.
+- Update directly related documentation when behavior changes. Do not claim a proposed or unverified capability is implemented.
 
-## Settings and configurable options
+## Roles, data, and authorization
 
-- Client statuses, shoot statuses, deliverable types, and expense categories are loaded from rows in the Supabase `settings` table; do not hardcode the selectable option lists in feature forms.
-- Operational defaults live in the `operationalSettings` row, including payment grace days and WhatsApp message templates. Use the existing `parseOperationalSettings()` helper.
-- Company and invoice identity data live in the `businessProfile` settings row. Only the Founder may edit that profile.
+- Current roles: Founder (`founder`, `founder_ceo`, `founder_coo`), Admin, and Social Media Manager.
+- Supabase PostgreSQL is the persisted-data source. `DataContext` and Supabase helpers manage client state and synchronization.
+- Admin/Social Media Manager managed-record submissions are role- and collection-limited; Founders review requests and write directly.
+- Admin can soft-delete/restore; permanent deletion is Founder-only and requires AAL2. Founder approvals/rejections and business-profile changes also require AAL2.
+- Admin can manage team invitations/assignable roles and operational options. Do not let role changes bypass database guards or demote/remove the last Founder.
+- RLS, guarded RPCs, constraints, and triggers are the authorization boundary. Frontend checks are not sufficient.
+- Treat audit snapshots as sensitive data; avoid logging secrets and define retention before production.
+- Use ordered, forward-only migrations for existing databases. Never rerun `supabase/schema.sql` on a live database or apply `supabase/migrations/proposed/` automatically.
 
-## Data access and approvals
+## Configurable settings and helpers
 
-- Supabase PostgreSQL is the source of persisted application data. `DataContext` and the Supabase data helpers provide application state and Realtime synchronization.
-- Admin additions and edits to managed operational records use the change-request workflow. Founder review determines whether the proposed data is applied.
-- Admin recycle-bin operations are direct operational actions. Payment status and crew check-in updates use the guarded operational-update path.
-- Founder direct writes, Admin restrictions, and role-specific access must remain enforced by RLS and restricted database functions. Frontend checks are not a security boundary.
-- Apply existing database changes through ordered migrations. Do not rerun `schema.sql` over a live database.
+- Load client/shoot statuses, deliverable types, and expense categories from `settings`; do not hardcode form option lists.
+- Use `parseOperationalSettings()` for payment grace period and WhatsApp templates.
+- Business/invoice identity is stored in the `businessProfile` settings row and is Founder-only.
+- Build WhatsApp messages with `src/utils/whatsapp.ts`.
+- Generate PDFs with `src/utils/pdfGenerator.ts` and persisted numbers through the invoice-number RPC.
+- Reuse shared permissions, currency/date formatters, dialogs, loading/empty states, and UI components.
+- Keep horizontal trackpad history handling centralized at the app shell.
 
-## Existing helpers
+## Validation
 
-- Build WhatsApp messages with helpers in `src/utils/whatsapp.ts`.
-- Generate invoices and payout vouchers with `src/utils/pdfGenerator.ts` and the existing invoice-number RPC.
-- Reuse shared currency/date formatters, permission helpers, dialogs, slide-overs, empty states, loading indicators, and keyboard-shortcut components.
-- Keep horizontal trackpad history handling centralized at the app shell; do not attach route navigation gestures to the calendar or other individual pages.
-
-## Development verification
-
-Use the package scripts for validation:
+Run the relevant checks after source changes:
 
 ```bash
 npm run lint
@@ -41,4 +43,4 @@ npm test
 npm run build
 ```
 
-For authorization or schema changes, also test the complete migration chain and RLS/RPC behavior in a staging Supabase project for both roles.
+For dependency updates, run the production dependency audit. For schema or authorization changes, test the complete migration chain and real role sessions in staging; include AAL2 flows and storage policies.

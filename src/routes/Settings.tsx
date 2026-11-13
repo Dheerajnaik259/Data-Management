@@ -485,7 +485,6 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
               onChange={e => setFormData({ ...formData, businessEmail: e.target.value })}
               placeholder="business@example.com"
               className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
-              required
             />
           </div>
           <div>
@@ -497,7 +496,6 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
               onChange={e => setFormData({ ...formData, businessPhone: e.target.value })}
               placeholder="+91 98765 43210"
               className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
-              required
             />
           </div>
         </div>
@@ -511,9 +509,81 @@ const BusinessProfileCard: React.FC<BusinessProfileCardProps> = ({ setting, onSa
             placeholder="e.g. UPI ID: smmops@hdfcbank | Bank: HDFC | A/C: 50200012345678 | IFSC: HDFC0001234"
             rows={2}
             className="w-full px-3 py-1.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
-            required
           />
         </div>
+
+        <section className="space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-semibold text-[var(--color-text)]">GST on client invoices</h4>
+              <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                Leave disabled until Mpixel Media is GST registered and the Founder has verified the details and rate.
+              </p>
+            </div>
+            <label className="flex shrink-0 items-center gap-2 text-xs font-medium text-[var(--color-text)]">
+              <input
+                type="checkbox"
+                disabled={!isFounder}
+                checked={formData.gstRegistered}
+                onChange={e => setFormData({
+                  ...formData,
+                  gstRegistered: e.target.checked,
+                  gstRate: e.target.checked && !formData.gstRate ? 18 : formData.gstRate,
+                })}
+                className="h-4 w-4 accent-[var(--color-accent)]"
+              />
+              Enable GST
+            </label>
+          </div>
+          {formData.gstRegistered && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--color-text)]">GSTIN</label>
+                <input
+                  type="text"
+                  disabled={!isFounder}
+                  value={formData.gstin}
+                  onChange={e => setFormData({ ...formData, gstin: e.target.value.trim().toUpperCase() })}
+                  placeholder="15-character GSTIN"
+                  maxLength={15}
+                  pattern="[0-9A-Z]{15}"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--color-text)]">GST rate (%) · SAC 998361</label>
+                <input
+                  type="number"
+                  disabled={!isFounder}
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  value={formData.gstRate || ''}
+                  onChange={e => setFormData({ ...formData, gstRate: Number(e.target.value) || 0 })}
+                  placeholder="18"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                  required
+                />
+                <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
+                  Social media marketing services use SAC 998361; the standard rate is 18% (9% CGST + 9% SGST, or 18% IGST).
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[var(--color-text)]">Tax breakdown</label>
+                <select
+                  disabled={!isFounder}
+                  value={formData.gstType}
+                  onChange={e => setFormData({ ...formData, gstType: e.target.value as BusinessProfileData['gstType'] })}
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="split">CGST + SGST</option>
+                  <option value="integrated">IGST</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </section>
 
         <div className="flex items-center justify-between pt-2">
           {savedSuccess ? (
@@ -551,7 +621,12 @@ interface SettingsCardProps {
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({ setting, isEditing, onEdit, onClose, onSave }) => {
-  const [options, setOptions] = useState<SettingsOption[]>(setting.options);
+  const { getSettingsOptions } = useData();
+  const [options, setOptions] = useState<SettingsOption[]>(
+    () => setting.key === 'deliverableTypes'
+      ? getSettingsOptions(setting.key, true)
+      : setting.options,
+  );
   const [newValue, setNewValue] = useState('');
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');

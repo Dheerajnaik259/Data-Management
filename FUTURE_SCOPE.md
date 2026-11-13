@@ -1,39 +1,38 @@
 # ERP Mpixel Media — Future Scope
 
-This file separates the shipped functionality from ideas that are **not implemented in the current build**. Proposed work should be prioritized with the business owner and validated against the current database authorization model before implementation.
+Everything in this document is a proposal, not a feature in the current application. Prioritize with the business owner and review database authorization, migrations, and operational costs before implementation.
 
-## Current build baseline
+## Current baseline
 
-The app already includes role-specific dashboards, client/cameraman/shoot/expense management, a monthly shoot calendar with event previews and detail links, horizontal trackpad back/forward navigation, approval requests, payment and payout tracking, WhatsApp reminders and prefilled client/crew scheduling drafts, invoices and vouchers, CSV exports, client communication history, settings, Liquid Glass-inspired shared styling, and recycle-bin operations. WhatsApp drafts still require manual sending. Projects and Content Production were removed from the active application. See [README.md](README.md) and [PROJECT_PLAN.md](PROJECT_PLAN.md) for the current routes and status.
+The app currently supports role-aware operations for clients, freelance crew, shoots, expenses, approvals, payments, invoices/vouchers, CSV exports, a monthly shoot calendar, client communication history, WhatsApp drafts, settings, and recycle-bin workflows. WhatsApp messages require a person to send them. See [README.md](README.md) and [PROJECT_PLAN.md](PROJECT_PLAN.md) for active scope.
 
-## Potential future features
+## Candidate features
 
-### Monthly retainer and content-quota tracking
+### Monthly retainer and content quotas
 
-- Track each client's monthly contract quota (for example, a set number of reels and stories).
-- Show completed versus planned deliverables for the current period.
-- Define whether contract changes require Founder approval before adding fields or approval behavior.
+- Track each client's monthly contract quota and completed/planned deliverables.
+- Define ownership, period boundaries, historical corrections, and which changes require Founder approval.
 
 ### Contract expiry and renewal reminders
 
-- Add contract end dates and configurable renewal notice windows.
-- Surface upcoming renewals to the appropriate role and avoid introducing duplicate notification schedules.
+- Store contract end dates and configurable renewal notice windows.
+- Define recipient, notification channel, duplicate suppression, and retry behavior.
 
-### AI-assisted operational entry
+### AI-assisted operations
 
 - Explore conversational search and draft creation for clients, shoots, assignments, and expenses.
-- Require a review/confirmation step before every mutation and send Admin changes through the existing approval workflow.
-- Do not give an assistant access to credentials, privileged settings, or unrestricted database operations.
+- Require a human confirmation for every mutation and preserve the existing request/review authorization flow.
+- Do not expose service-role credentials, unrestricted database operations, or privileged settings to an assistant.
 
 ### Agency packages and testimonial showcase
 
 - Consider a Founder-managed catalogue of service packages, deliverables, and pricing.
 - Consider storing approved testimonials and client outcome metrics.
-- Keep external-facing presentation data separate from operational records and provide an explicit review step before sharing it.
+- Keep any external-facing content separate from private operational records and require explicit review before publication.
 
-## Planning guardrails
+## Planning requirements
 
-- Treat this list as proposals, not committed delivery dates or current capabilities.
-- Document any schema additions and migration/backfill requirements in `DATA_MODEL.md`.
-- Define role permissions, RLS policies, and validation rules before UI implementation.
-- Keep operational and financial records private; agree retention, audit, and backup requirements before expanding access.
+- Do not list proposals as shipped functionality or promise delivery dates here.
+- Update [DATA_MODEL.md](DATA_MODEL.md) and add a forward-only migration for any schema change.
+- Define roles, RLS, RPC checks, validation, audit impact, and rollback/recovery before building UI.
+- Agree retention and backup requirements before adding personal or financial data.

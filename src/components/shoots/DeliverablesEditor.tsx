@@ -49,7 +49,7 @@ export const DeliverablesEditor: React.FC<DeliverablesEditorProps> = ({
             Deliverables & Assets
           </label>
           <p className="text-[11px] text-[var(--color-text-secondary)]">
-            Specify reel counts, photo sets, and Google Drive / cloud asset links
+            Add social media services and content deliverables, quantities, and cloud asset links
           </p>
         </div>
         <span className="text-xs font-medium text-[var(--color-text-secondary)]">

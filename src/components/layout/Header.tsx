@@ -41,17 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
               className="w-full pl-9 pr-3 py-1.5 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-all" />
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent('app:command-palette', { detail: 'toggle' }))}
-          aria-label="Open command palette (Control or Command plus K)"
-          title="Search and navigate (Ctrl/Cmd + K)"
-          className="liquid-floating-control hidden sm:inline-flex items-center gap-2 px-3 py-2 text-xs text-[var(--color-text-secondary)]"
-        >
-          <Search className="w-3.5 h-3.5" aria-hidden="true" />
-          <span>Search</span>
-          <kbd className="rounded border border-[var(--color-border)] px-1 py-0.5 font-mono text-[10px]">Ctrl / ⌘ K</kbd>
-        </button>
         <NotificationBell />
         {action && <div className="flex items-center gap-2">{action}</div>}
       </div>

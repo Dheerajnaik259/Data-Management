@@ -47,7 +47,7 @@ describe('KeyboardShortcuts', () => {
     expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
   });
 
-  it('dispatches the command-palette shortcut on Ctrl+K and Cmd+K', () => {
+  it('does not open the removed command palette on Ctrl+K or Cmd+K', () => {
     const listener = vi.fn();
     window.addEventListener('app:command-palette', listener);
     render(<ShortcutHarness />);
@@ -55,8 +55,7 @@ describe('KeyboardShortcuts', () => {
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
     fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
-    expect(listener).toHaveBeenCalledTimes(2);
-    expect(listener.mock.calls.map(([event]) => (event as CustomEvent).detail)).toEqual(['toggle', 'toggle']);
+    expect(listener).not.toHaveBeenCalled();
     window.removeEventListener('app:command-palette', listener);
   });
 

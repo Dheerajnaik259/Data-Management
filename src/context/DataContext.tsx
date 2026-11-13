@@ -173,6 +173,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       { value: 'reel', order: 1, archived: false },
       { value: 'story', order: 2, archived: false },
       { value: 'photo set', order: 3, archived: false },
+      { value: 'Social media strategy & campaign planning', order: 4, archived: false },
+      { value: 'Social media account management', order: 5, archived: false },
+      { value: 'Content calendar', order: 6, archived: false },
+      { value: 'Social media post design', order: 7, archived: false },
+      { value: 'Caption & copywriting', order: 8, archived: false },
+      { value: 'Reels & short-form video', order: 9, archived: false },
+      { value: 'Community management', order: 10, archived: false },
+      { value: 'Paid ads management (ad spend billed separately)', order: 11, archived: false },
+      { value: 'Campaign performance report', order: 12, archived: false },
     ],
     expenseCategories: [
       { value: 'travel', order: 1, archived: false },
@@ -184,7 +193,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getSettingsOptions = useCallback((key: string, includeArchived = false): SettingsOption[] => {
     const doc = settings.find(s => s.key === key);
-    const rawOptions = doc?.options && doc.options.length > 0 ? doc.options : (DEFAULT_SETTINGS_OPTIONS[key] || []);
+    const defaults = DEFAULT_SETTINGS_OPTIONS[key] || [];
+    const storedOptions = doc?.options && doc.options.length > 0 ? doc.options : null;
+    const rawOptions = storedOptions && key === 'deliverableTypes'
+      ? [
+          ...storedOptions,
+          ...defaults.filter(option => !storedOptions.some(
+            stored => stored.value.toLocaleLowerCase() === option.value.toLocaleLowerCase(),
+          )),
+        ]
+      : storedOptions || defaults;
     const opts = includeArchived ? rawOptions : rawOptions.filter(o => !o.archived);
     return [...opts].sort((a, b) => a.order - b.order);
   }, [settings, DEFAULT_SETTINGS_OPTIONS]);

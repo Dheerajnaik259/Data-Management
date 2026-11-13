@@ -1,30 +1,33 @@
 # ERP Mpixel Media
 
-ERP Mpixel Media is a React web application for the day-to-day operations of a social media management and video production agency. It manages clients, freelance cameramen, shoots, deliverables, expenses, payment tracking, invoices, and approval workflows.
+ERP Mpixel Media is an internal operations app for a social-media management and video-production agency. It manages clients, freelance camera crew, shoots, deliverables, expenses, payments, invoices, and approval workflows.
 
-## Current features
+## What the app does
 
-- **Role-gated dashboards:** Admin operations view with daily/tomorrow shoot dispatch, payment follow-ups, crew payouts, and submission status; Founder view with approvals, cashflow, and client profitability.
-- **Operations:** Client, cameraman, shoot, and expense records; shoot assignments and deliverables; client communication logs; cameraman availability. Scheduling a shoot opens prefilled WhatsApp drafts for the client and assigned crew (after Founder approval for Admin submissions); a person must still press Send in WhatsApp.
-- **Schedule:** Monthly shoot calendar with date markers, hover/click previews, and links to shoot details. Horizontal two-finger trackpad gestures navigate backward/forward through visited app pages; horizontal scrolling inside content and form controls is left alone.
-- **Payments and documents:** Receivables and crew payouts, overdue indicators, WhatsApp reminders/call sheets, CSV exports, and downloadable PDF invoices and payout vouchers. Paid documents use persisted, concurrency-safe database numbers; unpaid previews are explicitly marked as drafts.
-- **Approvals and recovery:** Admin change requests with Founder review notes and resubmission; Admin recycle-bin restore and Founder-only permanent deletion.
-- **Settings and access:** Configurable status/category lists, payment grace period and WhatsApp templates, Founder-managed company/invoice profile, and self-service password updates.
-- **Dashboard chart:** Income and outflow trends based on shoot payments and expenses.
+- Role-aware dashboards for Founders, Admins, and Social Media Managers.
+- Client, crew, shoot, expense, and communication-history workflows.
+- A monthly shoot calendar, shoot detail pages, and assignment/check-in tracking.
+- Change requests for managed records, with Founder approval and review notes.
+- Payment and crew-payout tracking; persisted invoice and voucher numbers for paid items.
+- CSV exports, PDF invoices and payout vouchers, and private Supabase Storage links. Client-invoice GST is optional and remains off until a Founder configures a verified GSTIN and accountant-confirmed rate; intra-state CGST/SGST versus inter-state IGST can be selected on the invoice.
+- WhatsApp message drafts for scheduling and payment follow-up. The app does not send WhatsApp messages; a person reviews and sends each draft.
+- Configurable status/category lists and operational templates, team invitations, and password updates.
+- Record recovery: Admins can soft-delete and restore records; Founders can permanently delete recycled records with an MFA-authenticated session.
+
+See [PROJECT_PLAN.md](PROJECT_PLAN.md) for implemented scope and [FUNCTIONALITY_AUDIT.md](FUNCTIONALITY_AUDIT.md) for verification and remaining release checks.
 
 ## Technology
 
 - React 19, TypeScript, Vite 8, React Router 7
-- Tailwind CSS 4 and the shared CSS design system in `src/index.css`
-- Supabase Auth, PostgreSQL, Realtime, Row Level Security, and Storage
-- jsPDF and jsPDF-AutoTable for PDFs; Lucide React for icons
-- Vitest and Testing Library for tests
+- Tailwind CSS 4 and the shared styles in `src/index.css`
+- Supabase Auth, PostgreSQL, Row Level Security, Realtime, and Storage
+- jsPDF and jsPDF-AutoTable; Lucide React
+- Vitest and Testing Library
 
 ## Requirements
 
-- Node.js 20.19 or later (or 22.12 or later)
-- npm
-- A Supabase project configured with this application's schema and migrations
+- Node.js 20.19+ (or 22.12+) and npm
+- A Supabase project configured with this app's schema and ordered migrations
 
 ## Local setup
 
@@ -35,7 +38,7 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
    cd Data-Management
    ```
 
-2. Install dependencies:
+2. Install the locked dependencies:
 
    ```bash
    npm ci
@@ -45,16 +48,17 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
 
    ```env
    VITE_SUPABASE_URL="https://your-supabase-project.supabase.co"
-   VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
+   VITE_SUPABASE_ANON_KEY="your-supabase-anon-or-publishable-key"
    ```
 
-4. Configure the database in a disposable or staging project first:
-   - For a **new** project, apply `supabase/schema.sql`, then every migration in `supabase/migrations/` in filename order. The bootstrap schema defines only the original Admin and Founder roles; later migrations add the current role set and security fixes.
-   - For an **existing** project, back up and test first, then apply only unapplied migration files in filename order. Never rerun the bootstrap schema against a live database.
-   - Do not apply files under `supabase/migrations/proposed/`; they are not production migrations.
-   - The production-hardening migration requires Founder accounts to use Supabase MFA (AAL2) before they can approve or reject requests. Enable and verify MFA before applying it to production.
-   - Refresh the app after applying migrations. If a function remains missing, confirm the SQL was run in the same Supabase project configured in `.env.local` and that the API schema cache has refreshed.
-   - Create and verify the required Supabase Auth profiles and policies before using the application.
+   These browser variables are public. Never put a Supabase service-role key or other privileged secret in a `VITE_*` variable.
+
+4. Configure Supabase:
+   - For a new project, apply `supabase/schema.sql`, then the production migrations in `supabase/migrations/` in filename order.
+   - For an existing project, back up first and apply only migrations not already installed. Do not rerun `schema.sql` on an existing database.
+   - Never automatically apply files in `supabase/migrations/proposed/`. They are unapproved, potentially destructive proposals, not part of the production migration chain.
+   - Apply and verify migrations in a separate staging project before production. Enable MFA for Founder accounts before applying the production-hardening migration; approval/rejection, permanent deletion, and business-profile changes require an AAL2 session.
+   - Restrict Auth signup/invitation and redirect settings to the intended operators and deployed domains. Confirm the database project matches `.env.local`.
 
 5. Start the development server:
 
@@ -62,63 +66,65 @@ ERP Mpixel Media is a React web application for the day-to-day operations of a s
    npm run dev
    ```
 
-   Open `http://localhost:3000`.
+   Open `http://localhost:3000`. Vite binds to localhost by default.
 
-## Development checks
+## Development commands
 
 ```bash
 npm run lint       # TypeScript check (tsc --noEmit)
 npm test           # Vitest suite
-npm run build      # Production Vite build
+npm run build      # Production build
+npm run preview    # Serve the production build locally
+npm run clean      # Remove generated dist output
 ```
 
-`npm run preview` serves a production build locally. `npm run clean` removes generated `dist` output. The development server binds to localhost by default; only use `npm run dev -- --host` on a trusted network when testing from another device.
+Only expose the development server to another device on a trusted network, for example with `npm run dev -- --host`.
 
-## Application routes
+## Routes
 
-| Route | Purpose |
+| Route | Screen |
 |---|---|
 | `/login` | Sign in |
 | `/` | Role-specific dashboard |
-| `/shoots`, `/shoots/:id` | Shoot schedule and details |
-| `/schedule` | Monthly shoot calendar with event previews and links to shoot details |
+| `/shoots`, `/shoots/:id` | Shoot list and details |
+| `/schedule` | Monthly shoot calendar |
 | `/clients`, `/clients/:id` | Client list and profile |
-| `/cameramen`, `/cameramen/:id` | Crew roster and profile |
+| `/cameramen`, `/cameramen/:id` | Crew list and profile |
 | `/payments` | Receivables and crew payouts |
-| `/invoices` | PDF invoices and payout vouchers |
+| `/invoices` | Invoice and payout-voucher PDFs |
 | `/expenses` | Operating expenses |
-| `/settings` | Operational and account settings |
-| `/approvals` | Change-request review and status |
-| `/recycle-bin` | Deleted-record recovery and purge |
+| `/settings` | Account, team, and operational settings |
+| `/approvals` | Change requests and review status |
+| `/recycle-bin` | Restore or permanently delete records, according to role |
 
-Unknown routes redirect to `/`.
+Unknown routes redirect to `/`. Social Media Manager route access is narrower than Admin/Founder access.
 
-## Project layout
+## Repository map
 
 - `src/routes/` — route-level screens
-- `src/components/` — shared layout, forms, dashboard, and interface components
-- `src/context/` — authentication, data, theme, and toast state
-- `src/supabase/` — Supabase configuration, auth, data access, and file operations
-- `src/utils/` — permissions, dates, currency, WhatsApp, PDFs, CSV, and business helpers
-- `supabase/schema.sql` — fresh-database schema and bootstrap policies
-- `supabase/migrations/` — ordered updates for existing databases
-- `supabase/migrations/proposed/` — unapproved schema proposals; never apply automatically
+- `src/components/` — shared layout and UI
+- `src/context/` — auth, application data, theme, and toast state
+- `src/supabase/` — Supabase auth, data, team, and storage helpers
+- `src/utils/` — permissions, formatting, PDF, CSV, and business helpers
+- `supabase/schema.sql` — bootstrap schema
+- `supabase/migrations/` — ordered production migrations
+- `supabase/migrations/proposed/` — unapproved proposals; do not apply automatically
 
-## Security notes
+## Security and operations
 
-The browser uses the Supabase anon/publishable key. Never put a service-role key or other privileged credential in a `VITE_*` variable. UI role checks are not a security boundary: retain and test the database Row Level Security policies and guarded RPCs for each role. Review migrations in staging before deploying matching client code, configure Supabase Auth URLs for the deployed domain, and keep `.env.local` out of source control.
+Frontend role checks are not a security boundary. Database access must remain protected by RLS and guarded RPCs. The production-hardening migration adds database-side audit logging and validation, private-bucket policies, and MFA checks for high-impact Founder actions. Review the migration chain and test each role in staging before production.
 
-Before production, disable public signups and invite only approved operators. Enable MFA for every operator and verify Founder MFA before applying migrations that require AAL2 for approvals, permanent deletion, or business-profile changes. Configure leaked-password protection, email confirmation, password rules, rate limits, short session lifetimes, and production-only redirect URLs in Supabase Auth. Keep staging and production in separate Supabase projects and configure the deployment host to send security headers and a CSP appropriate to its asset and API origins.
+Before launch, configure Supabase Auth policies, backups and a restore drill, and hosting security headers/CSP. The hosting provider is not currently specified in this repository. Follow [OPERATIONS_RUNBOOK.md](OPERATIONS_RUNBOOK.md); do not put credentials in issues, logs, or chat.
 
 ## Documentation
 
-- [Project plan](PROJECT_PLAN.md) — implemented scope and delivery status
-- [Functionality audit](FUNCTIONALITY_AUDIT.md) — verified behavior, known limitations, and required rollout checks
-- [Data model](DATA_MODEL.md) — database tables, fields, roles, and authorization
-- [Design system](DESIGN_SYSTEM.md) — current visual tokens and UI conventions
-- [Future scope](FUTURE_SCOPE.md) — proposed features not present in the current build
-- [Workspace rules](rules.md) — implementation and documentation ground rules
-- [Operations runbook](OPERATIONS_RUNBOOK.md) — deployment, recovery, access, and key-rotation procedures
+- [Project plan](PROJECT_PLAN.md) — current product scope and workflows
+- [Functionality audit](FUNCTIONALITY_AUDIT.md) — checked behavior and release gaps
+- [Data model](DATA_MODEL.md) — tables, roles, and database operations
+- [Design system](DESIGN_SYSTEM.md) — CSS tokens and UI conventions
+- [Future scope](FUTURE_SCOPE.md) — proposals not in the current build
+- [Workspace rules](rules.md) — implementation and maintenance conventions
+- [Operations runbook](OPERATIONS_RUNBOOK.md) — release, recovery, and access procedures
 
 ## License
 

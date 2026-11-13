@@ -6,10 +6,10 @@ const env = (import.meta as unknown as { env?: Record<string, string | undefined
 const configuredValue = (key: string, fallback: string) => env[key]?.trim() || fallback;
 
 export const businessInvoiceProfile: Pick<Required<InvoiceOptions>, 'businessName' | 'businessEmail' | 'businessPhone' | 'paymentDetails'> = {
-  businessName: configuredValue('VITE_BUSINESS_NAME', 'Business name not configured'),
-  businessEmail: configuredValue('VITE_BUSINESS_EMAIL', 'Business email not configured'),
-  businessPhone: configuredValue('VITE_BUSINESS_PHONE', 'Business phone not configured'),
-  paymentDetails: configuredValue('VITE_PAYMENT_DETAILS', 'Payment details not configured'),
+  businessName: configuredValue('VITE_BUSINESS_NAME', 'Mpixel Media'),
+  businessEmail: configuredValue('VITE_BUSINESS_EMAIL', ''),
+  businessPhone: configuredValue('VITE_BUSINESS_PHONE', ''),
+  paymentDetails: configuredValue('VITE_PAYMENT_DETAILS', ''),
 };
 
 export type BusinessProfileData = {
@@ -17,6 +17,10 @@ export type BusinessProfileData = {
   businessEmail: string;
   businessPhone: string;
   paymentDetails: string;
+  gstRegistered: boolean;
+  gstin: string;
+  gstRate: number;
+  gstType: 'split' | 'integrated';
 };
 
 export function parseBusinessProfileFromSettings(settingsDoc?: SettingsDoc): BusinessProfileData {
@@ -26,16 +30,26 @@ export function parseBusinessProfileFromSettings(settingsDoc?: SettingsDoc): Bus
       if (parsed && typeof parsed === 'object') {
         return {
           businessName: parsed.businessName || businessInvoiceProfile.businessName,
-          businessEmail: parsed.businessEmail || businessInvoiceProfile.businessEmail,
-          businessPhone: parsed.businessPhone || businessInvoiceProfile.businessPhone,
-          paymentDetails: parsed.paymentDetails || businessInvoiceProfile.paymentDetails,
+          businessEmail: parsed.businessEmail ?? businessInvoiceProfile.businessEmail,
+          businessPhone: parsed.businessPhone ?? businessInvoiceProfile.businessPhone,
+          paymentDetails: parsed.paymentDetails ?? businessInvoiceProfile.paymentDetails,
+          gstRegistered: parsed.gstRegistered === true,
+          gstin: typeof parsed.gstin === 'string' ? parsed.gstin : '',
+          gstRate: typeof parsed.gstRate === 'number' && parsed.gstRate >= 0 ? parsed.gstRate : 0,
+          gstType: parsed.gstType === 'integrated' ? 'integrated' : 'split',
         };
       }
     } catch (e) {
       console.warn('Failed to parse business profile settings:', e);
     }
   }
-  return businessInvoiceProfile;
+  return {
+    ...businessInvoiceProfile,
+    gstRegistered: false,
+    gstin: '',
+    gstRate: 0,
+    gstType: 'split',
+  };
 }
 
 export type OperationalSettingsData = {
