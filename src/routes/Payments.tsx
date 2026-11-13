@@ -8,10 +8,16 @@ import { OverdueBadge } from '../components/common/OverdueBadge';
 import { ExportCsvButton } from '../components/common/ExportCsvButton';
 import { EmptyState } from '../components/common/EmptyState';
 import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal';
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Clock, Search, MessageSquare, FileText, Calendar, MapPin, Filter, ArrowUpRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, CheckCircle2, Clock, MessageSquare, FileText, Calendar, Filter, ArrowUpRight } from 'lucide-react';
 
 import { parseOperationalSettings } from '../config/business';
 import { buildClientPaymentReminderWhatsAppUrl } from '../utils/whatsapp';
+import {
+  filterPaymentRecords,
+  summarizePaymentRecords,
+  togglePaymentRecord,
+} from './paymentsLogic';
+import type { PaymentStats, PaymentStatusFilter, PaymentTab } from './paymentsLogic';
 
 export const Payments: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
@@ -19,8 +25,8 @@ export const Payments: React.FC = () => {
   const operationalSettings = parseOperationalSettings(settings.find(s => s.key === 'operationalSettings'));
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'incoming' | 'outgoing'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
+  const [activeTab, setActiveTab] = useState<PaymentTab>('all');
+  const [statusFilter, setStatusFilter] = useState<PaymentStatusFilter>('all');
 
   const [previewData, setPreviewData] = useState<{ type: 'client_invoice' | 'cameraman_receipt'; shoot: Shoot; targetId: string; amount: number; paid: boolean; paidAt?: string | null; assignmentIndex?: number; } | null>(null);
 
@@ -40,36 +46,21 @@ export const Payments: React.FC = () => {
     }) || '#';
   };
 
-  const filteredRecords = useMemo(() => {
-    return paymentRecords.filter(record => {
-      if (activeTab !== 'all' && record.type !== activeTab) return false;
-      if (statusFilter === 'pending' && record.isPaid) return false;
-      if (statusFilter === 'paid' && !record.isPaid) return false;
-      if (statusFilter === 'overdue' && (record.isPaid || !record.overdueInfo.isOverdue)) return false;
-      return record.targetName.toLowerCase().includes(searchQuery.toLowerCase()) || record.shootLocation.toLowerCase().includes(searchQuery.toLowerCase()) || record.shootDate.includes(searchQuery) || (record.phone && record.phone.includes(searchQuery));
-    });
-  }, [paymentRecords, activeTab, statusFilter, searchQuery]);
-
-  const stats = useMemo(() => {
-    let pendingIncoming = 0, pendingOutgoing = 0, overdueIncoming = 0, overdueOutgoing = 0;
-    paymentRecords.forEach(r => {
-      if (r.type === 'incoming') {
-        if (!r.isPaid) { pendingIncoming += r.amount; if (r.overdueInfo.isOverdue) overdueIncoming += 1; }
-      } else {
-        if (!r.isPaid) { pendingOutgoing += r.amount; if (r.overdueInfo.isOverdue) overdueOutgoing += 1; }
-      }
-    });
-    return { pendingIncoming, pendingOutgoing, overdueIncoming, overdueOutgoing, netPendingCashflow: pendingIncoming - pendingOutgoing };
-  }, [paymentRecords]);
+  const filteredRecords = useMemo(
+    () => filterPaymentRecords(paymentRecords, activeTab, statusFilter, searchQuery),
+    [paymentRecords, activeTab, statusFilter, searchQuery],
+  );
+  const stats = useMemo(() => summarizePaymentRecords(paymentRecords), [paymentRecords]);
 
   const csvData = useMemo(() => filteredRecords.map(r => ({
     id: r.id, flowType: r.type === 'incoming' ? 'RECEIVABLE (CLIENT)' : 'PAYOUT (CAMERAMAN)', targetName: r.targetName, phone: r.phone || '', shootDate: r.shootDate, shootLocation: r.shootLocation, amount: r.amount, status: r.isPaid ? 'PAID' : 'PENDING', paidAt: r.paidAt || '', isOverdue: r.overdueInfo.isOverdue ? 'YES' : 'NO', overdueDateLabel: r.overdueInfo.label,
   })), [filteredRecords]);
 
   const handleTogglePayment = async (record: PaymentRecord) => {
-    if (record.type === 'outgoing' && !record.hasAssignedRate && !record.isPaid) return;
-    if (record.type === 'incoming') await handleToggleClientPayment(record.shootId, !record.isPaid);
-    else await handleToggleCameramanPayment(record.shootId, record.assignmentIndex ?? 0, !record.isPaid);
+    await togglePaymentRecord(record, {
+      toggleClientPayment: handleToggleClientPayment,
+      toggleCameramanPayment: handleToggleCameramanPayment,
+    });
   };
 
   const handleOpenPdf = (record: PaymentRecord) => {
@@ -82,81 +73,21 @@ export const Payments: React.FC = () => {
     <div className="flex-1 flex flex-col min-w-0 pb-12">
       <Header title="Payments & Disbursements Desk" subtitle="Track incoming client receivables, freelance crew payouts, and overdue balances" searchQuery={searchQuery} onSearchChange={setSearchQuery} searchPlaceholder="Search payments by client, cameraman, location, phone..." onOpenMobile={onOpenMobileNav} action={<div className="flex items-center gap-2"><ExportCsvButton filename="Payments_Disbursements_Ledger" data={csvData} label="Export CSV" /></div>} />
       <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="liquid-metric-card p-5 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Money In (Pending Client Bills)</span>
-              <div className="w-7 h-7 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><TrendingUp className="w-4 h-4" /></div>
-            </div>
-            <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(stats.pendingIncoming)}</div>
-            <div className="text-xs text-[var(--color-text-secondary)]">{stats.overdueIncoming > 0 ? <span className="text-red-600 dark:text-red-400 font-semibold">{stats.overdueIncoming} client payment{stats.overdueIncoming > 1 ? 's' : ''} overdue</span> : <span>No overdue receivables</span>}</div>
-          </div>
-          <div className="liquid-metric-card p-5 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Money Out (Pending Crew Payouts)</span>
-              <div className="w-7 h-7 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center"><TrendingDown className="w-4 h-4" /></div>
-            </div>
-            <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(stats.pendingOutgoing)}</div>
-            <div className="text-xs text-[var(--color-text-secondary)]">{stats.overdueOutgoing > 0 ? <span className="text-red-600 dark:text-red-400 font-semibold">{stats.overdueOutgoing} crew payout{stats.overdueOutgoing > 1 ? 's' : ''} overdue</span> : <span>All crew payouts on schedule</span>}</div>
-          </div>
-          <div className="liquid-metric-card p-5 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Net Pending Cashflow</span>
-              <div className="w-7 h-7 rounded-md bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs">₹</div>
-            </div>
-            <div className={`text-2xl font-bold font-serif ${stats.netPendingCashflow >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-600 dark:text-red-500'}`}>{formatCurrency(stats.netPendingCashflow)}</div>
-            <div className="text-xs text-[var(--color-text-secondary)]"><span>Receivables minus pending disbursements</span></div>
-          </div>
-        </section>
+        <PaymentSummary stats={stats} />
+        <PaymentFilters
+          paymentCount={paymentRecords.length}
+          activeTab={activeTab}
+          statusFilter={statusFilter}
+          onTabChange={setActiveTab}
+          onStatusChange={setStatusFilter}
+        />
 
-        <div className="liquid-control-tray p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-1 bg-[var(--color-bg)] p-1 rounded-md border border-[var(--color-border)] text-xs">
-            <button type="button" onClick={() => setActiveTab('all')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'all' ? 'bg-[var(--color-surface)] text-[var(--color-text)] font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>All Transactions ({paymentRecords.length})</button>
-            <button type="button" onClick={() => setActiveTab('incoming')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'incoming' ? 'bg-[var(--color-surface)] text-emerald-600 dark:text-emerald-400 font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>Money In (Client Bills)</button>
-            <button type="button" onClick={() => setActiveTab('outgoing')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'outgoing' ? 'bg-[var(--color-surface)] text-red-600 dark:text-red-400 font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>Money Out (Crew Payouts)</button>
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'paid' | 'overdue')} className="text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-1.5 text-[var(--color-text)] outline-none">
-              <option value="all">All Payment Statuses</option>
-              <option value="pending">Pending Only</option>
-              <option value="overdue">Overdue Only (!)</option>
-              <option value="paid">Settled / Paid Only</option>
-            </select>
-          </div>
-        </div>
-
-        {filteredRecords.length === 0 ? (
-          <EmptyState icon={<Clock className="w-6 h-6 text-[var(--color-text-muted)]" />} title="No Payment Records Found" description="No transactions match your current search and filter settings." />
-        ) : (
-          <div className="liquid-table-container overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
-                <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">
-                  <tr>
-                    <th className="px-6 py-3.5 font-semibold">Type</th>
-                    <th className="px-6 py-3.5 font-semibold">Recipient / Payer</th>
-                    <th className="px-6 py-3.5 font-semibold">Shoot Job</th>
-                    <th className="px-6 py-3.5 font-semibold text-right">Amount (₹)</th>
-                    <th className="px-6 py-3.5 font-semibold text-center">Status</th>
-                    <th className="px-6 py-3.5 font-semibold text-right">Actions & Reminders</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)]">
-                  {filteredRecords.map(item => (
-                    <PaymentRow
-                      key={item.id}
-                      item={item}
-                      reminderUrl={getWhatsAppReminderUrl(item)}
-                      onTogglePayment={handleTogglePayment}
-                      onOpenPdf={handleOpenPdf}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <PaymentRecordsTable
+          records={filteredRecords}
+          reminderUrl={getWhatsAppReminderUrl}
+          onTogglePayment={handleTogglePayment}
+          onOpenPdf={handleOpenPdf}
+        />
       </main>
 
       {previewData && <InvoicePreviewModal isOpen={Boolean(previewData)} onClose={() => setPreviewData(null)} type={previewData.type} client={previewData.type === 'client_invoice' ? clientMap.get(previewData.targetId) : undefined} cameraman={previewData.type === 'cameraman_receipt' ? cameramanMap.get(previewData.targetId) : undefined} shoot={previewData.shoot} assignmentAmount={previewData.amount} assignmentPaid={previewData.paid} assignmentPaidAt={previewData.paidAt} assignmentIndex={previewData.assignmentIndex} />}
@@ -215,3 +146,109 @@ const PaymentRow: React.FC<PaymentRowProps> = ({ item, reminderUrl, onTogglePaym
     </tr>
   );
 };
+
+const PaymentSummary: React.FC<{ stats: PaymentStats }> = ({ stats }) => (
+  <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="liquid-metric-card p-5 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Money In (Pending Client Bills)</span>
+        <div className="w-7 h-7 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><TrendingUp className="w-4 h-4" /></div>
+      </div>
+      <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(stats.pendingIncoming)}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]">{stats.overdueIncoming > 0 ? <span className="text-red-600 dark:text-red-400 font-semibold">{stats.overdueIncoming} client payment{stats.overdueIncoming > 1 ? 's' : ''} overdue</span> : <span>No overdue receivables</span>}</div>
+    </div>
+    <div className="liquid-metric-card p-5 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Money Out (Pending Crew Payouts)</span>
+        <div className="w-7 h-7 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center"><TrendingDown className="w-4 h-4" /></div>
+      </div>
+      <div className="text-2xl font-bold font-serif text-[var(--color-text)]">{formatCurrency(stats.pendingOutgoing)}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]">{stats.overdueOutgoing > 0 ? <span className="text-red-600 dark:text-red-400 font-semibold">{stats.overdueOutgoing} crew payout{stats.overdueOutgoing > 1 ? 's' : ''} overdue</span> : <span>All crew payouts on schedule</span>}</div>
+    </div>
+    <div className="liquid-metric-card p-5 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Net Pending Cashflow</span>
+        <div className="w-7 h-7 rounded-md bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)] flex items-center justify-center font-bold text-xs">₹</div>
+      </div>
+      <div className={`text-2xl font-bold font-serif ${stats.netPendingCashflow >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-600 dark:text-red-500'}`}>{formatCurrency(stats.netPendingCashflow)}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]"><span>Receivables minus pending disbursements</span></div>
+    </div>
+  </section>
+);
+
+interface PaymentFiltersProps {
+  paymentCount: number;
+  activeTab: PaymentTab;
+  statusFilter: PaymentStatusFilter;
+  onTabChange: React.Dispatch<React.SetStateAction<PaymentTab>>;
+  onStatusChange: React.Dispatch<React.SetStateAction<PaymentStatusFilter>>;
+}
+
+const PaymentFilters: React.FC<PaymentFiltersProps> = ({
+  paymentCount,
+  activeTab,
+  statusFilter,
+  onTabChange,
+  onStatusChange,
+}) => (
+  <div className="liquid-control-tray p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="flex items-center gap-1 bg-[var(--color-bg)] p-1 rounded-md border border-[var(--color-border)] text-xs">
+      <button type="button" onClick={() => onTabChange('all')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'all' ? 'bg-[var(--color-surface)] text-[var(--color-text)] font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>All Transactions ({paymentCount})</button>
+      <button type="button" onClick={() => onTabChange('incoming')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'incoming' ? 'bg-[var(--color-surface)] text-emerald-600 dark:text-emerald-400 font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>Money In (Client Bills)</button>
+      <button type="button" onClick={() => onTabChange('outgoing')} className={`px-3 py-1.5 rounded font-medium transition-colors ${activeTab === 'outgoing' ? 'bg-[var(--color-surface)] text-red-600 dark:text-red-400 font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>Money Out (Crew Payouts)</button>
+    </div>
+    <div className="flex items-center gap-2">
+      <Filter className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
+      <select value={statusFilter} onChange={(event) => onStatusChange(event.target.value as PaymentStatusFilter)} className="text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-1.5 text-[var(--color-text)] outline-none">
+        <option value="all">All Payment Statuses</option>
+        <option value="pending">Pending Only</option>
+        <option value="overdue">Overdue Only (!)</option>
+        <option value="paid">Settled / Paid Only</option>
+      </select>
+    </div>
+  </div>
+);
+
+interface PaymentRecordsTableProps {
+  records: PaymentRecord[];
+  reminderUrl: (record: PaymentRecord) => string;
+  onTogglePayment: (record: PaymentRecord) => Promise<void>;
+  onOpenPdf: (record: PaymentRecord) => void;
+}
+
+const PaymentRecordsTable: React.FC<PaymentRecordsTableProps> = ({
+  records,
+  reminderUrl,
+  onTogglePayment,
+  onOpenPdf,
+}) => records.length === 0 ? (
+  <EmptyState icon={<Clock className="w-6 h-6 text-[var(--color-text-muted)]" />} title="No Payment Records Found" description="No transactions match your current search and filter settings." />
+) : (
+  <div className="liquid-table-container overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
+        <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">
+          <tr>
+            <th className="px-6 py-3.5 font-semibold">Type</th>
+            <th className="px-6 py-3.5 font-semibold">Recipient / Payer</th>
+            <th className="px-6 py-3.5 font-semibold">Shoot Job</th>
+            <th className="px-6 py-3.5 font-semibold text-right">Amount (₹)</th>
+            <th className="px-6 py-3.5 font-semibold text-center">Status</th>
+            <th className="px-6 py-3.5 font-semibold text-right">Actions & Reminders</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[var(--color-border)]">
+          {records.map(item => (
+            <PaymentRow
+              key={item.id}
+              item={item}
+              reminderUrl={reminderUrl(item)}
+              onTogglePayment={onTogglePayment}
+              onOpenPdf={onOpenPdf}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);

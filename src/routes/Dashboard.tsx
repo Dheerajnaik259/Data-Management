@@ -231,302 +231,31 @@ export const Dashboard: React.FC = () => {
         {/* ════════════════════════════════════════════════════════════ */}
         {isAdmin && (
           <>
-            {/* Top KPI Cards Grid (Admin Focus - Clean Line Icons, No Circle Bgs) */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              
-              {/* 1. Shoots Today / Tomorrow */}
-              <Link to="/shoots" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Shoots Today / Tomorrow</span>
-                  <Film className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{dispatchShoots.length}</div>
-                <div className="text-xs text-[var(--color-text-secondary)]"><span>{shoots.filter(s => s.status === 'scheduled').length} total active scheduled</span></div>
-              </Link>
+            <AdminMetricCards
+              stats={dashboardStats}
+              dispatchCount={dispatchShoots.length}
+              scheduledCount={shoots.filter(shoot => shoot.status === 'scheduled').length}
+              deliverablesStats={deliverablesStats}
+              pendingSubmissions={myChangeRequests.filter(request => request.status === 'pending').length}
+            />
 
-              {/* 2. Client Invoices to Chase */}
-              <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Invoices To Chase</span>
-                  <TrendingUp className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(dashboardStats.pendingClientAmount)}</div>
-                <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-                  <span>{dashboardStats.pendingClientCount} pending</span>
-                  {dashboardStats.overdueIncomingCount > 0 && <span className="text-[var(--color-error)] font-semibold">{dashboardStats.overdueIncomingCount} overdue</span>}
-                </div>
-              </Link>
+            <AdminDispatchConsole
+              dispatchShoots={dispatchShoots}
+              todayStr={todayStr}
+              clientMap={clientMap}
+              cameramanMap={cameramanMap}
+              onCheckIn={handleToggleCameramanCheckIn}
+            />
 
-              {/* 3. Crew Payouts Status */}
-              <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Crew Payouts Status</span>
-                  <TrendingDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(dashboardStats.pendingCameramanAmount)}</div>
-                <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-                  <span>{dashboardStats.pendingCameramanCount} pending</span>
-                  <span className="text-[var(--color-success)] font-semibold">{formatCurrency(dashboardStats.paidCameramanAmount)} paid</span>
-                </div>
-              </Link>
+            <OperationalExceptionsPanel exceptions={operationalExceptions} />
 
-              {/* 4. Deliverables Assets */}
-              <Link to="/shoots" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Deliverables Assets</span>
-                  <Clock className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.totalDeliverablesCount}</div>
-                <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-                  <span>{deliverablesStats.shootsWithDeliverablesCount} shoots with assets</span>
-                  <span>{deliverablesStats.withCloudLinkCount} with link</span>
-                </div>
-              </Link>
+            <AdminResourceStats
+              deliverablesStats={deliverablesStats}
+              crewAvailabilityStats={crewAvailabilityStats}
+              shootsWithoutCrewCount={shootsWithoutCrewCount}
+            />
 
-              {/* 5. My Submissions Queue */}
-              <Link to="/approvals" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">My Submissions</span>
-                  <CheckSquare className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{myChangeRequests.filter(c => c.status === 'pending').length}</div>
-                <div className="text-xs text-[var(--color-text-secondary)]"><span>Awaiting Founder review</span></div>
-              </Link>
-            </section>
-
-            {/* ADMIN SECTION A — DAILY CREW DISPATCH CONSOLE */}
-            <section className="liquid-content-panel liquid-dispatch-panel overflow-hidden">
-              <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                    <span>Daily Crew Dispatch Console</span>
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)]">Send prefilled call-sheets and WhatsApp reminders to videographers for immediate shoots (Today & Tomorrow)</p>
-                </div>
-                <span className="liquid-glass-status px-2.5 py-1 rounded-full text-xs font-medium text-[var(--color-text-secondary)]">
-                  {dispatchShoots.length} Immediate Shoot{dispatchShoots.length === 1 ? '' : 's'}
-                </span>
-              </div>
-
-              {dispatchShoots.length === 0 ? (
-                <div className="liquid-glass-inner m-3 p-6 text-center text-xs text-[var(--color-text-secondary)] space-y-1 rounded-xl">
-                  <CheckCircle2 className="w-6 h-6 mx-auto text-[var(--color-success)] mb-1" />
-                  <p className="font-semibold text-[var(--color-text-primary)]">No shoots scheduled for today or tomorrow.</p>
-                  <p>All crew dispatches are up to date.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--color-border)] text-xs">
-                  {dispatchShoots.map(shoot => {
-                    const client = clientMap.get(shoot.clientId);
-                    return (
-                      <div key={shoot.id} className="liquid-glass-inner m-3 p-4 flex items-center justify-between gap-4 rounded-xl hover:bg-white/[0.025] transition-colors">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm text-[var(--color-text-primary)]">{client?.name || 'Unknown Client'}</span>
-                            <span className={`text-[10px] font-semibold uppercase tracking-wider ${shoot.date === todayStr ? 'text-[var(--color-error)]' : 'text-[var(--color-text-secondary)]'}`}>
-                              • {shoot.date === todayStr ? 'Today' : 'Tomorrow'}
-                            </span>
-                            <span className="font-mono text-[var(--color-text-secondary)]">{shoot.date}</span>
-                          </div>
-                          <div className="flex items-center gap-4 text-[var(--color-text-secondary)]">
-                            <span className="flex items-center gap-1 font-mono"><Clock className="w-3.5 h-3.5" />{formatTime12h(shoot.callTime)}</span>
-                            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{shoot.location}</span>
-                          </div>
-                        </div>
-
-                        {/* Assigned Crew List & Call Sheet Actions */}
-                        <div className="flex items-center gap-4">
-                          <div className="space-y-1 text-right">
-                            {shoot.assignments && shoot.assignments.length > 0 ? (
-                              <div className="flex flex-wrap gap-2 justify-end">
-                                {shoot.assignments.map((asgn, idx) => {
-                                  const cam = cameramanMap.get(asgn.cameramanId);
-                                  const whatsappUrl = cam ? buildCameramanScheduleWhatsAppUrl({
-                                    phone: cam.phone,
-                                    cameramanName: cam.name,
-                                    clientName: client?.name || 'Client',
-                                    date: shoot.date,
-                                    callTime: shoot.callTime,
-                                    location: shoot.location
-                                  }) : null;
-                                  return (
-                                    <div key={idx} className="liquid-glass-status flex items-center gap-1.5 px-2.5 py-1 rounded-lg">
-                                      <span className="font-medium text-[var(--color-text-primary)]">{cam?.name || 'Unassigned'}</span>
-                                      {asgn.checkedInAt ? (
-                                        <span className="text-[10px] text-[var(--color-success)] font-semibold">✓ Checked In</span>
-                                      ) : (
-                                        <button type="button" onClick={() => handleToggleCameramanCheckIn(shoot.id, idx, true)} className="text-[10px] text-[var(--color-warning)] hover:underline font-medium">Check In</button>
-                                      )}
-                                      {whatsappUrl && (
-                                        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-success)] hover:underline flex items-center gap-0.5 font-semibold ml-1" title="Send WhatsApp Call Sheet">
-                                          <MessageSquare className="w-3 h-3" /> WhatsApp
-                                        </a>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-[var(--color-error)] font-medium">No crew assigned</span>
-                            )}
-                          </div>
-
-                          <Link to={`/shoots/${shoot.id}`} className="liquid-glass-button px-3 py-1.5 text-xs font-semibold text-[var(--color-text-primary)] rounded-lg shrink-0">
-                            View Shoot &rarr;
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-
-            {/* ADMIN SECTION B — ACTION REQUIRED (Operational Exceptions) */}
-            <section className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
-              <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
-                <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-[var(--color-warning)]" />
-                  <span>Action Required (Operational Exceptions)</span>
-                </h3>
-                <span className="text-xs text-[var(--color-text-secondary)]">{operationalExceptions.length} issue{operationalExceptions.length === 1 ? '' : 's'}</span>
-              </div>
-
-              {operationalExceptions.length === 0 ? (
-                <div className="liquid-glass-inner p-3 text-center text-xs text-[var(--color-success)] font-medium rounded-xl">
-                  ✨ All caught up! No operational actions required.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  {operationalExceptions.map(item => (
-                    <div key={item.id} className="liquid-glass-inner p-2.5 rounded-xl flex items-center justify-between text-xs">
-                      <span className="font-medium text-[var(--color-text-primary)] flex items-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${item.type === 'error' ? 'bg-[var(--color-error)]' : 'bg-[var(--color-warning)]'}`} />
-                        <span>{item.label}</span>
-                      </span>
-                      <Link to={item.link} className="font-medium text-[var(--color-text-primary)] hover:underline shrink-0 ml-2">
-                        View &rarr;
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* ADMIN SECTION C & D — DELIVERABLES TRACKER & CREW AVAILABILITY */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Deliverables Tracker */}
-              <div className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
-                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
-                  <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                    <span>Deliverables Tracker</span>
-                  </h3>
-                  <Link to="/shoots" className="text-xs text-[var(--color-text-primary)] hover:underline font-semibold">View Shoots &rarr;</Link>
-                </div>
-                <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-text-secondary)] font-medium block">Total Assets</span>
-                    <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.totalDeliverablesCount}</div>
-                  </div>
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-text-secondary)] font-medium block">Shoots Tracked</span>
-                    <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.shootsWithDeliverablesCount}</div>
-                  </div>
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-text-secondary)] font-medium block">With Cloud Link</span>
-                    <div className="text-xl font-bold font-sans text-[var(--color-text-secondary)]">{deliverablesStats.withCloudLinkCount}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Crew Availability */}
-              <div className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
-                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
-                  <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                    <span>Crew Availability Summary</span>
-                  </h3>
-                  <Link to="/cameramen" className="text-xs text-[var(--color-text-primary)] hover:underline font-semibold">Manage Crew &rarr;</Link>
-                </div>
-                <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-text-secondary)] font-medium block">Total Roster</span>
-                    <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{crewAvailabilityStats.totalCrew}</div>
-                  </div>
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-success)] font-medium block">Assigned Crew</span>
-                    <div className="text-xl font-bold font-sans text-[var(--color-success)]">{crewAvailabilityStats.assignedCrewCount}</div>
-                  </div>
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-error)] font-medium block">Unavailable Today</span>
-                    <div className="text-xl font-bold font-sans text-[var(--color-error)]">{crewAvailabilityStats.unavailableCrewCount}</div>
-                  </div>
-                </div>
-                {shootsWithoutCrewCount > 0 && (
-                  <p className="liquid-glass-status text-xs text-[var(--color-error)] font-medium text-center py-1 rounded-lg">
-                    {shootsWithoutCrewCount} upcoming shoot(s) require crew assignment
-                  </p>
-                )}
-              </div>
-            </section>
-
-            {/* ADMIN SECTION E — MY CHANGE REQUESTS */}
-            <section className="liquid-content-panel liquid-dispatch-panel overflow-hidden">
-              <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)]">My Change Requests Submitted for Approval</h3>
-                  <p className="text-xs text-[var(--color-text-secondary)]">Status of record additions/edits submitted to Founder governance</p>
-                </div>
-                <Link to="/approvals" className="text-xs font-semibold text-[var(--color-text-primary)] hover:underline">View All &rarr;</Link>
-              </div>
-
-              {myChangeRequests.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[var(--color-text-secondary)]">No change requests submitted yet.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
-                    <thead className="bg-[var(--color-background)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">
-                      <tr>
-                        <th className="px-5 py-3 font-semibold">Target Item</th>
-                        <th className="px-5 py-3 font-semibold">Action</th>
-                        <th className="px-5 py-3 font-semibold">Submission Date</th>
-                        <th className="px-5 py-3 font-semibold">Status</th>
-                        <th className="px-5 py-3 font-semibold">Review Note</th>
-                        <th className="px-5 py-3 font-semibold text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--color-border)]">
-                      {myChangeRequests.map(req => (
-                        <tr key={req.id} className="hover:bg-[var(--color-background)] transition-colors">
-                          <td className="px-5 py-3 font-medium text-[var(--color-text-primary)] uppercase">{formatSingularCollection(req.targetCollection)}</td>
-                          <td className="px-5 py-3 capitalize font-medium">{req.action}</td>
-                          <td className="px-5 py-3 font-mono text-[var(--color-text-secondary)]">{new Date(req.requestedAt).toLocaleDateString()}</td>
-                          <td className="px-5 py-3">
-                            <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${req.status === 'approved' ? 'text-[var(--color-success)]' : req.status === 'rejected' ? 'text-[var(--color-error)]' : 'text-[var(--color-warning)]'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${req.status === 'approved' ? 'bg-[var(--color-success)]' : req.status === 'rejected' ? 'bg-[var(--color-error)]' : 'bg-[var(--color-warning)]'}`} />
-                              <span className="capitalize">{req.status}</span>
-                            </span>
-                          </td>
-                          <td className="px-5 py-3 text-[var(--color-text-secondary)] italic max-w-xs truncate">{req.reviewNote || '—'}</td>
-                          <td className="px-5 py-3 text-right">
-                            {req.status === 'rejected' ? (
-                              <Link to="/approvals" className="px-2.5 py-1 text-xs font-semibold text-white bg-[var(--color-warning)] hover:opacity-90 rounded transition-opacity">
-                                Edit & Resubmit
-                              </Link>
-                            ) : (
-                              <Link to="/approvals" className="text-xs font-medium text-[var(--color-text-primary)] hover:underline">Details &rarr;</Link>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+            <MyChangeRequestsTable requests={myChangeRequests} />
           </>
         )}
 
@@ -535,203 +264,28 @@ export const Dashboard: React.FC = () => {
         {/* ════════════════════════════════════════════════════════════ */}
         {isFounder && (
           <>
-            {/* Founder Primary KPI Cards (4 Cards - Terracotta Accent on Cashflow) */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* 1. Net Operating Cashflow (Primary Highlight Card) */}
-              <div onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Net Operating Cashflow</span>
-                  <TrendingUp className="w-4 h-4 text-[var(--color-accent)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-accent)]">
-                  {formatCurrency(netOperatingCashflow)}
-                </div>
-                <div className="text-xs text-[var(--color-text-secondary)]"><span>Client cash received minus paid crew & expenses</span></div>
-              </div>
-
-              {/* 2. Pending Approvals Queue */}
-              <Link to="/approvals" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Pending Approvals</span>
-                  <ShieldCheck className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{pendingFounderApprovals.length}</div>
-                <div className="text-xs text-[var(--color-text-secondary)]"><span>Admin submissions awaiting Founder review</span></div>
-              </Link>
-
-              {/* 3. Client Receivables */}
-              <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Client Receivables</span>
-                  <Receipt className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(dashboardStats.pendingClientAmount)}</div>
-                <div className="text-xs text-[var(--color-text-secondary)]"><span>{dashboardStats.pendingClientCount} active client invoices</span></div>
-              </Link>
-
-              {/* 4. Total Operating Outflow */}
-              <Link to="/expenses" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Total Operating Outflow</span>
-                  <TrendingDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                </div>
-                <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(dashboardStats.paidCameramanAmount + dashboardStats.totalExpenses)}</div>
-                <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-                  <span>{expenses.length} receipts ({formatCurrency(dashboardStats.totalExpenses)})</span>
-                  <span className="text-[var(--color-success)] font-semibold">{formatCurrency(dashboardStats.paidCameramanAmount)} crew paid</span>
-                </div>
-              </Link>
-            </section>
+            <FounderMetricCards
+              stats={dashboardStats}
+              pendingApprovalCount={pendingFounderApprovals.length}
+              netOperatingCashflow={netOperatingCashflow}
+              expenseCount={expenses.length}
+            />
 
             {/* FOUNDER SECTION A — GOVERNANCE ACTION CALLOUT BANNER */}
-            {pendingFounderApprovals.length > 0 ? (
-              <div className="liquid-dispatch-panel p-4 rounded-xl flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-4 h-4 text-[var(--color-warning)] shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-[var(--color-text-primary)] uppercase tracking-wider text-[11px]">Governance Action Required</h4>
-                    <p className="text-[var(--color-text-secondary)]">
-                      Admin has submitted <span className="font-bold text-[var(--color-text-primary)]">{pendingFounderApprovals.length} record update{pendingFounderApprovals.length > 1 ? 's' : ''}</span> for your review and approval.
-                    </p>
-                  </div>
-                </div>
-                <Link to="/approvals" className="px-3 py-1.5 text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded transition-colors shrink-0 flex items-center gap-1">
-                  <span>Review Approvals</span> <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            ) : (
-              <div className="liquid-glass-inner p-3.5 rounded-xl flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-                <span className="flex items-center gap-2 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" />
-                  <span>No approvals requiring your attention. All admin submissions reviewed.</span>
-                </span>
-                <Link to="/approvals" className="font-semibold text-[var(--color-text-primary)] hover:underline">Approvals Desk &rarr;</Link>
-              </div>
-            )}
+            <FounderApprovalNotice pendingCount={pendingFounderApprovals.length} />
 
-            {/* FOUNDER SECTION B — CLIENT PROFITABILITY & MARGIN RANKING TABLE */}
-            <section className="liquid-content-panel overflow-hidden">
-              <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
-                <div>
-                  <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                    <span>Client Profitability & Margin Ranking</span>
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)]">Revenue minus crew payouts and direct shoot expenses per client account</p>
-                </div>
-              </div>
-
-              {clientProfitabilityRanking.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[var(--color-text-secondary)]">No client accounts available.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
-                    <thead className="bg-[var(--color-background)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">
-                      <tr>
-                        <th className="px-5 py-3 font-semibold">Client Brand Name</th>
-                        <th className="px-5 py-3 font-semibold text-center">Shoots</th>
-                        <th className="px-5 py-3 font-semibold text-right">Invoiced Revenue (₹)</th>
-                        <th className="px-5 py-3 font-semibold text-right">Total Production Cost (₹)</th>
-                        <th className="px-5 py-3 font-semibold text-right">Net Margin (₹)</th>
-                        <th className="px-5 py-3 font-semibold text-center">Margin %</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--color-border)]">
-                      {clientProfitabilityRanking.map(item => (
-                        <tr key={item.client.id} className="hover:bg-[var(--color-background)] transition-colors">
-                          <td className="px-5 py-3.5 font-medium text-[var(--color-text-primary)]">
-                            <Link to={`/clients/${item.client.id}`} className="hover:underline">{item.client.name}</Link>
-                          </td>
-                          <td className="px-5 py-3.5 text-center font-mono">{item.shootsCount}</td>
-                          <td className="px-5 py-3.5 text-right font-mono font-semibold text-[var(--color-text-primary)]">{formatCurrency(item.invoicedRevenue)}</td>
-                          <td className="px-5 py-3.5 text-right font-mono text-[var(--color-error)]">{formatCurrency(item.totalCosts)}</td>
-                          <td className={`px-5 py-3.5 text-right font-mono font-bold ${item.netMargin >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
-                            {formatCurrency(item.netMargin)}
-                          </td>
-                          <td className="px-5 py-3.5 text-center font-mono font-semibold">
-                            <span className={item.marginPercent >= 50 ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]'}>
-                              {item.marginPercent}%
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+            <ClientProfitabilityTable clients={clientProfitabilityRanking} />
 
             {/* FOUNDER SECTION C — REVENUE & OUTFLOW GROWTH CHART (2 LINES) */}
             <GrowthChart shoots={shoots} expenses={expenses} />
 
-            {/* FOUNDER SECTION D & E — FINANCIAL SNAPSHOT & BUSINESS OVERVIEW */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Financial Snapshot */}
-              <div className="liquid-content-panel p-4 space-y-3">
-                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
-                  <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                    <span>Financial Snapshot</span>
-                  </h3>
-                  <span className="text-xs text-[var(--color-text-secondary)] font-mono">System Ledger</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
-                    <span className="text-[var(--color-text-secondary)]">Client Revenue Received</span>
-                    <span className="font-mono font-semibold text-[var(--color-success)]">{formatCurrency(dashboardStats.paidClientAmount)}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
-                    <span className="text-[var(--color-text-secondary)]">Outstanding Receivables</span>
-                    <span className="font-mono font-semibold text-[var(--color-warning)]">{formatCurrency(dashboardStats.pendingClientAmount)}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
-                    <span className="text-[var(--color-text-secondary)]">Crew Payouts Paid</span>
-                    <span className="font-mono text-[var(--color-error)]">-{formatCurrency(dashboardStats.paidCameramanAmount)}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
-                    <span className="text-[var(--color-text-secondary)]">Logged Operating Expenses</span>
-                    <span className="font-mono text-[var(--color-error)]">-{formatCurrency(dashboardStats.totalExpenses)}</span>
-                  </div>
-                  <div className="flex justify-between pt-2 text-sm font-bold">
-                    <span className="text-[var(--color-text-primary)]">Net Operating Cashflow</span>
-                    <span className={`font-mono ${netOperatingCashflow >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
-                      {formatCurrency(netOperatingCashflow)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Business Overview */}
-              <div className="liquid-content-panel p-4 space-y-3">
-                <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
-                  <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <PieChart className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                    <span>Business Overview KPIs</span>
-                  </h3>
-                  <span className="text-xs text-[var(--color-text-secondary)] font-mono">Agency Totals</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-text-secondary)] font-medium block">Active Client Brands</span>
-                    <span className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{clients.filter(c => c.status === 'active').length}</span>
-                  </div>
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-text-secondary)] font-medium block">Total Production Jobs</span>
-                    <span className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{shoots.length}</span>
-                  </div>
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-success)] font-medium block">Completed Shoots</span>
-                    <span className="text-xl font-bold font-sans text-[var(--color-success)]">{shoots.filter(s => s.status === 'done').length}</span>
-                  </div>
-                  <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
-                    <span className="text-[var(--color-accent)] font-medium block">Collection Rate</span>
-                    <span className="text-xl font-bold font-sans text-[var(--color-accent)]">{collectionRate}%</span>
-                  </div>
-                </div>
-              </div>
-            </section>
+            <FounderBusinessSummary
+              stats={dashboardStats}
+              clients={clients}
+              shoots={shoots}
+              collectionRate={collectionRate}
+              netOperatingCashflow={netOperatingCashflow}
+            />
 
             {/* FOUNDER SECTION F — STRATEGIC ATTENTION FEED */}
             <section className="grid grid-cols-1 gap-6">
@@ -750,6 +304,539 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+interface AdminDispatchConsoleProps {
+  dispatchShoots: DashboardData['shoots'];
+  todayStr: string;
+  clientMap: Map<string, DashboardData['clients'][number]>;
+  cameramanMap: Map<string, DashboardData['cameramen'][number]>;
+  onCheckIn: DashboardData['handleToggleCameramanCheckIn'];
+}
+
+interface FounderMetricCardsProps {
+  stats: DashboardData['dashboardStats'];
+  pendingApprovalCount: number;
+  netOperatingCashflow: number;
+  expenseCount: number;
+}
+
+const FounderMetricCards: React.FC<FounderMetricCardsProps> = ({
+  stats,
+  pendingApprovalCount,
+  netOperatingCashflow,
+  expenseCount,
+}) => (
+  <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Net Operating Cashflow</span>
+        <TrendingUp className="w-4 h-4 text-[var(--color-accent)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-accent)]">{formatCurrency(netOperatingCashflow)}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]"><span>Client cash received minus paid crew & expenses</span></div>
+    </div>
+    <Link to="/approvals" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Pending Approvals</span>
+        <ShieldCheck className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{pendingApprovalCount}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]"><span>Admin submissions awaiting Founder review</span></div>
+    </Link>
+    <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Client Receivables</span>
+        <Receipt className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(stats.pendingClientAmount)}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]"><span>{stats.pendingClientCount} active client invoices</span></div>
+    </Link>
+    <Link to="/expenses" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Total Operating Outflow</span>
+        <TrendingDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(stats.paidCameramanAmount + stats.totalExpenses)}</div>
+      <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+        <span>{expenseCount} receipts ({formatCurrency(stats.totalExpenses)})</span>
+        <span className="text-[var(--color-success)] font-semibold">{formatCurrency(stats.paidCameramanAmount)} crew paid</span>
+      </div>
+    </Link>
+  </section>
+);
+
+const FounderApprovalNotice: React.FC<{ pendingCount: number }> = ({ pendingCount }) => pendingCount > 0 ? (
+  <div className="liquid-dispatch-panel p-4 rounded-xl flex items-center justify-between gap-3 text-xs">
+    <div className="flex items-center gap-3">
+      <ShieldCheck className="w-4 h-4 text-[var(--color-warning)] shrink-0" />
+      <div>
+        <h4 className="font-semibold text-[var(--color-text-primary)] uppercase tracking-wider text-[11px]">Governance Action Required</h4>
+        <p className="text-[var(--color-text-secondary)]">
+          Admin has submitted <span className="font-bold text-[var(--color-text-primary)]">{pendingCount} record update{pendingCount > 1 ? 's' : ''}</span> for your review and approval.
+        </p>
+      </div>
+    </div>
+    <Link to="/approvals" className="px-3 py-1.5 text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded transition-colors shrink-0 flex items-center gap-1">
+      <span>Review Approvals</span> <ArrowRight className="w-3.5 h-3.5" />
+    </Link>
+  </div>
+) : (
+  <div className="liquid-glass-inner p-3.5 rounded-xl flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+    <span className="flex items-center gap-2 font-medium">
+      <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" />
+      <span>No approvals requiring your attention. All admin submissions reviewed.</span>
+    </span>
+    <Link to="/approvals" className="font-semibold text-[var(--color-text-primary)] hover:underline">Approvals Desk &rarr;</Link>
+  </div>
+);
+
+interface FounderBusinessSummaryProps {
+  stats: DashboardData['dashboardStats'];
+  clients: DashboardData['clients'];
+  shoots: DashboardData['shoots'];
+  collectionRate: number;
+  netOperatingCashflow: number;
+}
+
+const FounderBusinessSummary: React.FC<FounderBusinessSummaryProps> = ({
+  stats,
+  clients,
+  shoots,
+  collectionRate,
+  netOperatingCashflow,
+}) => (
+  <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="liquid-content-panel p-4 space-y-3">
+      <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
+        <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+          <Receipt className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          <span>Financial Snapshot</span>
+        </h3>
+        <span className="text-xs text-[var(--color-text-secondary)] font-mono">System Ledger</span>
+      </div>
+      <div className="space-y-2 text-xs">
+        <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
+          <span className="text-[var(--color-text-secondary)]">Client Revenue Received</span>
+          <span className="font-mono font-semibold text-[var(--color-success)]">{formatCurrency(stats.paidClientAmount)}</span>
+        </div>
+        <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
+          <span className="text-[var(--color-text-secondary)]">Outstanding Receivables</span>
+          <span className="font-mono font-semibold text-[var(--color-warning)]">{formatCurrency(stats.pendingClientAmount)}</span>
+        </div>
+        <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
+          <span className="text-[var(--color-text-secondary)]">Crew Payouts Paid</span>
+          <span className="font-mono text-[var(--color-error)]">-{formatCurrency(stats.paidCameramanAmount)}</span>
+        </div>
+        <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
+          <span className="text-[var(--color-text-secondary)]">Logged Operating Expenses</span>
+          <span className="font-mono text-[var(--color-error)]">-{formatCurrency(stats.totalExpenses)}</span>
+        </div>
+        <div className="flex justify-between pt-2 text-sm font-bold">
+          <span className="text-[var(--color-text-primary)]">Net Operating Cashflow</span>
+          <span className={`font-mono ${netOperatingCashflow >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+            {formatCurrency(netOperatingCashflow)}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div className="liquid-content-panel p-4 space-y-3">
+      <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
+        <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+          <PieChart className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          <span>Business Overview KPIs</span>
+        </h3>
+        <span className="text-xs text-[var(--color-text-secondary)] font-mono">Agency Totals</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5 text-xs">
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-text-secondary)] font-medium block">Active Client Brands</span>
+          <span className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{clients.filter(client => client.status === 'active').length}</span>
+        </div>
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-text-secondary)] font-medium block">Total Production Jobs</span>
+          <span className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{shoots.length}</span>
+        </div>
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-success)] font-medium block">Completed Shoots</span>
+          <span className="text-xl font-bold font-sans text-[var(--color-success)]">{shoots.filter(shoot => shoot.status === 'done').length}</span>
+        </div>
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-accent)] font-medium block">Collection Rate</span>
+          <span className="text-xl font-bold font-sans text-[var(--color-accent)]">{collectionRate}%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+interface AdminResourceStatsProps {
+  deliverablesStats: ReturnType<typeof useDashboardMetrics>['deliverablesStats'];
+  crewAvailabilityStats: ReturnType<typeof useDashboardMetrics>['crewAvailabilityStats'];
+  shootsWithoutCrewCount: number;
+}
+
+const AdminResourceStats: React.FC<AdminResourceStatsProps> = ({
+  deliverablesStats,
+  crewAvailabilityStats,
+  shootsWithoutCrewCount,
+}) => (
+  <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
+      <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
+        <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          <span>Deliverables Tracker</span>
+        </h3>
+        <Link to="/shoots" className="text-xs text-[var(--color-text-primary)] hover:underline font-semibold">View Shoots &rarr;</Link>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-text-secondary)] font-medium block">Total Assets</span>
+          <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.totalDeliverablesCount}</div>
+        </div>
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-text-secondary)] font-medium block">Shoots Tracked</span>
+          <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.shootsWithDeliverablesCount}</div>
+        </div>
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-text-secondary)] font-medium block">With Cloud Link</span>
+          <div className="text-xl font-bold font-sans text-[var(--color-text-secondary)]">{deliverablesStats.withCloudLinkCount}</div>
+        </div>
+      </div>
+    </div>
+    <div className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
+      <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
+        <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+          <Users className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          <span>Crew Availability Summary</span>
+        </h3>
+        <Link to="/cameramen" className="text-xs text-[var(--color-text-primary)] hover:underline font-semibold">Manage Crew &rarr;</Link>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5 text-center text-xs">
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-text-secondary)] font-medium block">Total Roster</span>
+          <div className="text-xl font-bold font-sans text-[var(--color-text-primary)]">{crewAvailabilityStats.totalCrew}</div>
+        </div>
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-success)] font-medium block">Assigned Crew</span>
+          <div className="text-xl font-bold font-sans text-[var(--color-success)]">{crewAvailabilityStats.assignedCrewCount}</div>
+        </div>
+        <div className="liquid-glass-inner p-3 rounded-xl space-y-1">
+          <span className="text-[var(--color-error)] font-medium block">Unavailable Today</span>
+          <div className="text-xl font-bold font-sans text-[var(--color-error)]">{crewAvailabilityStats.unavailableCrewCount}</div>
+        </div>
+      </div>
+      {shootsWithoutCrewCount > 0 && (
+        <p className="liquid-glass-status text-xs text-[var(--color-error)] font-medium text-center py-1 rounded-lg">
+          {shootsWithoutCrewCount} upcoming shoot(s) require crew assignment
+        </p>
+      )}
+    </div>
+  </section>
+);
+
+interface AdminMetricCardsProps {
+  stats: DashboardData['dashboardStats'];
+  dispatchCount: number;
+  scheduledCount: number;
+  deliverablesStats: ReturnType<typeof useDashboardMetrics>['deliverablesStats'];
+  pendingSubmissions: number;
+}
+
+const AdminMetricCards: React.FC<AdminMetricCardsProps> = ({
+  stats,
+  dispatchCount,
+  scheduledCount,
+  deliverablesStats,
+  pendingSubmissions,
+}) => (
+  <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <Link to="/shoots" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Shoots Today / Tomorrow</span>
+        <Film className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{dispatchCount}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]"><span>{scheduledCount} total active scheduled</span></div>
+    </Link>
+    <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Invoices To Chase</span>
+        <TrendingUp className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(stats.pendingClientAmount)}</div>
+      <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+        <span>{stats.pendingClientCount} pending</span>
+        {stats.overdueIncomingCount > 0 && <span className="text-[var(--color-error)] font-semibold">{stats.overdueIncomingCount} overdue</span>}
+      </div>
+    </Link>
+    <Link to="/payments" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Crew Payouts Status</span>
+        <TrendingDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{formatCurrency(stats.pendingCameramanAmount)}</div>
+      <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+        <span>{stats.pendingCameramanCount} pending</span>
+        <span className="text-[var(--color-success)] font-semibold">{formatCurrency(stats.paidCameramanAmount)} paid</span>
+      </div>
+    </Link>
+    <Link to="/shoots" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Deliverables Assets</span>
+        <Clock className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{deliverablesStats.totalDeliverablesCount}</div>
+      <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+        <span>{deliverablesStats.shootsWithDeliverablesCount} shoots with assets</span>
+        <span>{deliverablesStats.withCloudLinkCount} with link</span>
+      </div>
+    </Link>
+    <Link to="/approvals" onPointerMove={updateMetricHighlight} className="liquid-metric-card p-4 space-y-2 block">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">My Submissions</span>
+        <CheckSquare className="w-4 h-4 text-[var(--color-text-secondary)]" />
+      </div>
+      <div className="text-2xl font-bold font-sans text-[var(--color-text-primary)]">{pendingSubmissions}</div>
+      <div className="text-xs text-[var(--color-text-secondary)]"><span>Awaiting Founder review</span></div>
+    </Link>
+  </section>
+);
+
+const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
+  dispatchShoots,
+  todayStr,
+  clientMap,
+  cameramanMap,
+  onCheckIn,
+}) => (
+  <section className="liquid-content-panel liquid-dispatch-panel overflow-hidden">
+    <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
+      <div>
+        <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+          <UserCheck className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          <span>Daily Crew Dispatch Console</span>
+        </h3>
+        <p className="text-xs text-[var(--color-text-secondary)]">Send prefilled call-sheets and WhatsApp reminders to videographers for immediate shoots (Today & Tomorrow)</p>
+      </div>
+      <span className="liquid-glass-status px-2.5 py-1 rounded-full text-xs font-medium text-[var(--color-text-secondary)]">
+        {dispatchShoots.length} Immediate Shoot{dispatchShoots.length === 1 ? '' : 's'}
+      </span>
+    </div>
+
+    {dispatchShoots.length === 0 ? (
+      <div className="liquid-glass-inner m-3 p-6 text-center text-xs text-[var(--color-text-secondary)] space-y-1 rounded-xl">
+        <CheckCircle2 className="w-6 h-6 mx-auto text-[var(--color-success)] mb-1" />
+        <p className="font-semibold text-[var(--color-text-primary)]">No shoots scheduled for today or tomorrow.</p>
+        <p>All crew dispatches are up to date.</p>
+      </div>
+    ) : (
+      <div className="divide-y divide-[var(--color-border)] text-xs">
+        {dispatchShoots.map(shoot => {
+          const client = clientMap.get(shoot.clientId);
+          return (
+            <div key={shoot.id} className="liquid-glass-inner m-3 p-4 flex items-center justify-between gap-4 rounded-xl hover:bg-white/[0.025] transition-colors">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm text-[var(--color-text-primary)]">{client?.name || 'Unknown Client'}</span>
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${shoot.date === todayStr ? 'text-[var(--color-error)]' : 'text-[var(--color-text-secondary)]'}`}>
+                    • {shoot.date === todayStr ? 'Today' : 'Tomorrow'}
+                  </span>
+                  <span className="font-mono text-[var(--color-text-secondary)]">{shoot.date}</span>
+                </div>
+                <div className="flex items-center gap-4 text-[var(--color-text-secondary)]">
+                  <span className="flex items-center gap-1 font-mono"><Clock className="w-3.5 h-3.5" />{formatTime12h(shoot.callTime)}</span>
+                  <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{shoot.location}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="space-y-1 text-right">
+                  {shoot.assignments && shoot.assignments.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {shoot.assignments.map((assignment, index) => {
+                        const cameraman = cameramanMap.get(assignment.cameramanId);
+                        const whatsappUrl = cameraman ? buildCameramanScheduleWhatsAppUrl({
+                          phone: cameraman.phone,
+                          cameramanName: cameraman.name,
+                          clientName: client?.name || 'Client',
+                          date: shoot.date,
+                          callTime: shoot.callTime,
+                          location: shoot.location,
+                        }) : null;
+                        return (
+                          <div key={index} className="liquid-glass-status flex items-center gap-1.5 px-2.5 py-1 rounded-lg">
+                            <span className="font-medium text-[var(--color-text-primary)]">{cameraman?.name || 'Unassigned'}</span>
+                            {assignment.checkedInAt ? (
+                              <span className="text-[10px] text-[var(--color-success)] font-semibold">✓ Checked In</span>
+                            ) : (
+                              <button type="button" onClick={() => onCheckIn(shoot.id, index, true)} className="text-[10px] text-[var(--color-warning)] hover:underline font-medium">Check In</button>
+                            )}
+                            {whatsappUrl && (
+                              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-success)] hover:underline flex items-center gap-0.5 font-semibold ml-1" title="Send WhatsApp Call Sheet">
+                                <MessageSquare className="w-3 h-3" /> WhatsApp
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-[var(--color-error)] font-medium">No crew assigned</span>
+                  )}
+                </div>
+                <Link to={`/shoots/${shoot.id}`} className="liquid-glass-button px-3 py-1.5 text-xs font-semibold text-[var(--color-text-primary)] rounded-lg shrink-0">
+                  View Shoot &rarr;
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </section>
+);
+
+const OperationalExceptionsPanel: React.FC<{
+  exceptions: ReturnType<typeof useDashboardMetrics>['operationalExceptions'];
+}> = ({ exceptions }) => (
+  <section className="liquid-content-panel liquid-dispatch-panel p-4 space-y-3">
+    <div className="liquid-panel-header flex items-center justify-between -mx-4 -mt-4 px-4 py-3.5 mb-3 border-b pb-2.5 rounded-t-[inherit]">
+      <h3 className="font-serif text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+        <AlertTriangle className="w-4 h-4 text-[var(--color-warning)]" />
+        <span>Action Required (Operational Exceptions)</span>
+      </h3>
+      <span className="text-xs text-[var(--color-text-secondary)]">{exceptions.length} issue{exceptions.length === 1 ? '' : 's'}</span>
+    </div>
+    {exceptions.length === 0 ? (
+      <div className="liquid-glass-inner p-3 text-center text-xs text-[var(--color-success)] font-medium rounded-xl">
+        ✨ All caught up! No operational actions required.
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        {exceptions.map(item => (
+          <div key={item.id} className="liquid-glass-inner p-2.5 rounded-xl flex items-center justify-between text-xs">
+            <span className="font-medium text-[var(--color-text-primary)] flex items-center gap-2">
+              <span className={`w-1.5 h-1.5 rounded-full ${item.type === 'error' ? 'bg-[var(--color-error)]' : 'bg-[var(--color-warning)]'}`} />
+              <span>{item.label}</span>
+            </span>
+            <Link to={item.link} className="font-medium text-[var(--color-text-primary)] hover:underline shrink-0 ml-2">
+              View &rarr;
+            </Link>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+);
+
+const MyChangeRequestsTable: React.FC<{ requests: DashboardData['changeRequests'] }> = ({ requests }) => (
+  <section className="liquid-content-panel liquid-dispatch-panel overflow-hidden">
+    <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
+      <div>
+        <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)]">My Change Requests Submitted for Approval</h3>
+        <p className="text-xs text-[var(--color-text-secondary)]">Status of record additions/edits submitted to Founder governance</p>
+      </div>
+      <Link to="/approvals" className="text-xs font-semibold text-[var(--color-text-primary)] hover:underline">View All &rarr;</Link>
+    </div>
+    {requests.length === 0 ? (
+      <div className="p-6 text-center text-xs text-[var(--color-text-secondary)]">No change requests submitted yet.</div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
+          <thead className="bg-[var(--color-background)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">
+            <tr>
+              <th className="px-5 py-3 font-semibold">Target Item</th>
+              <th className="px-5 py-3 font-semibold">Action</th>
+              <th className="px-5 py-3 font-semibold">Submission Date</th>
+              <th className="px-5 py-3 font-semibold">Status</th>
+              <th className="px-5 py-3 font-semibold">Review Note</th>
+              <th className="px-5 py-3 font-semibold text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border)]">
+            {requests.map(request => (
+              <tr key={request.id} className="hover:bg-[var(--color-background)] transition-colors">
+                <td className="px-5 py-3 font-medium text-[var(--color-text-primary)] uppercase">{formatSingularCollection(request.targetCollection)}</td>
+                <td className="px-5 py-3 capitalize font-medium">{request.action}</td>
+                <td className="px-5 py-3 font-mono text-[var(--color-text-secondary)]">{new Date(request.requestedAt).toLocaleDateString()}</td>
+                <td className="px-5 py-3">
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${request.status === 'approved' ? 'text-[var(--color-success)]' : request.status === 'rejected' ? 'text-[var(--color-error)]' : 'text-[var(--color-warning)]'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${request.status === 'approved' ? 'bg-[var(--color-success)]' : request.status === 'rejected' ? 'bg-[var(--color-error)]' : 'bg-[var(--color-warning)]'}`} />
+                    <span className="capitalize">{request.status}</span>
+                  </span>
+                </td>
+                <td className="px-5 py-3 text-[var(--color-text-secondary)] italic max-w-xs truncate">{request.reviewNote || '—'}</td>
+                <td className="px-5 py-3 text-right">
+                  {request.status === 'rejected' ? (
+                    <Link to="/approvals" className="px-2.5 py-1 text-xs font-semibold text-white bg-[var(--color-warning)] hover:opacity-90 rounded transition-opacity">
+                      Edit & Resubmit
+                    </Link>
+                  ) : (
+                    <Link to="/approvals" className="text-xs font-medium text-[var(--color-text-primary)] hover:underline">Details &rarr;</Link>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+);
+
+const ClientProfitabilityTable: React.FC<{
+  clients: ReturnType<typeof useDashboardMetrics>['clientProfitabilityRanking'];
+}> = ({ clients }) => (
+  <section className="liquid-content-panel overflow-hidden">
+    <div className="liquid-panel-header px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
+      <div>
+        <h3 className="font-serif text-base font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          <span>Client Profitability & Margin Ranking</span>
+        </h3>
+        <p className="text-xs text-[var(--color-text-secondary)]">Revenue minus crew payouts and direct shoot expenses per client account</p>
+      </div>
+    </div>
+    {clients.length === 0 ? (
+      <div className="p-6 text-center text-xs text-[var(--color-text-secondary)]">No client accounts available.</div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
+          <thead className="bg-[var(--color-background)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">
+            <tr>
+              <th className="px-5 py-3 font-semibold">Client Brand Name</th>
+              <th className="px-5 py-3 font-semibold text-center">Shoots</th>
+              <th className="px-5 py-3 font-semibold text-right">Invoiced Revenue (₹)</th>
+              <th className="px-5 py-3 font-semibold text-right">Total Production Cost (₹)</th>
+              <th className="px-5 py-3 font-semibold text-right">Net Margin (₹)</th>
+              <th className="px-5 py-3 font-semibold text-center">Margin %</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border)]">
+            {clients.map(item => (
+              <tr key={item.client.id} className="hover:bg-[var(--color-background)] transition-colors">
+                <td className="px-5 py-3.5 font-medium text-[var(--color-text-primary)]">
+                  <Link to={`/clients/${item.client.id}`} className="hover:underline">{item.client.name}</Link>
+                </td>
+                <td className="px-5 py-3.5 text-center font-mono">{item.shootsCount}</td>
+                <td className="px-5 py-3.5 text-right font-mono font-semibold text-[var(--color-text-primary)]">{formatCurrency(item.invoicedRevenue)}</td>
+                <td className="px-5 py-3.5 text-right font-mono text-[var(--color-error)]">{formatCurrency(item.totalCosts)}</td>
+                <td className={`px-5 py-3.5 text-right font-mono font-bold ${item.netMargin >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+                  {formatCurrency(item.netMargin)}
+                </td>
+                <td className="px-5 py-3.5 text-center font-mono font-semibold">
+                  <span className={item.marginPercent >= 50 ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]'}>
+                    {item.marginPercent}%
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+);
 
 interface SocialMediaDashboardProps {
   onOpenMobileNav: () => void;

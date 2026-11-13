@@ -6,9 +6,11 @@ import { formatCurrency, parseCurrencyInput } from '../utils/formatCurrency';
 import { formatTime12h } from '../utils/formatTime';
 import { CameramanForm } from '../components/cameramen/CameramanForm';
 import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal';
-import { Shoot } from '../types';
+import { Cameraman, CameramanLedger, Shoot } from '../types';
 import { ArrowLeft, Phone, ExternalLink, Edit2, Edit3, Calendar, MapPin, CheckCircle2, Clock, FileText, Video, Check, X } from 'lucide-react';
 import { FileLink } from '../components/common/FileLink';
+import { getCameramanAssignments, getPendingCameramanRates } from './cameramanDetailLogic';
+import type { CameramanAssignmentItem } from './cameramanDetailLogic';
 
 export const CameramanDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,19 +38,9 @@ export const CameramanDetail: React.FC = () => {
   const ledger = getCameramanLedger(cameraman.id);
   const clientMap = new Map(clients.map(c => [c.id, c.name]));
 
-  const assignedShoots: Array<{ shoot: Shoot; amount: number | null; paid: boolean; paidAt?: string | null; assignmentIndex: number; }> = [];
-  shoots.forEach(shoot => {
-    if (shoot.assignments) {
-      shoot.assignments.forEach((assignment, idx) => {
-        if (assignment.cameramanId === cameraman.id) {
-          assignedShoots.push({ shoot, amount: assignment.amount, paid: assignment.paid, paidAt: assignment.paidAt, assignmentIndex: idx });
-        }
-      });
-    }
-  });
-
-  const pendingRates = assignedShoots.filter(item => item.amount === null);
-  const handleRateSave = async (item: typeof assignedShoots[number]) => {
+  const assignedShoots = getCameramanAssignments(shoots, cameraman.id);
+  const pendingRates = getPendingCameramanRates(assignedShoots);
+  const handleRateSave = async (item: CameramanAssignmentItem) => {
     const amount = Number(rateDrafts[item.shoot.id]);
     if (!Number.isFinite(amount) || amount <= 0) return;
     await handleSetCameramanRate(item.shoot.id, item.assignmentIndex, amount);
@@ -71,171 +63,46 @@ export const CameramanDetail: React.FC = () => {
       />
 
       <main className="flex-1 p-4 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="liquid-content-panel p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
-                Freelance Operator
-              </span>
-              <span className="text-[11px] text-[var(--color-text-muted)] font-mono">ID: {cameraman.id.slice(0, 8)}</span>
-            </div>
-            <div>
-              <h2 className="font-serif text-2xl font-bold text-[var(--color-text)] tracking-tight">{cameraman.name}</h2>
-              <div className="mt-2 space-y-1.5 text-xs text-[var(--color-text-secondary)]">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-                  <a href={`tel:${cameraman.phone}`} className="hover:underline font-medium">{cameraman.phone}</a>
-                </div>
-                <div className="flex items-center gap-2 font-mono">
-                  <span className="text-[var(--color-text-secondary)]">Standard Base Rate:</span>
-                  <span className="font-bold text-[var(--color-text)]">{formatCurrency(cameraman.rate)} / day</span>
-                </div>
-                {cameraman.contractLink ? (
-                  <div className="flex items-center gap-2">
-                    <ExternalLink className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
-                    <FileLink fileRef={cameraman.contractLink} className="text-[var(--color-accent)] hover:underline font-medium truncate">Freelancer NDA / Agreement &rarr;</FileLink>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-[var(--color-text-muted)] italic">No contract/NDA document linked.</p>
-                )}
-              </div>
-            </div>
-            {cameraman.notes && (
-              <div className="pt-3 border-t border-[var(--color-border)]">
-                <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">Gear Specialties & Notes</span>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap">{cameraman.notes}</p>
-              </div>
-            )}
-          </div>
+        <CameramanProfileSummary cameraman={cameraman} ledger={ledger} assignedCount={assignedShoots.length} />
 
-          <div className="liquid-content-panel lg:col-span-2 p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Cameraman Disbursement Ledger</h3>
-                  <p className="text-xs text-[var(--color-text-secondary)]">Aggregated shoot assignments and payout records</p>
-                </div>
-                <span className="text-xs font-medium text-[var(--color-text-secondary)] font-mono bg-[var(--color-bg)] px-2.5 py-1 rounded border border-[var(--color-border)]">{assignedShoots.length} Assigned Jobs</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="p-4 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)]">
-                  <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block">Total Assigned Payouts</span>
-                  <span className="text-xl font-bold font-serif text-[var(--color-text)] block mt-1">{formatCurrency(ledger.totalAssigned)}</span>
-                </div>
-                <div className="p-4 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)]">
-                  <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block">Total Paid Out</span>
-                  <span className="text-xl font-bold font-serif text-emerald-600 dark:text-emerald-500 block mt-1">{formatCurrency(ledger.totalPaid)}</span>
-                </div>
-                <div className="p-4 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)]">
-                  <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block">Balance Outstanding</span>
-                  <span className={`text-xl font-bold font-serif block mt-1 ${ledger.outstanding > 0 ? 'text-red-600 dark:text-red-400' : 'text-[var(--color-text-secondary)]'}`}>{formatCurrency(ledger.outstanding)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-              <span>Disbursement Method: Direct Bank / UPI Transfer</span>
-              {ledger.outstanding === 0 && ledger.totalAssigned > 0 && (
-                <span className="text-emerald-600 dark:text-emerald-500 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> All crew payouts settled
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <CameramanAssignmentsTable
+          cameramanName={cameraman.name}
+          assignments={assignedShoots}
+          clientMap={clientMap}
+          editingRowKey={editingRowKey}
+          editingAmount={editingAmount}
+          onAmountChange={setEditingAmount}
+          onSaveRate={async item => {
+            await handleSetCameramanRate(item.shoot.id, item.assignmentIndex, editingAmount);
+            setEditingRowKey(null);
+          }}
+          onCancelEdit={() => setEditingRowKey(null)}
+          onStartEdit={item => {
+            setEditingRowKey(`${item.shoot.id}-${item.assignmentIndex}`);
+            setEditingAmount(item.amount || 0);
+          }}
+          onTogglePayment={item => handleToggleCameramanPayment(item.shoot.id, item.assignmentIndex, true)}
+          onToggleCheckIn={item => handleToggleCameramanCheckIn(item.shoot.id, item.assignmentIndex, !item.shoot.assignments[item.assignmentIndex].checkedInAt)}
+          onOpenReceipt={item => {
+            if (item.amount !== null) {
+              setReceiptModalShoot({ shoot: item.shoot, amount: item.amount, paid: item.paid, paidAt: item.paidAt, assignmentIndex: item.assignmentIndex });
+            }
+          }}
+        />
 
-        <section className="liquid-table-container overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
-            <div>
-              <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Shoot Assignments & Payout Vouchers</h3>
-              <p className="text-xs text-[var(--color-text-secondary)]">History of shoots worked by {cameraman.name} with custom shoot rates</p>
-            </div>
-          </div>
-          {assignedShoots.length === 0 ? (
-            <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">This cameraman has not been assigned to any shoot jobs yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
-                <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">
-                  <tr>
-                    <th className="px-6 py-3.5 font-semibold">Shoot Date</th>
-                    <th className="px-6 py-3.5 font-semibold">Client</th>
-                    <th className="px-6 py-3.5 font-semibold">Location</th>
-                    <th className="px-6 py-3.5 font-semibold text-right">Agreed Shoot Payout</th>
-                    <th className="px-6 py-3.5 font-semibold text-center">Payout Status</th>
-                    <th className="px-6 py-3.5 font-semibold text-right">Receipt / Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)]">
-                  {assignedShoots.map(item => (
-                    <CameramanAssignmentRow
-                      key={`${item.shoot.id}-${item.assignmentIndex}`}
-                      item={item}
-                      clientName={clientMap.get(item.shoot.clientId) || 'Client'}
-                      isEditing={editingRowKey === `${item.shoot.id}-${item.assignmentIndex}`}
-                      editingAmount={editingAmount}
-                      onAmountChange={setEditingAmount}
-                      onSaveRate={async () => {
-                        await handleSetCameramanRate(item.shoot.id, item.assignmentIndex, editingAmount);
-                        setEditingRowKey(null);
-                      }}
-                      onCancelEdit={() => setEditingRowKey(null)}
-                      onStartEdit={() => {
-                        setEditingRowKey(`${item.shoot.id}-${item.assignmentIndex}`);
-                        setEditingAmount(item.amount || 0);
-                      }}
-                      onTogglePayment={() => handleToggleCameramanPayment(item.shoot.id, item.assignmentIndex, true)}
-                      onToggleCheckIn={() => handleToggleCameramanCheckIn(item.shoot.id, item.assignmentIndex, !item.shoot.assignments[item.assignmentIndex].checkedInAt)}
-                      onOpenReceipt={() => item.amount !== null && setReceiptModalShoot({ shoot: item.shoot, amount: item.amount, paid: item.paid, paidAt: item.paidAt, assignmentIndex: item.assignmentIndex })}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <section className="liquid-table-container overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
-            <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Pending Rates</h3>
-            <p className="text-xs text-[var(--color-text-secondary)]">Set payout amounts after a shoot assignment has been approved.</p>
-          </div>
-          {pendingRates.length === 0 ? <p className="p-6 text-xs text-[var(--color-text-muted)]">No pending payout rates.</p> : (
-            <div className="divide-y divide-[var(--color-border)]">
-              {pendingRates.map(item => {
-                const isPendingCR = changeRequests.some(cr => cr.targetCollection === 'shoots' && cr.targetDocId === item.shoot.id && cr.status === 'pending');
-                return (
-                  <div key={`${item.shoot.id}-${item.assignmentIndex}`} className="p-4 flex flex-wrap items-center gap-3">
-                    <div className="flex-1 min-w-48"><p className="text-sm font-semibold text-[var(--color-text)]">{item.shoot.date} · {item.shoot.location}</p><p className="text-[11px] text-[var(--color-text-muted)]">Payout is not set</p></div>
-                    {isPendingCR ? (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-md text-xs font-medium border border-amber-200 dark:border-amber-800/50">
-                        <Clock className="w-3.5 h-3.5" /> Rate submitted for approval
-                      </div>
-                    ) : (
-                      <>
-                        <input type="number" min="1" value={rateDrafts[item.shoot.id] || ''} onChange={e => setRateDrafts(current => ({ ...current, [item.shoot.id]: e.target.value }))} placeholder="Amount (₹)" className="w-36 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)]" />
-                        <button type="button" onClick={() => handleRateSave(item)} className="px-3 py-2 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md">Save Rate</button>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        <PendingCameramanRates
+          pendingRates={pendingRates}
+          changeRequests={changeRequests}
+          rateDrafts={rateDrafts}
+          onDraftChange={(shootId, value) => setRateDrafts(current => ({ ...current, [shootId]: value }))}
+          onSaveRate={handleRateSave}
+        />
       </main>
 
       <CameramanForm isOpen={isEditFormOpen} onClose={() => setIsEditFormOpen(false)} initialCameraman={cameraman} />
       {receiptModalShoot && <InvoicePreviewModal isOpen={Boolean(receiptModalShoot)} onClose={() => setReceiptModalShoot(null)} type="cameraman_receipt" cameraman={cameraman} shoot={receiptModalShoot.shoot} assignmentAmount={receiptModalShoot.amount} assignmentPaid={receiptModalShoot.paid} assignmentPaidAt={receiptModalShoot.paidAt} assignmentIndex={receiptModalShoot.assignmentIndex} />}
     </div>
   );
-};
-
-type CameramanAssignmentItem = {
-  shoot: Shoot;
-  amount: number | null;
-  paid: boolean;
-  paidAt?: string | null;
-  assignmentIndex: number;
 };
 
 interface CameramanAssignmentRowProps {
@@ -251,6 +118,213 @@ interface CameramanAssignmentRowProps {
   onToggleCheckIn: () => void;
   onOpenReceipt: () => void;
 }
+
+interface CameramanAssignmentsTableProps {
+  cameramanName: string;
+  assignments: CameramanAssignmentItem[];
+  clientMap: Map<string, string>;
+  editingRowKey: string | null;
+  editingAmount: number;
+  onAmountChange: (amount: number) => void;
+  onSaveRate: (item: CameramanAssignmentItem) => Promise<void>;
+  onCancelEdit: () => void;
+  onStartEdit: (item: CameramanAssignmentItem) => void;
+  onTogglePayment: (item: CameramanAssignmentItem) => Promise<void>;
+  onToggleCheckIn: (item: CameramanAssignmentItem) => void;
+  onOpenReceipt: (item: CameramanAssignmentItem) => void;
+}
+
+interface PendingCameramanRatesProps {
+  pendingRates: CameramanAssignmentItem[];
+  changeRequests: ReturnType<typeof useData>['changeRequests'];
+  rateDrafts: Record<string, string>;
+  onDraftChange: (shootId: string, value: string) => void;
+  onSaveRate: (item: CameramanAssignmentItem) => Promise<void>;
+}
+
+const PendingCameramanRates: React.FC<PendingCameramanRatesProps> = ({
+  pendingRates,
+  changeRequests,
+  rateDrafts,
+  onDraftChange,
+  onSaveRate,
+}) => (
+  <section className="liquid-table-container overflow-hidden">
+    <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
+      <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Pending Rates</h3>
+      <p className="text-xs text-[var(--color-text-secondary)]">Set payout amounts after a shoot assignment has been approved.</p>
+    </div>
+    {pendingRates.length === 0 ? <p className="p-6 text-xs text-[var(--color-text-muted)]">No pending payout rates.</p> : (
+      <div className="divide-y divide-[var(--color-border)]">
+        {pendingRates.map(item => {
+          const isPendingCR = changeRequests.some(request =>
+            request.targetCollection === 'shoots' &&
+            request.targetDocId === item.shoot.id &&
+            request.status === 'pending',
+          );
+          return (
+            <div key={`${item.shoot.id}-${item.assignmentIndex}`} className="p-4 flex flex-wrap items-center gap-3">
+              <div className="flex-1 min-w-48">
+                <p className="text-sm font-semibold text-[var(--color-text)]">{item.shoot.date} · {item.shoot.location}</p>
+                <p className="text-[11px] text-[var(--color-text-muted)]">Payout is not set</p>
+              </div>
+              {isPendingCR ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-md text-xs font-medium border border-amber-200 dark:border-amber-800/50">
+                  <Clock className="w-3.5 h-3.5" /> Rate submitted for approval
+                </div>
+              ) : (
+                <>
+                  <input type="number" min="1" value={rateDrafts[item.shoot.id] || ''} onChange={event => onDraftChange(item.shoot.id, event.target.value)} placeholder="Amount (₹)" className="w-36 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-2 text-[var(--color-text)]" />
+                  <button type="button" onClick={() => { void onSaveRate(item); }} className="px-3 py-2 text-xs font-semibold text-white bg-[var(--color-accent)] rounded-md">Save Rate</button>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </section>
+);
+
+const CameramanAssignmentsTable: React.FC<CameramanAssignmentsTableProps> = ({
+  cameramanName,
+  assignments,
+  clientMap,
+  editingRowKey,
+  editingAmount,
+  onAmountChange,
+  onSaveRate,
+  onCancelEdit,
+  onStartEdit,
+  onTogglePayment,
+  onToggleCheckIn,
+  onOpenReceipt,
+}) => (
+  <section className="liquid-table-container overflow-hidden">
+    <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-between">
+      <div>
+        <h3 className="font-serif text-base font-bold text-[var(--color-text)]">Shoot Assignments & Payout Vouchers</h3>
+        <p className="text-xs text-[var(--color-text-secondary)]">History of shoots worked by {cameramanName} with custom shoot rates</p>
+      </div>
+    </div>
+    {assignments.length === 0 ? (
+      <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">This cameraman has not been assigned to any shoot jobs yet.</div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs text-[var(--color-text-secondary)]">
+          <thead className="bg-[var(--color-bg)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)]">
+            <tr>
+              <th className="px-6 py-3.5 font-semibold">Shoot Date</th>
+              <th className="px-6 py-3.5 font-semibold">Client</th>
+              <th className="px-6 py-3.5 font-semibold">Location</th>
+              <th className="px-6 py-3.5 font-semibold text-right">Agreed Shoot Payout</th>
+              <th className="px-6 py-3.5 font-semibold text-center">Payout Status</th>
+              <th className="px-6 py-3.5 font-semibold text-right">Receipt / Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border)]">
+            {assignments.map(item => {
+              const rowKey = `${item.shoot.id}-${item.assignmentIndex}`;
+              return (
+                <CameramanAssignmentRow
+                  key={rowKey}
+                  item={item}
+                  clientName={clientMap.get(item.shoot.clientId) || 'Client'}
+                  isEditing={editingRowKey === rowKey}
+                  editingAmount={editingAmount}
+                  onAmountChange={onAmountChange}
+                  onSaveRate={() => onSaveRate(item)}
+                  onCancelEdit={onCancelEdit}
+                  onStartEdit={() => onStartEdit(item)}
+                  onTogglePayment={() => onTogglePayment(item)}
+                  onToggleCheckIn={() => onToggleCheckIn(item)}
+                  onOpenReceipt={() => onOpenReceipt(item)}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+);
+
+const CameramanProfileSummary: React.FC<{
+  cameraman: Cameraman;
+  ledger: CameramanLedger;
+  assignedCount: number;
+}> = ({ cameraman, ledger, assignedCount }) => (
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="liquid-content-panel p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+          Freelance Operator
+        </span>
+        <span className="text-[11px] text-[var(--color-text-muted)] font-mono">ID: {cameraman.id.slice(0, 8)}</span>
+      </div>
+      <div>
+        <h2 className="font-serif text-2xl font-bold text-[var(--color-text)] tracking-tight">{cameraman.name}</h2>
+        <div className="mt-2 space-y-1.5 text-xs text-[var(--color-text-secondary)]">
+          <div className="flex items-center gap-2">
+            <Phone className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
+            <a href={`tel:${cameraman.phone}`} className="hover:underline font-medium">{cameraman.phone}</a>
+          </div>
+          <div className="flex items-center gap-2 font-mono">
+            <span className="text-[var(--color-text-secondary)]">Standard Base Rate:</span>
+            <span className="font-bold text-[var(--color-text)]">{formatCurrency(cameraman.rate)} / day</span>
+          </div>
+          {cameraman.contractLink ? (
+            <div className="flex items-center gap-2">
+              <ExternalLink className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
+              <FileLink fileRef={cameraman.contractLink} className="text-[var(--color-accent)] hover:underline font-medium truncate">Freelancer NDA / Agreement &rarr;</FileLink>
+            </div>
+          ) : (
+            <p className="text-[11px] text-[var(--color-text-muted)] italic">No contract/NDA document linked.</p>
+          )}
+        </div>
+      </div>
+      {cameraman.notes && (
+        <div className="pt-3 border-t border-[var(--color-border)]">
+          <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">Gear Specialties & Notes</span>
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap">{cameraman.notes}</p>
+        </div>
+      )}
+    </div>
+    <div className="liquid-content-panel lg:col-span-2 p-6 flex flex-col justify-between">
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Cameraman Disbursement Ledger</h3>
+            <p className="text-xs text-[var(--color-text-secondary)]">Aggregated shoot assignments and payout records</p>
+          </div>
+          <span className="text-xs font-medium text-[var(--color-text-secondary)] font-mono bg-[var(--color-bg)] px-2.5 py-1 rounded border border-[var(--color-border)]">{assignedCount} Assigned Jobs</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div className="p-4 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)]">
+            <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block">Total Assigned Payouts</span>
+            <span className="text-xl font-bold font-serif text-[var(--color-text)] block mt-1">{formatCurrency(ledger.totalAssigned)}</span>
+          </div>
+          <div className="p-4 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)]">
+            <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block">Total Paid Out</span>
+            <span className="text-xl font-bold font-serif text-emerald-600 dark:text-emerald-500 block mt-1">{formatCurrency(ledger.totalPaid)}</span>
+          </div>
+          <div className="p-4 bg-[var(--color-bg)] rounded-md border border-[var(--color-border)]">
+            <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block">Balance Outstanding</span>
+            <span className={`text-xl font-bold font-serif block mt-1 ${ledger.outstanding > 0 ? 'text-red-600 dark:text-red-400' : 'text-[var(--color-text-secondary)]'}`}>{formatCurrency(ledger.outstanding)}</span>
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 pt-3 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+        <span>Disbursement Method: Direct Bank / UPI Transfer</span>
+        {ledger.outstanding === 0 && ledger.totalAssigned > 0 && (
+          <span className="text-emerald-600 dark:text-emerald-500 font-semibold flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" /> All crew payouts settled
+          </span>
+        )}
+      </div>
+    </div>
+  </div>
+);
 
 const CameramanAssignmentRow: React.FC<CameramanAssignmentRowProps> = ({
   item, clientName, isEditing, editingAmount, onAmountChange, onSaveRate, onCancelEdit, onStartEdit, onTogglePayment, onToggleCheckIn, onOpenReceipt,

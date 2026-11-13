@@ -3,8 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { canApprove } from '../utils/permissions';
-import { canSubmitForApproval } from '../utils/permissions';
+import { canApprove, canSubmitForApproval } from '../utils/permissions';
 import { Check, X, Eye, MessageSquare, Trash2, AlertTriangle, Clock } from 'lucide-react';
 import { ChangeRequest } from '../types';
 import { ClientForm } from '../components/clients/ClientForm';
@@ -14,14 +13,16 @@ import { ShootForm } from '../components/shoots/ShootForm';
 import { formatSingularCollection } from '../utils/formatCollection';
 import { formatTime12h } from '../utils/formatTime';
 import { formatPerson } from '../utils/formatPerson';
+import { filterChangeRequests } from './pendingApprovalsLogic';
+import type { ApprovalTab } from './pendingApprovalsLogic';
 
-const TAB_FILTERS = ['all', 'pending', 'approved', 'rejected'] as const;
+const TAB_FILTERS: ApprovalTab[] = ['all', 'pending', 'approved', 'rejected'];
 
 export const PendingApprovals: React.FC = () => {
   const ctx = useOutletContext<{ onOpenMobileNav: () => void }>();
   const { changeRequests, handleApprove, handleReject, handleDeleteChangeRequest, handleEditAndResubmit } = useData();
   const { user } = useAuth();
-  const [tab, setTab] = useState<typeof TAB_FILTERS[number]>('all');
+  const [tab, setTab] = useState<ApprovalTab>('all');
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
@@ -34,11 +35,8 @@ export const PendingApprovals: React.FC = () => {
   const [resubmission, setResubmission] = useState<ChangeRequest | null>(null);
 
   const isSubmitter = Boolean(user && canSubmitForApproval(user.role));
-  const visibleRequests = isSubmitter && !canApprove(user!.role)
-    ? changeRequests.filter(cr => cr.requestedBy === user?.uid)
-    : changeRequests;
-  const filtered = visibleRequests.filter(cr => tab === 'all' || cr.status === tab);
   const isFounder = user ? canApprove(user.role) : false;
+  const filtered = filterChangeRequests(changeRequests, tab, user?.uid, isSubmitter, isFounder);
 
   const openRejectModal = (id: string) => {
     setRejectId(id);
@@ -90,17 +88,7 @@ export const PendingApprovals: React.FC = () => {
     <div className="flex-1 flex flex-col min-h-0">
       <Header title="Pending Approvals" subtitle="Review and manage change requests" onOpenMobile={ctx?.onOpenMobileNav} />
       <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-        {/* Tabs */}
-        <div className="liquid-control-tray flex gap-1 mb-6 p-1 w-fit">
-          {TAB_FILTERS.map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-3.5 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${
-                tab === t ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-xs font-semibold' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-              }`}>
-              {t} {t !== 'all' && <span className="ml-1 opacity-60">({changeRequests.filter(cr => cr.status === t).length})</span>}
-            </button>
-          ))}
-        </div>
+        <ApprovalTabs requests={changeRequests} tab={tab} onTabChange={setTab} />
 
         {filtered.length === 0 ? (
           <div className="liquid-content-panel text-center py-16">
@@ -108,156 +96,297 @@ export const PendingApprovals: React.FC = () => {
             <p className="text-sm font-medium text-[var(--color-text-muted)]">No {tab === 'all' ? '' : tab} change requests found</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filtered.map(cr => (
-              <CRCard key={cr.id} cr={cr} isFounder={isFounder} canResubmit={Boolean(user && canSubmitForApproval(user.role))}
-                onView={() => setViewModalCR(cr)}
-                onApprove={() => handleApprove(cr.id)}
-                onReject={() => openRejectModal(cr.id)}
-                onDelete={() => setDeleteConfirmId(cr.id)}
-                onResubmit={() => setResubmission(cr)}
-                statusBadge={statusBadge} />
-            ))}
-          </div>
+          <ApprovalRequestList
+            requests={filtered}
+            isFounder={isFounder}
+            canResubmit={isSubmitter}
+            onView={setViewModalCR}
+            onApprove={handleApprove}
+            onReject={openRejectModal}
+            onDelete={setDeleteConfirmId}
+            onResubmit={setResubmission}
+            statusBadge={statusBadge}
+          />
         )}
 
-        {/* REJECT MODAL */}
-        {rejectId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isRejecting && setRejectId(null)} />
-            <div className="liquid-dialog relative rounded-2xl max-w-md w-full p-6 z-10 space-y-4">
-              <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Reject Request</h3>
-              {rejectError && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-xs text-red-800 dark:text-red-300">
-                  {rejectError}
-                </div>
-              )}
-              <textarea value={rejectNote} onChange={e => setRejectNote(e.target.value)} rows={3} disabled={isRejecting}
-                placeholder="Reason for rejection..."
-                className="w-full px-3 py-2 text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-50" />
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setRejectId(null)} disabled={isRejecting} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-md disabled:opacity-50">Cancel</button>
-                <button type="button" onClick={doReject} disabled={isRejecting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50 shadow-xs">
-                  {isRejecting ? 'Rejecting...' : 'Reject'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <RejectRequestModal
+          isOpen={Boolean(rejectId)}
+          isRejecting={isRejecting}
+          error={rejectError}
+          note={rejectNote}
+          onNoteChange={setRejectNote}
+          onClose={() => setRejectId(null)}
+          onReject={doReject}
+        />
 
-        {/* DELETE CONFIRMATION MODAL */}
-        {deleteConfirmId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isDeleting && setDeleteConfirmId(null)} />
-            <div className="liquid-dialog relative rounded-2xl max-w-md w-full p-6 z-10 space-y-4">
-              <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
-                <AlertTriangle className="w-6 h-6 shrink-0" />
-                <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Delete Change Request?</h3>
-              </div>
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                Are you sure you want to permanently delete this change request? This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setDeleteConfirmId(null)} disabled={isDeleting} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-md disabled:opacity-50">Cancel</button>
-                <button type="button" onClick={doDelete} disabled={isDeleting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50 shadow-xs">
-                  {isDeleting ? 'Deleting...' : 'Delete Request'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <DeleteRequestModal
+          isOpen={Boolean(deleteConfirmId)}
+          isDeleting={isDeleting}
+          onClose={() => setDeleteConfirmId(null)}
+          onDelete={doDelete}
+        />
 
-        {/* VIEW DETAILS POPUP MODAL */}
-        {viewModalCR && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setViewModalCR(null)} />
-            <div className="liquid-dialog relative rounded-2xl max-w-2xl w-full p-6 z-10 space-y-5 my-8">
-              
-              {/* Header */}
-              <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] pb-4">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className={statusBadge(viewModalCR.status)}>{viewModalCR.status}</span>
-                    <span className="text-xs text-[var(--color-text-muted)] uppercase font-semibold">
-                      {viewModalCR.action} {formatSingularCollection(viewModalCR.targetCollection)}
-                    </span>
-                    {viewModalCR.revisionCount > 0 && <span className="text-xs text-blue-500 font-semibold">v{viewModalCR.revisionCount + 1}</span>}
-                  </div>
-                  <h3 className="font-serif text-xl font-bold text-[var(--color-text)]">
-                    {(viewModalCR.proposedData?.name as string) || (viewModalCR.proposedData?.description as string) || `${viewModalCR.targetCollection} ${viewModalCR.action}`}
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Requested by <span className="font-medium text-[var(--color-text-secondary)]">{formatPerson(viewModalCR.requestedByName, viewModalCR.requestedByRole)}</span> on {new Date(viewModalCR.requestedAt).toLocaleString('en-IN')}
-                  </p>
-                  {viewModalCR.reviewedBy && (
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                      Reviewed by <span className="font-medium text-[var(--color-text-secondary)]">{formatPerson(viewModalCR.reviewedByName, viewModalCR.reviewedByRole)}</span>
-                      {viewModalCR.reviewedAt && ` on ${new Date(viewModalCR.reviewedAt).toLocaleString('en-IN')}`}
-                    </p>
-                  )}
-                </div>
-                <button type="button" onClick={() => setViewModalCR(null)} className="p-1 rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Review Note */}
-              {viewModalCR.reviewNote && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
-                  <MessageSquare className="w-4 h-4 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold block mb-0.5">Review Note:</span>
-                    <span>{viewModalCR.reviewNote}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Proposed Data Grid */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Proposed Field Details</h4>
-                <ProposedDataGrid proposedData={viewModalCR.proposedData} />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--color-border)]">
-                <button type="button" onClick={() => setDeleteConfirmId(viewModalCR.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors">
-                  <Trash2 className="w-4 h-4" /> Delete Request
-                </button>
-
-                <div className="flex items-center gap-2">
-                  {viewModalCR.status === 'rejected' && user && canSubmitForApproval(user.role) && (
-                    <button type="button" onClick={() => { setResubmission(viewModalCR); setViewModalCR(null); }} className="px-4 py-2 text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-md">
-                      Edit & Resubmit
-                    </button>
-                  )}
-                  {isFounder && viewModalCR.status === 'pending' && (
-                    <>
-                      <button type="button" onClick={() => openRejectModal(viewModalCR.id)} className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md">
-                        Reject
-                      </button>
-                      <button type="button" onClick={async () => { await handleApprove(viewModalCR.id); setViewModalCR(null); }} className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md">
-                        Approve
-                      </button>
-                    </>
-                  )}
-                  <button type="button" onClick={() => setViewModalCR(null)} className="px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)] bg-[var(--color-bg)] hover:bg-[var(--color-bg-hover)] border border-[var(--color-border)] rounded-md">
-                    Close
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
+        <ChangeRequestDetailsModal
+          request={viewModalCR}
+          isFounder={isFounder}
+          canResubmit={isSubmitter}
+          onClose={() => setViewModalCR(null)}
+          onDelete={id => setDeleteConfirmId(id)}
+          onResubmit={request => { setResubmission(request); setViewModalCR(null); }}
+          onReject={openRejectModal}
+          onApprove={async id => { await handleApprove(id); setViewModalCR(null); }}
+          statusBadge={statusBadge}
+        />
       </div>
 
-      {resubmission?.targetCollection === 'clients' && <ClientForm isOpen onClose={() => setResubmission(null)} resubmission={resubmission} />}
-      {resubmission?.targetCollection === 'cameramen' && <CameramanForm isOpen onClose={() => setResubmission(null)} resubmission={resubmission} />}
-      {resubmission?.targetCollection === 'expenses' && <ExpenseForm isOpen onClose={() => setResubmission(null)} resubmission={resubmission} />}
-      {resubmission?.targetCollection === 'shoots' && <ShootForm isOpen onClose={() => setResubmission(null)} resubmission={resubmission} />}
+      <ResubmissionForms request={resubmission} onClose={() => setResubmission(null)} />
     </div>
   );
 };
+
+interface ApprovalTabsProps {
+  requests: ChangeRequest[];
+  tab: ApprovalTab;
+  onTabChange: React.Dispatch<React.SetStateAction<ApprovalTab>>;
+}
+
+const ApprovalTabs: React.FC<ApprovalTabsProps> = ({ requests, tab, onTabChange }) => (
+  <div className="liquid-control-tray flex gap-1 mb-6 p-1 w-fit">
+    {TAB_FILTERS.map(status => (
+      <button key={status} onClick={() => onTabChange(status)}
+        className={`px-3.5 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${
+          tab === status ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-xs font-semibold' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+        }`}>
+        {status} {status !== 'all' && <span className="ml-1 opacity-60">({requests.filter(request => request.status === status).length})</span>}
+      </button>
+    ))}
+  </div>
+);
+
+interface ApprovalRequestListProps {
+  requests: ChangeRequest[];
+  isFounder: boolean;
+  canResubmit: boolean;
+  onView: (request: ChangeRequest) => void;
+  onApprove: (id: string) => Promise<void>;
+  onReject: (id: string) => void;
+  onDelete: (id: string) => void;
+  onResubmit: (request: ChangeRequest) => void;
+  statusBadge: (status: string) => string;
+}
+
+const ApprovalRequestList: React.FC<ApprovalRequestListProps> = ({
+  requests,
+  isFounder,
+  canResubmit,
+  onView,
+  onApprove,
+  onReject,
+  onDelete,
+  onResubmit,
+  statusBadge,
+}) => (
+  <div className="space-y-3">
+    {requests.map(request => (
+      <CRCard
+        key={request.id}
+        cr={request}
+        isFounder={isFounder}
+        canResubmit={canResubmit}
+        onView={() => onView(request)}
+        onApprove={() => onApprove(request.id)}
+        onReject={() => onReject(request.id)}
+        onDelete={() => onDelete(request.id)}
+        onResubmit={() => onResubmit(request)}
+        statusBadge={statusBadge}
+      />
+    ))}
+  </div>
+);
+
+interface RejectRequestModalProps {
+  isOpen: boolean;
+  isRejecting: boolean;
+  error: string | null;
+  note: string;
+  onNoteChange: (note: string) => void;
+  onClose: () => void;
+  onReject: () => Promise<void>;
+}
+
+const RejectRequestModal: React.FC<RejectRequestModalProps> = ({
+  isOpen,
+  isRejecting,
+  error,
+  note,
+  onNoteChange,
+  onClose,
+  onReject,
+}) => !isOpen ? null : (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isRejecting && onClose()} />
+    <div className="liquid-dialog relative rounded-2xl max-w-md w-full p-6 z-10 space-y-4">
+      <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Reject Request</h3>
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-xs text-red-800 dark:text-red-300">
+          {error}
+        </div>
+      )}
+      <textarea value={note} onChange={event => onNoteChange(event.target.value)} rows={3} disabled={isRejecting}
+        placeholder="Reason for rejection..."
+        className="w-full px-3 py-2 text-sm bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-50" />
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onClose} disabled={isRejecting} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-md disabled:opacity-50">Cancel</button>
+        <button type="button" onClick={() => { void onReject(); }} disabled={isRejecting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50 shadow-xs">
+          {isRejecting ? 'Rejecting...' : 'Reject'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+interface DeleteRequestModalProps {
+  isOpen: boolean;
+  isDeleting: boolean;
+  onClose: () => void;
+  onDelete: () => Promise<void>;
+}
+
+const DeleteRequestModal: React.FC<DeleteRequestModalProps> = ({
+  isOpen,
+  isDeleting,
+  onClose,
+  onDelete,
+}) => !isOpen ? null : (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isDeleting && onClose()} />
+    <div className="liquid-dialog relative rounded-2xl max-w-md w-full p-6 z-10 space-y-4">
+      <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+        <AlertTriangle className="w-6 h-6 shrink-0" />
+        <h3 className="font-serif text-lg font-bold text-[var(--color-text)]">Delete Change Request?</h3>
+      </div>
+      <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+        Are you sure you want to permanently delete this change request? This action cannot be undone.
+      </p>
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onClose} disabled={isDeleting} className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-md disabled:opacity-50">Cancel</button>
+        <button type="button" onClick={() => { void onDelete(); }} disabled={isDeleting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50 shadow-xs">
+          {isDeleting ? 'Deleting...' : 'Delete Request'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+interface ChangeRequestDetailsModalProps {
+  request: ChangeRequest | null;
+  isFounder: boolean;
+  canResubmit: boolean;
+  onClose: () => void;
+  onDelete: (id: string) => void;
+  onResubmit: (request: ChangeRequest) => void;
+  onReject: (id: string) => void;
+  onApprove: (id: string) => Promise<void>;
+  statusBadge: (status: string) => string;
+}
+
+const ChangeRequestDetailsModal: React.FC<ChangeRequestDetailsModalProps> = ({
+  request,
+  isFounder,
+  canResubmit,
+  onClose,
+  onDelete,
+  onResubmit,
+  onReject,
+  onApprove,
+  statusBadge,
+}) => {
+  if (!request) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="liquid-dialog relative rounded-2xl max-w-2xl w-full p-6 z-10 space-y-5 my-8">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] pb-4">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={statusBadge(request.status)}>{request.status}</span>
+              <span className="text-xs text-[var(--color-text-muted)] uppercase font-semibold">
+                {request.action} {formatSingularCollection(request.targetCollection)}
+              </span>
+              {request.revisionCount > 0 && <span className="text-xs text-blue-500 font-semibold">v{request.revisionCount + 1}</span>}
+            </div>
+            <h3 className="font-serif text-xl font-bold text-[var(--color-text)]">
+              {(request.proposedData?.name as string) || (request.proposedData?.description as string) || `${request.targetCollection} ${request.action}`}
+            </h3>
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">
+              Requested by <span className="font-medium text-[var(--color-text-secondary)]">{formatPerson(request.requestedByName, request.requestedByRole)}</span> on {new Date(request.requestedAt).toLocaleString('en-IN')}
+            </p>
+            {request.reviewedBy && (
+              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                Reviewed by <span className="font-medium text-[var(--color-text-secondary)]">{formatPerson(request.reviewedByName, request.reviewedByRole)}</span>
+                {request.reviewedAt && ` on ${new Date(request.reviewedAt).toLocaleString('en-IN')}`}
+              </p>
+            )}
+          </div>
+          <button type="button" onClick={onClose} className="p-1 rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {request.reviewNote && (
+          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+            <MessageSquare className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold block mb-0.5">Review Note:</span>
+              <span>{request.reviewNote}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Proposed Field Details</h4>
+          <ProposedDataGrid proposedData={request.proposedData} />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--color-border)]">
+          <button type="button" onClick={() => onDelete(request.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors">
+            <Trash2 className="w-4 h-4" /> Delete Request
+          </button>
+          <div className="flex items-center gap-2">
+            {request.status === 'rejected' && canResubmit && (
+              <button type="button" onClick={() => onResubmit(request)} className="px-4 py-2 text-xs font-semibold text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-md">
+                Edit & Resubmit
+              </button>
+            )}
+            {isFounder && request.status === 'pending' && (
+              <>
+                <button type="button" onClick={() => onReject(request.id)} className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md">
+                  Reject
+                </button>
+                <button type="button" onClick={() => { void onApprove(request.id); }} className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md">
+                  Approve
+                </button>
+              </>
+            )}
+            <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)] bg-[var(--color-bg)] hover:bg-[var(--color-bg-hover)] border border-[var(--color-border)] rounded-md">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ResubmissionForms: React.FC<{ request: ChangeRequest | null; onClose: () => void }> = ({ request, onClose }) => (
+  <>
+    {request?.targetCollection === 'clients' && <ClientForm isOpen onClose={onClose} resubmission={request} />}
+    {request?.targetCollection === 'cameramen' && <CameramanForm isOpen onClose={onClose} resubmission={request} />}
+    {request?.targetCollection === 'expenses' && <ExpenseForm isOpen onClose={onClose} resubmission={request} />}
+    {request?.targetCollection === 'shoots' && <ShootForm isOpen onClose={onClose} resubmission={request} />}
+  </>
+);
 
 interface CRCardProps {
   cr: ChangeRequest; isFounder: boolean; canResubmit: boolean;

@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { useData } from '../context/DataContext';
-import { Shoot, Client, Cameraman } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 import { InvoicePreviewModal } from '../components/invoices/InvoicePreviewModal';
 import { generateClientInvoicePDF, generateCameramanPayoutReceiptPDF } from '../utils/pdfGenerator';
@@ -11,21 +10,8 @@ import { FileText, Download, Printer, Calendar, CheckCircle2, Clock } from 'luci
 import { requestInvoiceNumber } from '../supabase/data';
 import { parseBusinessProfileFromSettings } from '../config/business';
 import { useToast } from '../context/ToastContext';
-
-interface InvoiceListItem {
-  id: string;
-  type: 'client_invoice' | 'cameraman_receipt';
-  docNumber: string;
-  recipientName: string;
-  targetId: string;
-  shoot: Shoot;
-  shootDate: string;
-  shootLocation: string;
-  amount: number;
-  isPaid: boolean;
-  paidAt?: string | null;
-  assignmentIndex?: number;
-}
+import { buildInvoiceList, filterInvoiceItems } from './invoicesLogic';
+import type { InvoiceListItem, InvoiceStatusFilter, InvoiceTypeFilter } from './invoicesLogic';
 
 export const Invoices: React.FC = () => {
   const { onOpenMobileNav } = useOutletContext<{ onOpenMobileNav: () => void }>();
@@ -33,8 +19,8 @@ export const Invoices: React.FC = () => {
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'client_invoice' | 'cameraman_receipt'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'pending'>('all');
+  const [typeFilter, setTypeFilter] = useState<InvoiceTypeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatusFilter>('all');
 
   const [activeModalItem, setActiveModalItem] = useState<InvoiceListItem | null>(null);
   const [issuedNumbers, setIssuedNumbers] = useState<Record<string, string>>({});
@@ -44,42 +30,14 @@ export const Invoices: React.FC = () => {
   const cameramanMap = useMemo(() => new Map(cameramen.map(c => [c.id, c])), [cameramen]);
   const businessProfile = parseBusinessProfileFromSettings(settings.find(setting => setting.key === 'businessProfile'));
 
-  const allDocItems: InvoiceListItem[] = useMemo(() => {
-    const list: InvoiceListItem[] = [];
-    shoots.forEach(shoot => {
-      const client = clientMap.get(shoot.clientId);
-      const clientName = client ? client.name : 'Unknown Client';
-      const invNumber = shoot.clientInvoiceNumber || 'Not issued';
-
-      list.push({
-        id: `inv-${shoot.id}`, type: 'client_invoice', docNumber: invNumber, recipientName: clientName, targetId: shoot.clientId, shoot, shootDate: shoot.date, shootLocation: shoot.location, amount: shoot.clientAmount, isPaid: shoot.clientPaid, paidAt: shoot.clientPaidAt,
-      });
-
-      if (shoot.assignments && shoot.assignments.length) {
-        shoot.assignments.forEach((assignment, index) => {
-          const cam = cameramanMap.get(assignment.cameramanId);
-          const camName = cam ? cam.name : 'Crew Member';
-          const receiptNumber = assignment.payoutVoucherNumber || 'Not issued';
-
-          list.push({
-            id: `rcp-${shoot.id}-${assignment.cameramanId}-${index}`, type: 'cameraman_receipt', docNumber: receiptNumber, recipientName: camName, targetId: assignment.cameramanId, shoot, shootDate: shoot.date, shootLocation: shoot.location, amount: assignment.amount || 0, isPaid: assignment.paid, paidAt: assignment.paidAt, assignmentIndex: index,
-          });
-        });
-      }
-    });
-
-    list.sort((a, b) => new Date(b.shootDate).getTime() - new Date(a.shootDate).getTime());
-    return list;
-  }, [shoots, clientMap, cameramanMap]);
-
-  const filteredItems = useMemo(() => {
-    return allDocItems.filter(item => {
-      if (typeFilter !== 'all' && item.type !== typeFilter) return false;
-      if (statusFilter === 'paid' && !item.isPaid) return false;
-      if (statusFilter === 'pending' && item.isPaid) return false;
-      return item.docNumber.toLowerCase().includes(searchQuery.toLowerCase()) || item.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) || item.shootLocation.toLowerCase().includes(searchQuery.toLowerCase()) || item.shootDate.includes(searchQuery);
-    });
-  }, [allDocItems, typeFilter, statusFilter, searchQuery]);
+  const allDocItems = useMemo(
+    () => buildInvoiceList(shoots, clientMap, cameramanMap),
+    [shoots, clientMap, cameramanMap],
+  );
+  const filteredItems = useMemo(
+    () => filterInvoiceItems(allDocItems, typeFilter, statusFilter, searchQuery),
+    [allDocItems, typeFilter, statusFilter, searchQuery],
+  );
 
   const resolveNumber = async (item: InvoiceListItem): Promise<string> => {
     const alreadyIssued = issuedNumbers[item.id] || (item.type === 'client_invoice'
@@ -153,7 +111,7 @@ export const Invoices: React.FC = () => {
             <button type="button" onClick={() => setTypeFilter('cameraman_receipt')} className={`px-3 py-1.5 rounded font-medium transition-colors ${typeFilter === 'cameraman_receipt' ? 'bg-[var(--color-surface)] text-red-600 dark:text-red-400 font-semibold shadow-2xs' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'}`}>Crew Payout Vouchers</button>
           </div>
           <div className="flex items-center gap-2">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'paid' | 'pending')} className="text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-1.5 text-[var(--color-text)] outline-none">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as InvoiceStatusFilter)} className="text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md px-3 py-1.5 text-[var(--color-text)] outline-none">
               <option value="all">All Payment Statuses</option>
               <option value="pending">Pending Payment</option>
               <option value="paid">Settled / Paid</option>
